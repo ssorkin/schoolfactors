@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte';
+  import SearchBox from '$lib/SearchBox.svelte';
 
   let data = $state(null);
-  let query = $state('');
   let hovered = $state(null);
   let selected = $state(null);
 
@@ -24,13 +24,6 @@
       (s) => s.level_adj_eb != null && s.growth_adj_eb != null && s.school_name
     )
   );
-  let matches = $derived(
-    query.length < 2
-      ? []
-      : schools
-          .filter((s) => s.school_name.toLowerCase().includes(query.toLowerCase()))
-          .slice(0, 8)
-  );
   let active = $derived(hovered ?? selected);
 </script>
 
@@ -45,24 +38,14 @@
   meaningfully different from expectation. Hover or search to identify a school.
 </p>
 
+<SearchBox />
+
 {#if data}
-  <div class="search">
-    <input placeholder="Find a school…" bind:value={query} aria-label="Find a school" />
-    {#if matches.length}
-      <ul class="hits">
-        {#each matches as m (m.cds)}
-          <li>
-            <button
-              onclick={() => {
-                selected = m;
-                query = '';
-              }}>{m.school_name} <span>{m.district_name}</span></button
-            >
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  </div>
+  <p class="note">
+    The scatter shows schools with both a level and a growth estimate; schools that
+    test a single grade (most high schools) have no growth axis — find them via
+    search or the table, each has its own page.
+  </p>
 
   <svg viewBox="0 0 {W} {H}" role="img" aria-label="Scatter plot of adjusted level versus adjusted growth for Sonoma County schools">
     <!-- indistinguishable band -->
@@ -109,7 +92,7 @@
 
   {#if active}
     <div class="card">
-      <h3>{active.school_name}</h3>
+      <h3><a href="/school/{active.cds}">{active.school_name}</a></h3>
       <p class="dname">{active.district_name} · {active.n_years} test years · {active.total_scores.toLocaleString()} scores</p>
       <div class="stats">
         <div>
@@ -142,7 +125,7 @@
       <tbody>
         {#each [...schools].sort((a, b) => a.school_name.localeCompare(b.school_name)) as s (s.cds)}
           <tr>
-            <td>{s.school_name}</td>
+            <td><a href="/school/{s.cds}">{s.school_name}</a></td>
             <td>{s.district_name}</td>
             <td class="num">{s.level_adj_eb}</td>
             <td class="num">{s.growth_adj_eb}</td>
@@ -180,50 +163,10 @@
     font-size: 13px;
     fill: #52514e;
   }
-  .search {
-    position: relative;
-    margin: 0.6rem 0 1rem;
-    max-width: 24rem;
-  }
-  input {
-    width: 100%;
-    padding: 0.55rem 0.8rem;
-    font-size: 1rem;
-    border: 1px solid #d8d0c0;
-    border-radius: 8px;
-    background: #fffdf9;
-  }
-  .hits {
-    position: absolute;
-    z-index: 5;
-    left: 0;
-    right: 0;
-    margin: 0.2rem 0 0;
-    padding: 0.25rem;
-    list-style: none;
-    background: #fffdf9;
-    border: 1px solid #d8d0c0;
-    border-radius: 8px;
-    box-shadow: 0 6px 18px rgba(43, 39, 34, 0.12);
-  }
-  .hits button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 0.4rem 0.6rem;
-    border: 0;
-    background: none;
-    font-size: 0.95rem;
-    cursor: pointer;
-    border-radius: 6px;
-  }
-  .hits button:hover {
-    background: #f3ede2;
-  }
-  .hits span {
+  .note {
     color: #898781;
-    font-size: 0.85rem;
-    margin-left: 0.4rem;
+    font-size: 0.88rem;
+    max-width: 44rem;
   }
   .card {
     margin-top: 1rem;

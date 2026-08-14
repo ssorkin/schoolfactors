@@ -116,9 +116,23 @@ def run_analysis() -> None:
     for path in figures.make_all(effects):
         print(f"  wrote {path.relative_to(figures.REPO_ROOT)}")
 
+    # District-level fits: same machinery, district rows, district peer group.
+    print("fitting district models …")
+    from schoolfactors.analysis.panel import DISTRICT_TYPES
+
+    dpanel = build_panel(DISTRICT_TYPES)
+    deffects = fit_school_models(dpanel)
+    print(f"  {len(deffects):,} districts with enough data")
+    for param in ("level", "growth", "trend"):
+        deffects, _, _ = eb_shrink(deffects, param)
+    deffects = deffects.join(build_covariates(DISTRICT_TYPES), on="cds", how="left")
+    for param in ("level", "growth"):
+        deffects, _, _ = adjust(deffects, param)
+
     out = PARQUET_DIR / "analysis"
     out.mkdir(parents=True, exist_ok=True)
     effects.write_parquet(out / "school_effects.parquet")
+    deffects.write_parquet(out / "district_effects.parquet")
     coef_table.write_parquet(out / "adjustment_coefficients.parquet")
 
     import json

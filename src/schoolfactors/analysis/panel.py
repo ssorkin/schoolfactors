@@ -27,13 +27,17 @@ def _con() -> duckdb.DuckDBPyConnection:
     return duckdb.connect(str(DUCKDB_PATH), read_only=True)
 
 
-def school_rows() -> pl.DataFrame:
+SCHOOL_TYPES = (7, 9, 10)
+DISTRICT_TYPES = (6,)
+
+
+def school_rows(types: tuple[int, ...] = SCHOOL_TYPES) -> pl.DataFrame:
     con = _con()
     df = con.execute(f"""
         SELECT cds, test_year, grade, test_id,
                mean_scale_score, pct_met_and_above, students_with_scores AS n
         FROM caaspp_sb
-        WHERE type_id IN (7, 9, 10)
+        WHERE type_id IN {types if len(types) > 1 else f"({types[0]})"}
           AND student_group_id = 1
           AND grade BETWEEN 3 AND 11
           AND test_id IN (1, 2)
@@ -86,10 +90,13 @@ def estimate_sigma(rows: pl.DataFrame) -> pl.DataFrame:
     return pl.DataFrame(out)
 
 
-def build_panel() -> pl.DataFrame:
-    rows = school_rows()
+def build_panel(types: tuple[int, ...] = SCHOOL_TYPES) -> pl.DataFrame:
+    rows = school_rows(types)
+    # sigma is always estimated from the school-level cross-section (districts are
+    # too few and too aggregated for the probit fit)
+    sigma_rows = rows if types == SCHOOL_TYPES else school_rows(SCHOOL_TYPES)
     panel = rows.join(state_means(), on=["test_year", "grade", "test_id"], how="inner").join(
-        estimate_sigma(rows), on=["test_year", "grade", "test_id"], how="inner"
+        estimate_sigma(sigma_rows), on=["test_year", "grade", "test_id"], how="inner"
     )
     return panel.with_columns(
         ((pl.col("mean_scale_score") - pl.col("state_mean")) / pl.col("sigma")).alias("z"),
@@ -116,14 +123,15 @@ COVARIATE_GROUPS = {
 }
 
 
-def build_covariates() -> pl.DataFrame:
+def build_covariates(types: tuple[int, ...] = SCHOOL_TYPES) -> pl.DataFrame:
     ids = ", ".join(str(v) for v in COVARIATE_GROUPS.values())
+    types_sql = str(types) if len(types) > 1 else f"({types[0]})"
     con = _con()
     df = con.execute(f"""
         WITH tested AS (
             SELECT cds, test_year, student_group_id, sum(students_tested) AS t
             FROM caaspp_sb
-            WHERE type_id IN (7, 9, 10) AND grade = 13 AND test_id = 1
+            WHERE type_id IN {types_sql} AND grade = 13 AND test_id = 1
               AND student_group_id IN (1, {ids})
               AND test_year NOT IN {EXCLUDED_YEARS}
             GROUP BY 1, 2, 3
