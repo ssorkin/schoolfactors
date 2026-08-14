@@ -1,0 +1,20 @@
+{
+  "pubdistricts.txt": {
+    "dataset": "directory",
+    "filename": "pubdistricts.txt",
+    "url": "https://www.cde.ca.gov/schooldirectory/report?rid=dl2&tp=txt",
+    "sha256": "ed382a5be1fea0f8695458ca6b300b7a7e731336116a151cb124dd63db7860c5",
+    "size": 261132,
+    "downloaded_at": "2026-08-14T20:44:08+00:00",
+    "note": "districts/COE directory"
+  },
+  "pubschls.txt": {
+    "dataset": "directory",
+    "filename": "pubschls.txt",
+    "url": "https://www.cde.ca.gov/schooldirectory/report?rid=dl1&tp=txt",
+    "sha256": "05c9a4c015cabde6c996e02249d5b47b00e2b1097a67b85ca5b88736f2edf385",
+    "size": 8788593,
+    "downloaded_at": "2026-08-14T20:44:07+00:00",
+    "note": "public schools directory (current snapshot; 'No Data' = null)"
+  }
+}

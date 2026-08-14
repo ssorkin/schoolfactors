@@ -1,0 +1,56 @@
+{
+  "CAASPP_Public_Web_Reporting_Change_Log.pdf": {
+    "dataset": "caaspp",
+    "filename": "CAASPP_Public_Web_Reporting_Change_Log.pdf",
+    "url": "https://caaspp-elpac.cde.ca.gov/caaspp/docs/CAASPP%20Public%20Web%20Reporting%20Change%20Log.pdf",
+    "sha256": "eda37218357d4456d955ff6f9c6a617901683ef7708036c3685c48392d792fd7",
+    "size": 31419,
+    "downloaded_at": "2026-08-14T20:44:18+00:00",
+    "note": "official change log of reporting-definition changes"
+  },
+  "StudentGroups.zip": {
+    "dataset": "caaspp",
+    "filename": "StudentGroups.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/StudentGroups.zip",
+    "sha256": "d32c67c1ab1c1485558ad04178bf96dc86adc3dd19585e4e326292bcfa67a0a5",
+    "size": 1134,
+    "downloaded_at": "2026-08-14T20:44:16+00:00",
+    "note": "student-group lookup (current-year snapshot)"
+  },
+  "Tests.zip": {
+    "dataset": "caaspp",
+    "filename": "Tests.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/Tests.zip",
+    "sha256": "42fb42155dfa1a65bc0cd66615f7b21c049bfbab9fe395c86bd38aa9623239a3",
+    "size": 276,
+    "downloaded_at": "2026-08-14T20:44:15+00:00",
+    "note": "test-ID lookup"
+  },
+  "sb_ca2015_all_csv_v3.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2015_all_csv_v3.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2015_all_csv_v3.zip",
+    "sha256": "b0530c95c443378f6c3269d6977ffbe3d2d857179fe47bd0ea081fb49eff8880",
+    "size": 58973343,
+    "downloaded_at": "2026-08-14T20:44:48+00:00",
+    "note": "SB summative research file, all student groups, 2015"
+  },
+  "sb_ca2016_all_csv_v3.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2016_all_csv_v3.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2016_all_csv_v3.zip",
+    "sha256": "a44856f7915a4d3e43480a2fd7e2c91c63e73b133802415ba0b6b755ce0035b3",
+    "size": 61241917,
+    "downloaded_at": "2026-08-14T20:44:53+00:00",
+    "note": "SB summative research file, all student groups, 2016"
+  },
+  "sb_ca2022_all_csv_v1.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2022_all_csv_v1.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2022_all_csv_v1.zip",
+    "sha256": "175c2a54cdbd611d34f7ffa385f7228261ecfbbaddef25f0b57a6a988d03eb02",
+    "size": 85115843,
+    "downloaded_at": "2026-08-14T20:44:25+00:00",
+    "note": "SB summative research file, all student groups, 2022"
+  }
+}
