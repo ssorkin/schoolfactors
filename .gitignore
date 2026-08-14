@@ -1,0 +1,25 @@
+# Data is never committed: rebuild it with `sf acquire && sf ingest`,
+# verified against the checksums in manifests/.
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Site
+site/node_modules/
+site/.svelte-kit/
+site/build/
+
+# Analysis outputs
+analysis/_output/
+*.quarto_ipynb
+
+# OS / editor
+.DS_Store
