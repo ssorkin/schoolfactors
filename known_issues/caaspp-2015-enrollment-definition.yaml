@@ -1,0 +1,20 @@
+id: caaspp-2015-enrollment-definition
+dataset: caaspp
+years: [2015]
+kind: definition-change
+title: 2015 "number enrolled" counts all-subject eligibility, later years count per-subject
+description: >
+  In the 2014-15 research file, the enrollment field counts all students who were
+  eligible to take CAASPP in ANY subject. From 2015-16 onward it counts students
+  eligible for the specific test (subject) in the row. CDE confirmed the 2015 file
+  was never revised to the new definition ("we usually don't have funds available
+  to ask our contractor to revise previous year data files").
+evidence: >
+  Email from Chad Portney (Education Programs Consultant, Assessment Development and
+  Administration Division, CDE) to Stephen Sorkin, September 2020. See also the CAASPP
+  Public Web Reporting Change Log:
+  https://caaspp-elpac.cde.ca.gov/caaspp/docs/CAASPP%20Public%20Web%20Reporting%20Change%20Log.pdf
+handling: >
+  Never compare students_enrolled across the 2015/2016 boundary. Participation-rate
+  computations for 2015 use tested/enrolled with this caveat attached. Analyses use
+  students_tested and mean_scale_score, which are unaffected.

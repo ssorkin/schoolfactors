@@ -1,0 +1,16 @@
+id: caaspp-gender-nonbinary-2021
+dataset: caaspp
+years: [2021, 2022, 2023, 2024, 2025]
+kind: definition-note
+title: Male + Female no longer partitions All Students from 2021
+description: >
+  From 2020-21 onward a handful of districts each year report male + female
+  enrollment slightly below All Students. CALPADS added nonbinary gender markers,
+  and CAASPP publishes only Male (3) and Female (4) groups, so students with other
+  markers appear in neither. Violations are small (2-5 districts/year above the 2%
+  tolerance) but the partition identity is no longer exact.
+evidence: >
+  subgroup_sums check in DATA_QUALITY.md (gender partition, 2021-2025).
+handling: >
+  Treat gender groups as overlapping-incomplete, not a partition; never derive a
+  "nonbinary" count by subtraction (n<11 suppression would make it unreliable anyway).

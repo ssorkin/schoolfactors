@@ -44,6 +44,42 @@
     "downloaded_at": "2026-08-14T20:44:53+00:00",
     "note": "SB summative research file, all student groups, 2016"
   },
+  "sb_ca2017_all_csv_v2.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2017_all_csv_v2.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2017_all_csv_v2.zip",
+    "sha256": "f1add041c61cda27c1a1c8e30cc6684d2c974f85dc850adba99557e3a6a741b4",
+    "size": 86203845,
+    "downloaded_at": "2026-08-14T20:44:59+00:00",
+    "note": "SB summative research file, all student groups, 2017"
+  },
+  "sb_ca2018_all_csv_v3.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2018_all_csv_v3.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2018_all_csv_v3.zip",
+    "sha256": "43dc17160af47c5a346d22de66fc9fee6a69cf66ee2e1d111e47e3b7b9cfb9d5",
+    "size": 85941438,
+    "downloaded_at": "2026-08-14T20:45:04+00:00",
+    "note": "SB summative research file, all student groups, 2018"
+  },
+  "sb_ca2019_all_csv_v4.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2019_all_csv_v4.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2019_all_csv_v4.zip",
+    "sha256": "560c7e23546afcbb8c249eed564ff7ba29950a46899d09d83f44a27d99c6d164",
+    "size": 101924698,
+    "downloaded_at": "2026-08-14T20:45:09+00:00",
+    "note": "SB summative research file, all student groups, 2019"
+  },
+  "sb_ca2021_all_csv_v2.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2021_all_csv_v2.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2021_all_csv_v2.zip",
+    "sha256": "5ed5b986d8f99f88ac31f3f48b2bebf387e30cb5a790ce48bd6e06449f8ef96e",
+    "size": 35757775,
+    "downloaded_at": "2026-08-14T20:45:12+00:00",
+    "note": "SB summative research file, all student groups, 2021"
+  },
   "sb_ca2022_all_csv_v1.zip": {
     "dataset": "caaspp",
     "filename": "sb_ca2022_all_csv_v1.zip",
@@ -52,5 +88,32 @@
     "size": 85115843,
     "downloaded_at": "2026-08-14T20:44:25+00:00",
     "note": "SB summative research file, all student groups, 2022"
+  },
+  "sb_ca2023_all_csv_v1.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2023_all_csv_v1.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2023_all_csv_v1.zip",
+    "sha256": "4c6f6692319a268c57b7ffaf10c828916b4f665e469f859c9da31aeb5b6346ea",
+    "size": 89767143,
+    "downloaded_at": "2026-08-14T20:45:17+00:00",
+    "note": "SB summative research file, all student groups, 2023"
+  },
+  "sb_ca2024_all_csv_v1.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2024_all_csv_v1.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2024_all_csv_v1.zip",
+    "sha256": "8af3f20b067aca2ef754ad7e632e7e55b5e7fbf3082612aaa54de4587aca7a4c",
+    "size": 156922418,
+    "downloaded_at": "2026-08-14T20:45:25+00:00",
+    "note": "SB summative research file, all student groups, 2024"
+  },
+  "sb_ca2025_all_csv_v1.zip": {
+    "dataset": "caaspp",
+    "filename": "sb_ca2025_all_csv_v1.zip",
+    "url": "https://caaspp-elpac.ets.org/caaspp/researchfiles/sb_ca2025_all_csv_v1.zip",
+    "sha256": "0598b0cec2fffbe76de744223dab0269ea70461de9b9d3715d4e3174165fe8c9",
+    "size": 157250740,
+    "downloaded_at": "2026-08-14T20:45:34+00:00",
+    "note": "SB summative research file, all student groups, 2025"
   }
 }

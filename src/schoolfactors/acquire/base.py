@@ -27,6 +27,14 @@ USER_AGENT = (
 _client: httpx.Client | None = None
 
 
+class WafBlocked(RuntimeError):
+    """CDE's Radware WAF has blocked this client (303 → www6.cde.ca.gov/wafalert.html).
+
+    When this fires, stop hitting CDE hosts entirely and retry hours later with slow
+    pacing — continuing just extends the block.
+    """
+
+
 def client() -> httpx.Client:
     global _client
     if _client is None:
@@ -38,11 +46,22 @@ def client() -> httpx.Client:
     return _client
 
 
-def head_ok(url: str) -> bool:
-    """True if the URL exists (HEAD 200/302). Used to probe version suffixes."""
+def _check_waf(resp: httpx.Response) -> None:
+    for r in [*resp.history, resp]:
+        loc = r.headers.get("location", "")
+        if "wafalert" in loc:
+            raise WafBlocked(f"CDE WAF block redirect at {r.url}")
+
+
+def head_ok(url: str, throttle_seconds: float = 2.0) -> bool:
+    """True if the URL exists (HEAD 200). Throttled: probe bursts trip CDE's WAF."""
+    time.sleep(throttle_seconds)
     try:
         resp = client().head(url)
+        _check_waf(resp)
         return resp.status_code == 200
+    except WafBlocked:
+        raise
     except httpx.HTTPError:
         return False
 
@@ -88,7 +107,7 @@ def download(
     url: str,
     filename: str | None = None,
     note: str = "",
-    throttle_seconds: float = 1.0,
+    throttle_seconds: float = 3.0,
     force: bool = False,
 ) -> Path | None:
     """Stream-download url into data/raw/<dataset>/ and record a manifest entry.
@@ -109,17 +128,28 @@ def download(
 
     tmp = dest.with_suffix(dest.suffix + ".part")
     h = hashlib.sha256()
+    first = b""
     try:
         with client().stream("GET", url) as resp:
+            _check_waf(resp)
             resp.raise_for_status()
             with tmp.open("wb") as f:
                 for chunk in resp.iter_bytes(1 << 20):
+                    if not first:
+                        first = chunk[:2048]
                     h.update(chunk)
                     f.write(chunk)
     except httpx.HTTPError as exc:
         tmp.unlink(missing_ok=True)
         print(f"  FAILED {url}: {exc}")
         return None
+
+    # A WAF block page served with 200 must never be recorded as data.
+    if b"Department of Education Block" in first or (
+        not filename.endswith((".html", ".pdf")) and first.lstrip()[:6].lower() == b"<html>"
+    ):
+        tmp.unlink(missing_ok=True)
+        raise WafBlocked(f"block page served for {url}")
 
     tmp.rename(dest)
     manifest[filename] = ManifestEntry(

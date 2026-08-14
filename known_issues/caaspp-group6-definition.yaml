@@ -1,0 +1,18 @@
+id: caaspp-group6-definition
+dataset: caaspp
+years: [2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025]
+kind: definition-note
+title: Student group 6 includes English Only students (6 = 7 + 8 + 180)
+description: >
+  Group 6 ("Fluent English proficient and English only") is the sum of groups
+  7 (IFEP) + 8 (RFEP) + 180 (English Only), not 7 + 8 as one might assume from the
+  name "fluent". Verified empirically: the identity 6 = 7 + 8 + 180 holds exactly for
+  enrollment in 2016+ and for tested counts in all years including 2015. Older CDE
+  layout documents describe group 6 inconsistently ("IFEP and EO" in some years),
+  so treat the empirical identity as authoritative.
+evidence: >
+  DuckDB verification across all ten ingested years (see DATA_QUALITY.md,
+  subgroup_sums check); StudentGroups.txt reference table.
+handling: >
+  Analyses that need "fluent but not English-only" must use groups 7 + 8 directly,
+  never group 6 minus anything.

@@ -1,0 +1,21 @@
+id: caaspp-2015-fluency-subgroup-sums
+dataset: caaspp
+years: [2015]
+kind: internal-inconsistency
+title: 2015 subgroup enrollment is identical across ALL subgroups (statewide)
+description: >
+  Originally observed in district 70953 (Sonoma Valley Unified), where fluency
+  subgroups 6/7/8 report identical enrollment in sb_ca2015_all_csv_v3.txt. Our
+  checks show this is statewide and affects every subgroup, not just fluency:
+  in 2015 every subgroup row carries the entity-level "eligible in any subject"
+  count (e.g. LAUSD reports 285,954 enrolled for All Students, Male, Econ-Dis,
+  and every fluency group alike). This is the row-level manifestation of
+  caaspp-2015-enrollment-definition. Tested counts are NOT affected: even in 2015
+  they satisfy the true identity 6 = 7 + 8 + 180 (see caaspp-group6-definition).
+evidence: >
+  Email exchange between Stephen Sorkin and CAASPP@cde.ca.gov / Chad Portney (CDE),
+  September 2020. Independently rediscovered and generalized by this repo's
+  subgroup_sums and enrollment_definition checks (see DATA_QUALITY.md).
+handling: >
+  Never use 2015 subgroup-level students_enrolled. Subgroup denominators for 2015
+  must come from students_tested / students_with_scores, or the series starts at 2016.
