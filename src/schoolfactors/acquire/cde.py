@@ -135,6 +135,10 @@ def acquire(dataset: str = "all") -> None:
         try:
             hrefs = scrape_hrefs(landing, contains)
         except Exception as exc:  # noqa: BLE001 - keep acquiring other families
+            from schoolfactors.acquire.base import WafBlocked
+
+            if isinstance(exc, WafBlocked):
+                raise
             print(f"  FAILED to scrape landing page: {exc}")
             continue
         if not hrefs:

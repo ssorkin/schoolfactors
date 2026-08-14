@@ -53,6 +53,12 @@ def _check_waf(resp: httpx.Response) -> None:
             raise WafBlocked(f"CDE WAF block redirect at {r.url}")
 
 
+def _waf_guard(exc: httpx.HTTPError, url: str) -> None:
+    """Redirect loops on cde.ca.gov hosts are the WAF block in disguise."""
+    if isinstance(exc, httpx.TooManyRedirects) and "cde.ca.gov" in url:
+        raise WafBlocked(f"redirect loop (WAF block) at {url}") from exc
+
+
 def head_ok(url: str, throttle_seconds: float = 2.0) -> bool:
     """True if the URL exists (HEAD 200). Throttled: probe bursts trip CDE's WAF."""
     time.sleep(throttle_seconds)
@@ -141,6 +147,7 @@ def download(
                     f.write(chunk)
     except httpx.HTTPError as exc:
         tmp.unlink(missing_ok=True)
+        _waf_guard(exc, url)
         print(f"  FAILED {url}: {exc}")
         return None
 
@@ -177,7 +184,12 @@ def scrape_hrefs(page_url: str, contains: str) -> list[str]:
 
     from bs4 import BeautifulSoup
 
-    resp = client().get(page_url)
+    try:
+        resp = client().get(page_url)
+    except httpx.HTTPError as exc:
+        _waf_guard(exc, page_url)
+        raise
+    _check_waf(resp)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "lxml")
     out: list[str] = []
