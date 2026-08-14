@@ -1,0 +1,14 @@
+{
+  "sensitivity": {
+    "econ_only_vs_econ_race": {
+      "spearman": 0.917,
+      "top_quintile_agreement": 0.921
+    },
+    "econ_only_vs_full": {
+      "spearman": 0.822,
+      "top_quintile_agreement": 0.883
+    }
+  },
+  "pct_distinguishable_level": 90.0,
+  "pct_not_distinguishable_level": 10.0
+}
