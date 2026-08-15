@@ -43,7 +43,8 @@ def cohort_scores(types_sql: str, sigma: pl.DataFrame, state: pl.DataFrame) -> p
     con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     df = con.execute(f"""
         SELECT cds, test_year, grade, test_id,
-               mean_scale_score, pct_met_and_above, students_with_scores AS n
+               mean_scale_score, pct_met_and_above, pct_exceeded,
+               students_with_scores AS n
         FROM caaspp_sb
         WHERE type_id IN {types_sql}
           AND student_group_id = 1 AND grade BETWEEN 3 AND 11 AND test_id IN (1, 2)
@@ -70,6 +71,7 @@ def cohort_scores(types_sql: str, sigma: pl.DataFrame, state: pl.DataFrame) -> p
         "n",
         "mean_scale_score",
         "pct_met_and_above",
+        "pct_exceeded",
         "state_mean",
     )
 
@@ -90,7 +92,7 @@ def subgroup_results(types_sql: str) -> pl.DataFrame:
     con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     df = con.execute(f"""
         SELECT cds, test_year, test_id, student_group_id,
-               pct_met_and_above, students_with_scores AS n
+               pct_met_and_above, pct_exceeded, students_with_scores AS n
         FROM caaspp_sb
         WHERE type_id IN {types_sql} AND grade = 13 AND test_id IN (1, 2)
           AND student_group_id IN ({ids})

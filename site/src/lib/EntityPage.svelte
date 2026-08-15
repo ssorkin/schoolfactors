@@ -4,6 +4,7 @@
   import SearchBox from '$lib/SearchBox.svelte';
   import PerfList from '$lib/PerfList.svelte';
   import ResultsTables from '$lib/ResultsTables.svelte';
+  import TrendChart from '$lib/TrendChart.svelte';
 
   let { entity, subItems = null, subKind = 'school', subLabel = '' } = $props();
 
@@ -62,7 +63,11 @@
   {#if e.n_years}· {e.n_years} test years · {e.total_scores?.toLocaleString()} scores{/if}
 </p>
 
+<h2>How results are trending</h2>
+<TrendChart subgroups={entity.subgroup_results ?? []} scores={entity.cohort_scores ?? []} />
+
 {#if e.level_eb != null}
+  <h2>The three modeled numbers</h2>
   <section class="tiles">
     <div class="tile">
       <div class="num">{fmt(e.level_adj_eb)}</div>
@@ -190,20 +195,23 @@
     color: #6f6a61;
     margin-top: 0;
   }
+  :global(main) h2 {
+    margin: 1.8rem 0 0.6rem;
+  }
   .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.9rem;
-    margin: 1.2rem 0 1.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.7rem;
+    margin: 0.4rem 0 1rem;
   }
   .tile {
     background: #fffdf9;
     border: 1px solid #e8e1d5;
     border-radius: 10px;
-    padding: 0.9rem 1rem;
+    padding: 0.7rem 0.9rem;
   }
   .num {
-    font-size: 1.55rem;
+    font-size: 1.35rem;
     font-weight: 700;
     color: #b0552f;
   }

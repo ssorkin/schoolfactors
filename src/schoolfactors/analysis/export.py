@@ -162,6 +162,7 @@ def run_export() -> None:
                         "mean": r["mean_scale_score"],
                         "state_mean": r["state_mean"],
                         "pct_met": r["pct_met_and_above"],
+                        "pct_exc": r["pct_exceeded"],
                     }
                     for r in sc.sort(["grad_year", "grade", "test_id"]).to_dicts()
                 ],
@@ -171,6 +172,7 @@ def run_export() -> None:
                         "subject": "ela" if r["test_id"] == 1 else "math",
                         "group": r["student_group_id"],
                         "pct_met": r["pct_met_and_above"],
+                        "pct_exc": r["pct_exceeded"],
                         "n": r["n"],
                     }
                     for r in _rows(subgroups_by, cds)
