@@ -1,0 +1,119 @@
+{
+  "cupc1314.xls": {
+    "dataset": "cupc",
+    "filename": "cupc1314.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc1314.xls",
+    "sha256": "b5c63df6a2fcf6aeba13d4b55351947f589427a9a8f67640bcad2c55bc8cd211",
+    "size": 4066816,
+    "downloaded_at": "2026-08-15T03:16:18+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc1415.xls": {
+    "dataset": "cupc",
+    "filename": "cupc1415.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc1415.xls",
+    "sha256": "fa84bd9bed2323a8b8f27f8673395a0aafd9f0ac07834b5ee098aa185054e259",
+    "size": 4536832,
+    "downloaded_at": "2026-08-15T03:16:11+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc1516.xls": {
+    "dataset": "cupc",
+    "filename": "cupc1516.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc1516.xls",
+    "sha256": "2345d3602a8dbaa487a2caf18eca15ad6484cbe7d1369fc1421474c37e88f09f",
+    "size": 4818944,
+    "downloaded_at": "2026-08-15T03:16:06+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc1617-k12.xls": {
+    "dataset": "cupc",
+    "filename": "cupc1617-k12.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc1617-k12.xls",
+    "sha256": "d2ac568e393ab0e21650f41efafc81b4d3d64f0f33f29d89567df60763454ca5",
+    "size": 4814336,
+    "downloaded_at": "2026-08-15T03:16:03+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc1718-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc1718-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc1718-k12.xlsx",
+    "sha256": "f977b96e4b540ba01cdb5f374496fe5447d4def24fbdb1090aedf40d1ef8e24e",
+    "size": 1954459,
+    "downloaded_at": "2026-08-15T03:15:58+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc1819-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc1819-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc1819-k12.xlsx",
+    "sha256": "fbfb3b34822d4f81ae12606686c7b57fcc67f9ca1f25ad2e468f9904ba3fc3ad",
+    "size": 1903153,
+    "downloaded_at": "2026-08-15T03:15:52+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc1920-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc1920-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc1920-k12.xlsx",
+    "sha256": "d27f97d8814e2f2763da75bd20eb30cb3983e2314ccb4d86d3477c3437e804c1",
+    "size": 2031035,
+    "downloaded_at": "2026-08-15T03:15:47+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc2021-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc2021-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc2021-k12.xlsx",
+    "sha256": "03445357b4451facd784e839bde630228d38dcb68b1638a68b418475cc70491d",
+    "size": 1965066,
+    "downloaded_at": "2026-08-15T03:15:42+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc2122-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc2122-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc2122-k12.xlsx",
+    "sha256": "aff6511f20a49827e87023af4b13287c0f75a24ed3758d66351ea1ceb5ac1ad2",
+    "size": 1968240,
+    "downloaded_at": "2026-08-15T03:15:38+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc2223-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc2223-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc2223-k12.xlsx",
+    "sha256": "cbab30941aacea63e1759ffde8ebace14d8fb33444f914b878bea1669cb88bb6",
+    "size": 1963380,
+    "downloaded_at": "2026-08-15T03:15:33+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc2324-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc2324-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc2324-k12.xlsx",
+    "sha256": "086908e67059b30a4989a433454df659a249739607b4aa0a51a7aeadfbf42dc2",
+    "size": 1890201,
+    "downloaded_at": "2026-08-15T03:15:29+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc2425-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc2425-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc2425-k12.xlsx",
+    "sha256": "50b1262ecd5b4a19babd96715d53bfa8404618e96543da9ff7ccb04dfec8c301",
+    "size": 1892616,
+    "downloaded_at": "2026-08-15T03:15:25+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  },
+  "cupc2526-k12.xlsx": {
+    "dataset": "cupc",
+    "filename": "cupc2526-k12.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/cupc2526-k12.xlsx",
+    "sha256": "dc830498d5cd14777a86a1c6845cd5c15dabfde41422a125564ae60e7fc14a0c",
+    "size": 1878211,
+    "downloaded_at": "2026-08-15T03:15:22+00:00",
+    "note": "CALPADS unduplicated pupil count (LCFF: FRPM \u222a EL \u222a foster)"
+  }
+}

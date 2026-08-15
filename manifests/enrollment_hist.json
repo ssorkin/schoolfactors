@@ -1,0 +1,65 @@
+{
+  "enr198192-v2.txt": {
+    "dataset": "enrollment_hist",
+    "filename": "enr198192-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/enrsch/enr198192-v2.txt",
+    "sha256": "17f0bcb90f8f3f7ec296e1d4708f21866e19896ae7db753ea5026af222c410d7",
+    "size": 73906008,
+    "downloaded_at": "2026-08-15T03:14:08+00:00",
+    "note": "historical enrollment by school 1981-2023 (no names; join directory)"
+  },
+  "enr199397-v2.txt": {
+    "dataset": "enrollment_hist",
+    "filename": "enr199397-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/enrsch/enr199397-v2.txt",
+    "sha256": "2c86427868e77f2277f34b164b8b6c485553c6e5d0a0b7487bb0f2da49ae0cca",
+    "size": 27699365,
+    "downloaded_at": "2026-08-15T03:13:58+00:00",
+    "note": "historical enrollment by school 1981-2023 (no names; join directory)"
+  },
+  "enr199806-v2.txt": {
+    "dataset": "enrollment_hist",
+    "filename": "enr199806-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/enrsch/enr199806-v2.txt",
+    "sha256": "c962c0aff75bf4ec49e85319955bc311de47128f70b91e1d77cc8542f526faad",
+    "size": 60450514,
+    "downloaded_at": "2026-08-15T03:13:53+00:00",
+    "note": "historical enrollment by school 1981-2023 (no names; join directory)"
+  },
+  "enr200713-v3.txt": {
+    "dataset": "enrollment_hist",
+    "filename": "enr200713-v3.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/enrsch/enr200713-v3.txt",
+    "sha256": "0ccd5b9c5d4cca512ea87ec862b798c054bf266d36eaf2b2d17c021db1f990fc",
+    "size": 102302166,
+    "downloaded_at": "2026-08-15T03:13:44+00:00",
+    "note": "historical enrollment by school 1981-2023 (no names; join directory)"
+  },
+  "enr201416-v2.txt": {
+    "dataset": "enrollment_hist",
+    "filename": "enr201416-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/enrsch/enr201416-v2.txt",
+    "sha256": "9952cb247707e08dd176d52355b07c702d0151cddbdd9582bf925c050fe0786c",
+    "size": 92601715,
+    "downloaded_at": "2026-08-15T03:13:32+00:00",
+    "note": "historical enrollment by school 1981-2023 (no names; join directory)"
+  },
+  "enr201719-v2.txt": {
+    "dataset": "enrollment_hist",
+    "filename": "enr201719-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/enrsch/enr201719-v2.txt",
+    "sha256": "5dc5063cbbff16025db99088233359f3400011fbb9714eff30e162fce2d93d3d",
+    "size": 93445850,
+    "downloaded_at": "2026-08-15T03:13:19+00:00",
+    "note": "historical enrollment by school 1981-2023 (no names; join directory)"
+  },
+  "enr202022-v2.txt": {
+    "dataset": "enrollment_hist",
+    "filename": "enr202022-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/enrsch/enr202022-v2.txt",
+    "sha256": "3a924dd0252f25235247d88b6691e76485c918158addafe439ae62f9df7b39ac",
+    "size": 94572842,
+    "downloaded_at": "2026-08-15T03:13:09+00:00",
+    "note": "historical enrollment by school 1981-2023 (no names; join directory)"
+  }
+}

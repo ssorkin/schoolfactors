@@ -1,0 +1,191 @@
+{
+  "currentexpense0304.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense0304.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense0304.xls",
+    "sha256": "5c272dc351d341bc5f94e4678747692dcb28db5edeaa23ff36c04181d1376238",
+    "size": 210432,
+    "downloaded_at": "2026-08-15T03:30:39+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense0405.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense0405.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense0405.xls",
+    "sha256": "f955a0b501203a22a0ef2fd4a1ecdce11f7280b37ca2a54fbd6ceb5802b6e2e6",
+    "size": 206336,
+    "downloaded_at": "2026-08-15T03:30:33+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense0506.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense0506.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense0506.xls",
+    "sha256": "dd3f7c323ea897bfa1b6c0a2771ff624ed198eb1544f62c4030fa324b663bf50",
+    "size": 197120,
+    "downloaded_at": "2026-08-15T03:30:28+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense0607.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense0607.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense0607.xls",
+    "sha256": "a765fd653ccd1576cdb06c53a6068bc8db1a8403fce7ddef87e24de4f6354b2d",
+    "size": 206848,
+    "downloaded_at": "2026-08-15T03:30:25+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense0708.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense0708.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense0708.xls",
+    "sha256": "09a04434898d7713a3a32822740cef8c18732cd704ebe837c6d91781d8d026c2",
+    "size": 217088,
+    "downloaded_at": "2026-08-15T03:30:20+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense0809.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense0809.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense0809.xls",
+    "sha256": "527705897054f4abd24947db8cc2be7c5c0952f26516770371930edf3f8695ef",
+    "size": 208896,
+    "downloaded_at": "2026-08-15T03:30:16+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense0910.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense0910.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense0910.xls",
+    "sha256": "4068242de0f8d22194f174663ab6193bbd68b664c782db54f4f5278ca1df4249",
+    "size": 200704,
+    "downloaded_at": "2026-08-15T03:30:11+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1011.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1011.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1011.xls",
+    "sha256": "0b2375ccbd45781c39a2c084ec3c9b097154b4a3e1d39084e1a4857d91e771a4",
+    "size": 209408,
+    "downloaded_at": "2026-08-15T03:30:08+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1213.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1213.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1213.xls",
+    "sha256": "c8b80f1050940d896853d5eab249add61379eb9f85f379c0b81c64b7e10c1564",
+    "size": 218112,
+    "downloaded_at": "2026-08-15T03:30:04+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1314.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1314.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1314.xls",
+    "sha256": "a24f791738e1de691ed87b99c487663e20dda33cd8443adbd17b43a436eb242b",
+    "size": 212992,
+    "downloaded_at": "2026-08-15T03:29:59+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1415.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1415.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1415.xls",
+    "sha256": "6ae120ddfa0809cb5a5703eda7d51fc168bda701e623a4b37f277e068bc2aa5b",
+    "size": 208384,
+    "downloaded_at": "2026-08-15T03:29:55+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1516.xls": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1516.xls",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1516.xls",
+    "sha256": "42a762a466020bbab9b8cf7b33b134865bdd417c1610a6370c5dbf8fff0e16f9",
+    "size": 229376,
+    "downloaded_at": "2026-08-15T03:29:51+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1617.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1617.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1617.xlsx",
+    "sha256": "686b2e6057b2c11db8f2638fea869565e31b0008a7179dc1107146a0b0b43df1",
+    "size": 92518,
+    "downloaded_at": "2026-08-15T03:29:46+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1718.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1718.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1718.xlsx",
+    "sha256": "7da820e81448809049f9e532c1a55d060fd45cf480e41c858e9f63e9062fde66",
+    "size": 89484,
+    "downloaded_at": "2026-08-15T03:29:42+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1819.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1819.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1819.xlsx",
+    "sha256": "9117e365e52a997e028e67549edf0b65df92a676a5d9e68d41d0bbc20c896c5f",
+    "size": 99526,
+    "downloaded_at": "2026-08-15T03:29:37+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense1920.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense1920.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1920.xlsx",
+    "sha256": "903939093078a073a882b3ad358348721efbb00d741c7684684fcd8a576682b4",
+    "size": 89214,
+    "downloaded_at": "2026-08-15T03:29:33+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense2021.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense2021.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense2021.xlsx",
+    "sha256": "21df362916a5fef32af753b85e0e3e42d3a78cf543774da80fb19636a088eb9e",
+    "size": 90941,
+    "downloaded_at": "2026-08-15T03:29:28+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense2122.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense2122.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense2122.xlsx",
+    "sha256": "e2e79e4138fe8de4db01bd59773bc39a6d09ff2d40537d0f50075f8d4aa036f7",
+    "size": 92271,
+    "downloaded_at": "2026-08-15T03:29:25+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense2223.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense2223.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense2223.xlsx",
+    "sha256": "ea6ae4123440c16b57f7be7c41e42a5813d9c8ed4244520ceb15e5175216231e",
+    "size": 86244,
+    "downloaded_at": "2026-08-15T03:29:20+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense2324.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense2324.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense2324.xlsx",
+    "sha256": "a53f7173c2a999440f4584c8b33e8cb2aec825d7b26f640763aedc8b7cf8c59a",
+    "size": 83980,
+    "downloaded_at": "2026-08-15T03:29:15+00:00",
+    "note": "current expense of education, district per-ADA"
+  },
+  "currentexpense2425.xlsx": {
+    "dataset": "currentexpense",
+    "filename": "currentexpense2425.xlsx",
+    "url": "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense2425.xlsx",
+    "sha256": "c51abbb7fe26b5c973b2010dd5b40ccf789523a52ac4d2ad65d15e1ae03d241b",
+    "size": 82453,
+    "downloaded_at": "2026-08-15T03:29:11+00:00",
+    "note": "current expense of education, district per-ADA"
+  }
+}

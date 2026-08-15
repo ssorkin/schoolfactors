@@ -1,0 +1,29 @@
+{
+  "cdenroll2324-v2.txt": {
+    "dataset": "enrollment",
+    "filename": "cdenroll2324-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/census/cdenroll2324-v2.txt",
+    "sha256": "5894afebcd35ee54a795a912b43179073c109036dcbd9d0039ac5022db51968e",
+    "size": 31885520,
+    "downloaded_at": "2026-08-15T03:12:58+00:00",
+    "note": "census-day enrollment by school, 2023-24+ format"
+  },
+  "cdenroll2425.txt": {
+    "dataset": "enrollment",
+    "filename": "cdenroll2425.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/census/cdenroll2425.txt",
+    "sha256": "ff65bf6e2c4a0928dc1533106af29716a2cefb71e2e521e5c0e174fa737f8bbc",
+    "size": 32068521,
+    "downloaded_at": "2026-08-15T03:12:51+00:00",
+    "note": "census-day enrollment by school, 2023-24+ format"
+  },
+  "cdenroll2526.txt": {
+    "dataset": "enrollment",
+    "filename": "cdenroll2526.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/census/cdenroll2526.txt",
+    "sha256": "10d074101bc1aa3e9dc7433200a3825e430e261b1382e5c5f3102d989f4fa149",
+    "size": 32041859,
+    "downloaded_at": "2026-08-15T03:36:18+00:00",
+    "note": "census-day enrollment by school, 2023-24+ format"
+  }
+}

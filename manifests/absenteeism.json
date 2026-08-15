@@ -1,0 +1,74 @@
+{
+  "chronicabsenteeism17.txt": {
+    "dataset": "absenteeism",
+    "filename": "chronicabsenteeism17.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/attendance/chronicabsenteeism17.txt",
+    "sha256": "02194ad4fc70dafe3e81343cdd748665924ea07be388177e227591115346c1fa",
+    "size": 22972823,
+    "downloaded_at": "2026-08-15T03:22:25+00:00",
+    "note": "chronic absenteeism (2016-17+, none for 2019-20)"
+  },
+  "chronicabsenteeism18.txt": {
+    "dataset": "absenteeism",
+    "filename": "chronicabsenteeism18.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/attendance/chronicabsenteeism18.txt",
+    "sha256": "3202f4c674a2338f708869813ebf6b23b8cf24daae91f3a7bebefa44c97b94aa",
+    "size": 22990923,
+    "downloaded_at": "2026-08-15T03:22:19+00:00",
+    "note": "chronic absenteeism (2016-17+, none for 2019-20)"
+  },
+  "chronicabsenteeism19.txt": {
+    "dataset": "absenteeism",
+    "filename": "chronicabsenteeism19.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/attendance/chronicabsenteeism19.txt",
+    "sha256": "59cc16c3d73e5dcbf3a2f80af8495c9d88c586249e328b7d55d5f83f5747eaf7",
+    "size": 22961927,
+    "downloaded_at": "2026-08-15T03:22:14+00:00",
+    "note": "chronic absenteeism (2016-17+, none for 2019-20)"
+  },
+  "chronicabsenteeism21.txt": {
+    "dataset": "absenteeism",
+    "filename": "chronicabsenteeism21.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/attendance/chronicabsenteeism21.txt",
+    "sha256": "724daa110001d6638808f0fc5daef91c9a68ab114bb17992fa89408f903e599c",
+    "size": 24573192,
+    "downloaded_at": "2026-08-15T03:22:10+00:00",
+    "note": "chronic absenteeism (2016-17+, none for 2019-20)"
+  },
+  "chronicabsenteeism22-v3.txt": {
+    "dataset": "absenteeism",
+    "filename": "chronicabsenteeism22-v3.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/attendance/chronicabsenteeism22-v3.txt",
+    "sha256": "18698d3714606e9751b7e3c69971f36cddc6d8aacb9bbb819badfa98d0e55403",
+    "size": 33883171,
+    "downloaded_at": "2026-08-15T03:22:03+00:00",
+    "note": "chronic absenteeism (2016-17+, none for 2019-20)"
+  },
+  "chronicabsenteeism23.txt": {
+    "dataset": "absenteeism",
+    "filename": "chronicabsenteeism23.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/attendance/chronicabsenteeism23.txt",
+    "sha256": "73c3995ddb1906431c4d9c22e64a2769170dc37b92de479bdf3cabf765a3c65f",
+    "size": 33317660,
+    "downloaded_at": "2026-08-15T03:21:56+00:00",
+    "note": "chronic absenteeism (2016-17+, none for 2019-20)"
+  },
+  "chronicabsenteeism24.txt": {
+    "dataset": "absenteeism",
+    "filename": "chronicabsenteeism24.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/attendance/chronicabsenteeism24.txt",
+    "sha256": "bc92c9b4d381917df0e3c9de0b4235894264bdf2ef0aeffbdda8eb00c14a1791",
+    "size": 33952486,
+    "downloaded_at": "2026-08-15T03:21:50+00:00",
+    "note": "chronic absenteeism (2016-17+, none for 2019-20)"
+  },
+  "chronicabsenteeism25-v2.txt": {
+    "dataset": "absenteeism",
+    "filename": "chronicabsenteeism25-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/attendance/chronicabsenteeism25-v2.txt",
+    "sha256": "c978fe1d0e2e73f60c3ad6d0297dfff86f1cf629dca747b5ac785a2fb00ecf9e",
+    "size": 33781100,
+    "downloaded_at": "2026-08-15T03:21:45+00:00",
+    "note": "chronic absenteeism (2016-17+, none for 2019-20)"
+  }
+}

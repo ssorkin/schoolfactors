@@ -1,0 +1,128 @@
+{
+  "suspension12.txt": {
+    "dataset": "suspension",
+    "filename": "suspension12.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension12.txt",
+    "sha256": "7b5899a9b6a399dd0eabf693dbd8753c47dcb5c84e9cf6b088e29ed21a216d80",
+    "size": 39123692,
+    "downloaded_at": "2026-08-15T03:24:03+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension13.txt": {
+    "dataset": "suspension",
+    "filename": "suspension13.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension13.txt",
+    "sha256": "3002954e01d13b50a8fd3b0c80f4eaaca8e521829a679d7247d154efad7e4d4d",
+    "size": 39276689,
+    "downloaded_at": "2026-08-15T03:23:57+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension14.txt": {
+    "dataset": "suspension",
+    "filename": "suspension14.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension14.txt",
+    "sha256": "07b1c10007b5b30258ecc83f859e7c3512b8df35131cc8eaff4e66db98ab8cbf",
+    "size": 39607299,
+    "downloaded_at": "2026-08-15T03:23:51+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension15.txt": {
+    "dataset": "suspension",
+    "filename": "suspension15.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension15.txt",
+    "sha256": "9506b3edbeaea3817058c156669cb352831f4062613a2002338643c707dc3894",
+    "size": 40219673,
+    "downloaded_at": "2026-08-15T03:23:44+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension16.txt": {
+    "dataset": "suspension",
+    "filename": "suspension16.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension16.txt",
+    "sha256": "2aa8898a6e88a6147fbbb3153e43792072ed48e056d3de288f31e3b8a9457dae",
+    "size": 40426532,
+    "downloaded_at": "2026-08-15T03:23:37+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension17.txt": {
+    "dataset": "suspension",
+    "filename": "suspension17.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension17.txt",
+    "sha256": "206d24e5cb5379904f26f7d7968716b02eed5e886ac8a6ff21a7e5807c51c417",
+    "size": 40391797,
+    "downloaded_at": "2026-08-15T03:23:25+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension18.txt": {
+    "dataset": "suspension",
+    "filename": "suspension18.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension18.txt",
+    "sha256": "db060fda101d8541d4e44ab6ad3c2348999467fd9bd9e842274c7880ef7d0f7d",
+    "size": 40226702,
+    "downloaded_at": "2026-08-15T03:23:18+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension19.txt": {
+    "dataset": "suspension",
+    "filename": "suspension19.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension19.txt",
+    "sha256": "d2b7a61387d8e07a150f610a20af5eec97bca45cfba8305b7f0cfbb542ba51c0",
+    "size": 40196720,
+    "downloaded_at": "2026-08-15T03:23:11+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension20.txt": {
+    "dataset": "suspension",
+    "filename": "suspension20.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension20.txt",
+    "sha256": "5e9d39fcb5d6f234c99a3da8ef7aff663276fab99439fdbe5c0716c168f2d17d",
+    "size": 25087065,
+    "downloaded_at": "2026-08-15T03:23:04+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension21.txt": {
+    "dataset": "suspension",
+    "filename": "suspension21.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension21.txt",
+    "sha256": "0543eef3338a5ced18a37b3c14cb94c88d114c09df40d1d7c82552c690276fff",
+    "size": 24572972,
+    "downloaded_at": "2026-08-15T03:22:58+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension22-v2.txt": {
+    "dataset": "suspension",
+    "filename": "suspension22-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension22-v2.txt",
+    "sha256": "f9e09a41e0b07a4013606633acad94d8536a01778f6cc721bae36a5a3c957a51",
+    "size": 25277468,
+    "downloaded_at": "2026-08-15T03:22:52+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension23.txt": {
+    "dataset": "suspension",
+    "filename": "suspension23.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension23.txt",
+    "sha256": "5ebede74f9d4a1640c6f734c192d8c19a66d3f612d5ccb6a0552a1d9e2c60298",
+    "size": 25144085,
+    "downloaded_at": "2026-08-15T03:22:46+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension24.txt": {
+    "dataset": "suspension",
+    "filename": "suspension24.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension24.txt",
+    "sha256": "71e1afabbb402db70102d873cfe7072cd3aed026c7f227d61d201c57a21eeb83",
+    "size": 25264810,
+    "downloaded_at": "2026-08-15T03:22:39+00:00",
+    "note": "suspension counts/rates"
+  },
+  "suspension25-v2.txt": {
+    "dataset": "suspension",
+    "filename": "suspension25-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/suspension25-v2.txt",
+    "sha256": "e7da192571e538f9893c04c575ed64a9035c4b6f6fe30cee9ec832065f06f153",
+    "size": 25387355,
+    "downloaded_at": "2026-08-15T03:22:32+00:00",
+    "note": "suspension counts/rates"
+  }
+}

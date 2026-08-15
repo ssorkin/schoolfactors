@@ -1,0 +1,65 @@
+{
+  "stex1920.txt": {
+    "dataset": "staff_exp",
+    "filename": "stex1920.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/stex1920.txt",
+    "sha256": "14792e83590c3460a96dce28f90aa2227fd37ed9f5d0d7bbc4bfb698dd7d0ff5",
+    "size": 36403696,
+    "downloaded_at": "2026-08-15T03:17:40+00:00",
+    "note": "teacher experience"
+  },
+  "stex2021.txt": {
+    "dataset": "staff_exp",
+    "filename": "stex2021.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/stex2021.txt",
+    "sha256": "9b8071b9307573c1835e4b61b08f731dd08f1036ca54ed778abb481ea4b382bd",
+    "size": 35925604,
+    "downloaded_at": "2026-08-15T03:17:13+00:00",
+    "note": "teacher experience"
+  },
+  "stex2122.txt": {
+    "dataset": "staff_exp",
+    "filename": "stex2122.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/stex2122.txt",
+    "sha256": "4a41b784c4a452177737cf348da5e3f30c6337cdaa9842d76bdf3f153312fbed",
+    "size": 36031828,
+    "downloaded_at": "2026-08-15T03:17:06+00:00",
+    "note": "teacher experience"
+  },
+  "stex2223.txt": {
+    "dataset": "staff_exp",
+    "filename": "stex2223.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/stex2223.txt",
+    "sha256": "c82a7c7cabc6b4c21df7fb0ed70034348268ad7e94cb28e45dbfcd15c256b844",
+    "size": 36795770,
+    "downloaded_at": "2026-08-15T03:16:59+00:00",
+    "note": "teacher experience"
+  },
+  "stex2324.txt": {
+    "dataset": "staff_exp",
+    "filename": "stex2324.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/stex2324.txt",
+    "sha256": "46b0198ba095810b50f0198301381c83a8d5c150f9c6899d9aaebcdaec76b15d",
+    "size": 37143014,
+    "downloaded_at": "2026-08-15T03:16:47+00:00",
+    "note": "teacher experience"
+  },
+  "stex2425.txt": {
+    "dataset": "staff_exp",
+    "filename": "stex2425.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/stex2425.txt",
+    "sha256": "673f4c8b9dd8369e9c0049409e884e4ab41b5158cf965081cdf9b4f9eac2d411",
+    "size": 36797526,
+    "downloaded_at": "2026-08-15T03:16:40+00:00",
+    "note": "teacher experience"
+  },
+  "stex2526.txt": {
+    "dataset": "staff_exp",
+    "filename": "stex2526.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/stex2526.txt",
+    "sha256": "6a3ec6d097bd8fc2c9b240cf67bd385c2e195fff15f044aea0e63f25728454d3",
+    "size": 37283577,
+    "downloaded_at": "2026-08-15T03:16:27+00:00",
+    "note": "teacher experience"
+  }
+}

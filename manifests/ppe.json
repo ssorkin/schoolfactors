@@ -1,0 +1,65 @@
+{
+  "essappe1819data.xlsx": {
+    "dataset": "ppe",
+    "filename": "essappe1819data.xlsx",
+    "url": "https://www.cde.ca.gov/fg/ac/es/documents/essappe1819data.xlsx",
+    "sha256": "742af88f39477b9a0ed22f8df5891c19e578b05d35a5e4b93a94f9485e0ea369",
+    "size": 805428,
+    "downloaded_at": "2026-08-15T03:29:07+00:00",
+    "note": "ESSA per-pupil expenditure \u2014 only school-level spending file"
+  },
+  "essappe1920data.xlsx": {
+    "dataset": "ppe",
+    "filename": "essappe1920data.xlsx",
+    "url": "https://www.cde.ca.gov/fg/ac/es/documents/essappe1920data.xlsx",
+    "sha256": "dd65da947229760eb8ca08313be850728dc87c9d97fad136d5e057b989f30381",
+    "size": 849751,
+    "downloaded_at": "2026-08-15T03:29:03+00:00",
+    "note": "ESSA per-pupil expenditure \u2014 only school-level spending file"
+  },
+  "essappe2021data.xlsx": {
+    "dataset": "ppe",
+    "filename": "essappe2021data.xlsx",
+    "url": "https://www.cde.ca.gov/fg/ac/es/documents/essappe2021data.xlsx",
+    "sha256": "5bf7fc3141ea20ead696c98810b76928d3352d236600a6274b9ecdbcebff6c5d",
+    "size": 821482,
+    "downloaded_at": "2026-08-15T03:29:00+00:00",
+    "note": "ESSA per-pupil expenditure \u2014 only school-level spending file"
+  },
+  "essappe2122data.xlsx": {
+    "dataset": "ppe",
+    "filename": "essappe2122data.xlsx",
+    "url": "https://www.cde.ca.gov/fg/ac/es/documents/essappe2122data.xlsx",
+    "sha256": "c17c27fa8518103f586bd89edeb4036fbc0049b778ce21120620e268134163ba",
+    "size": 846520,
+    "downloaded_at": "2026-08-15T03:28:55+00:00",
+    "note": "ESSA per-pupil expenditure \u2014 only school-level spending file"
+  },
+  "essappe2223data.xlsx": {
+    "dataset": "ppe",
+    "filename": "essappe2223data.xlsx",
+    "url": "https://www.cde.ca.gov/fg/ac/es/documents/essappe2223data.xlsx",
+    "sha256": "d9f4651512c552508ebb23a9c50b154dfb7321e6b78d6886355125b0269c91fb",
+    "size": 857160,
+    "downloaded_at": "2026-08-15T03:28:51+00:00",
+    "note": "ESSA per-pupil expenditure \u2014 only school-level spending file"
+  },
+  "essappe2324data.xlsx": {
+    "dataset": "ppe",
+    "filename": "essappe2324data.xlsx",
+    "url": "https://www.cde.ca.gov/fg/ac/es/documents/essappe2324data.xlsx",
+    "sha256": "120a8f59cfab1d5d3e1a6d7e735660109b191bb23490da4de619b2f78ce8d4ed",
+    "size": 1021393,
+    "downloaded_at": "2026-08-15T03:28:47+00:00",
+    "note": "ESSA per-pupil expenditure \u2014 only school-level spending file"
+  },
+  "essappe2425data.xlsx": {
+    "dataset": "ppe",
+    "filename": "essappe2425data.xlsx",
+    "url": "https://www.cde.ca.gov/fg/ac/es/documents/essappe2425data.xlsx",
+    "sha256": "397efc5c397d291e5aa95b136a23d3dbf6d65db62decbc249bbe804bbe2d9845",
+    "size": 1035042,
+    "downloaded_at": "2026-08-15T03:28:43+00:00",
+    "note": "ESSA per-pupil expenditure \u2014 only school-level spending file"
+  }
+}

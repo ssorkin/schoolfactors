@@ -1,0 +1,74 @@
+{
+  "sr1718.txt": {
+    "dataset": "stability",
+    "filename": "sr1718.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/stability/sr1718.txt",
+    "sha256": "681447ce1221a4a56dc0888574e8551ed1fd4d1b2135a7963d83a1b94c3f6045",
+    "size": 68797274,
+    "downloaded_at": "2026-08-15T03:28:38+00:00",
+    "note": "student stability rate (mobility covariate)"
+  },
+  "sr1819.txt": {
+    "dataset": "stability",
+    "filename": "sr1819.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/stability/sr1819.txt",
+    "sha256": "da1b8bf990f9c8916a94cc3a459cb78ae52ccd34adfba777539b018a58b60f92",
+    "size": 68837800,
+    "downloaded_at": "2026-08-15T03:28:29+00:00",
+    "note": "student stability rate (mobility covariate)"
+  },
+  "sr1920.txt": {
+    "dataset": "stability",
+    "filename": "sr1920.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/stability/sr1920.txt",
+    "sha256": "cb38d419b6b1b6929a71a8fe5c2dda26309af2aa14536f00388879f301c92084",
+    "size": 69242480,
+    "downloaded_at": "2026-08-15T03:28:20+00:00",
+    "note": "student stability rate (mobility covariate)"
+  },
+  "sr2021.txt": {
+    "dataset": "stability",
+    "filename": "sr2021.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/stability/sr2021.txt",
+    "sha256": "e8d7a4a88e698ba8eb3e4bad2d9ecf1f424b4a17646277d7b2770740d4dce1e3",
+    "size": 34480010,
+    "downloaded_at": "2026-08-15T03:28:12+00:00",
+    "note": "student stability rate (mobility covariate)"
+  },
+  "sr2122.txt": {
+    "dataset": "stability",
+    "filename": "sr2122.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/stability/sr2122.txt",
+    "sha256": "fe5fee641e4f23f0ed7f209cbc39971a98d21994cc584b842d0204e284d42503",
+    "size": 34818990,
+    "downloaded_at": "2026-08-15T03:28:05+00:00",
+    "note": "student stability rate (mobility covariate)"
+  },
+  "sr2223.txt": {
+    "dataset": "stability",
+    "filename": "sr2223.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/stability/sr2223.txt",
+    "sha256": "7d9ccebd064f2754d0ead96c8f1224f34477d6d3a39cc69641c525b0d57c22ad",
+    "size": 35617852,
+    "downloaded_at": "2026-08-15T03:27:59+00:00",
+    "note": "student stability rate (mobility covariate)"
+  },
+  "sr2324.txt": {
+    "dataset": "stability",
+    "filename": "sr2324.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/stability/sr2324.txt",
+    "sha256": "e66638054dfd6aa1b5bc4e6d653188b4aa15713b1ce536a07b036c04cd1946bb",
+    "size": 36738846,
+    "downloaded_at": "2026-08-15T03:27:53+00:00",
+    "note": "student stability rate (mobility covariate)"
+  },
+  "sr2425-v2.txt": {
+    "dataset": "stability",
+    "filename": "sr2425-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/stability/sr2425-v2.txt",
+    "sha256": "222b691420ac92bd35c07bb2de66efb8729c11d1b7b80dc1d7b1c40cbdb885d8",
+    "size": 35575785,
+    "downloaded_at": "2026-08-15T03:27:47+00:00",
+    "note": "student stability rate (mobility covariate)"
+  }
+}

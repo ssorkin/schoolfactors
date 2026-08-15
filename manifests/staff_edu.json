@@ -1,0 +1,65 @@
+{
+  "sted1920.txt": {
+    "dataset": "staff_edu",
+    "filename": "sted1920.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/sted1920.txt",
+    "sha256": "41a195f494f55af846ccd3c2b89b3742fb56831c0125516f27e5af326b7e812a",
+    "size": 35966598,
+    "downloaded_at": "2026-08-15T03:21:02+00:00",
+    "note": "teacher education"
+  },
+  "sted2021.txt": {
+    "dataset": "staff_edu",
+    "filename": "sted2021.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/sted2021.txt",
+    "sha256": "2ecaabc5c087df472fbf2e3e637e51df540d139dacaf8fbcc92c16b66e4d9675",
+    "size": 35494220,
+    "downloaded_at": "2026-08-15T03:20:35+00:00",
+    "note": "teacher education"
+  },
+  "sted2122.txt": {
+    "dataset": "staff_edu",
+    "filename": "sted2122.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/sted2122.txt",
+    "sha256": "7c85180a098a3e49e14ea4391c1a901eb71b2f17869840d33b424d663c30a5b7",
+    "size": 35605210,
+    "downloaded_at": "2026-08-15T03:19:42+00:00",
+    "note": "teacher education"
+  },
+  "sted2223.txt": {
+    "dataset": "staff_edu",
+    "filename": "sted2223.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/sted2223.txt",
+    "sha256": "c19ac62178c6f80b84fa4369cc6b48c1f6445ae63ca48819490c8277c164d1e6",
+    "size": 36360352,
+    "downloaded_at": "2026-08-15T03:19:20+00:00",
+    "note": "teacher education"
+  },
+  "sted2324.txt": {
+    "dataset": "staff_edu",
+    "filename": "sted2324.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/sted2324.txt",
+    "sha256": "c4463b367821e52cf15b6bd8aca62d12a6c997eb0eb156162913ee604c5ee31b",
+    "size": 36710252,
+    "downloaded_at": "2026-08-15T03:18:56+00:00",
+    "note": "teacher education"
+  },
+  "sted2425.txt": {
+    "dataset": "staff_edu",
+    "filename": "sted2425.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/sted2425.txt",
+    "sha256": "3f45d941d1ea43432cd25f530313d949b3f35579de82b75ec8b26784af84e586",
+    "size": 36854260,
+    "downloaded_at": "2026-08-15T03:18:31+00:00",
+    "note": "teacher education"
+  },
+  "sted2526.txt": {
+    "dataset": "staff_edu",
+    "filename": "sted2526.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/sted2526.txt",
+    "sha256": "00b88fdfd11eaa7c4f043694ebedf38b250e2352580ee723fd3976d006eaac7c",
+    "size": 36851356,
+    "downloaded_at": "2026-08-15T03:18:04+00:00",
+    "note": "teacher education"
+  }
+}

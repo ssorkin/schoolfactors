@@ -50,7 +50,7 @@ def build() -> None:
         made.append("caaspp_student_groups")
 
     for family in sorted(p.name for p in PARQUET_DIR.iterdir() if p.is_dir()):
-        if family.startswith("caaspp"):
+        if family.startswith("caaspp") or family == "analysis":
             continue
         if view_over(f"{family}_raw", f"{family}/file=*/data.parquet"):
             made.append(f"{family}_raw")

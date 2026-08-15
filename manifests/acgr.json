@@ -1,0 +1,83 @@
+{
+  "acgr17.txt": {
+    "dataset": "acgr",
+    "filename": "acgr17.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr17.txt",
+    "sha256": "ab888fbd61a9abaed3d9d02b696e366d9bff1e7f5a1fe01488c06745bfb39fe2",
+    "size": 29734093,
+    "downloaded_at": "2026-08-15T03:26:33+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  },
+  "acgr18.txt": {
+    "dataset": "acgr",
+    "filename": "acgr18.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr18.txt",
+    "sha256": "7280f1a9ea0ce910d5de52a7c47da4a032487e08846951ba62dd6fc2c873f63e",
+    "size": 30662620,
+    "downloaded_at": "2026-08-15T03:26:25+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  },
+  "acgr19.txt": {
+    "dataset": "acgr",
+    "filename": "acgr19.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr19.txt",
+    "sha256": "c2cd155e5717e89457e85b572fc9dbc64a196b8bbf64e711de4e688db01ce375",
+    "size": 30083561,
+    "downloaded_at": "2026-08-15T03:26:18+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  },
+  "acgr20.txt": {
+    "dataset": "acgr",
+    "filename": "acgr20.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr20.txt",
+    "sha256": "cc7acc3dc9c0662a806019da1ae29150d80e4817111cee904054f3431839a3cc",
+    "size": 38154349,
+    "downloaded_at": "2026-08-15T03:26:12+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  },
+  "acgr21.txt": {
+    "dataset": "acgr",
+    "filename": "acgr21.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr21.txt",
+    "sha256": "43bf715b9dfcb6cb3fb4b2a8b95fb3e672f1ad5a5a9483287387b62e936748c6",
+    "size": 38108127,
+    "downloaded_at": "2026-08-15T03:26:05+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  },
+  "acgr22-v3.txt": {
+    "dataset": "acgr",
+    "filename": "acgr22-v3.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr22-v3.txt",
+    "sha256": "740075cbb3907eec909724977d862114935fdbd8b337cb420d9dceeaba0e3492",
+    "size": 15893407,
+    "downloaded_at": "2026-08-15T03:25:58+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  },
+  "acgr23-v2.txt": {
+    "dataset": "acgr",
+    "filename": "acgr23-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr23-v2.txt",
+    "sha256": "c082173ab102db604ca0c044002588c11b6af9207b6538a06900bb471b1bd63b",
+    "size": 16000890,
+    "downloaded_at": "2026-08-15T03:25:52+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  },
+  "acgr24.txt": {
+    "dataset": "acgr",
+    "filename": "acgr24.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr24.txt",
+    "sha256": "7fc0cf61afb18d99c0c2df934de01f7c7c4233d866cc6dd8533b0f1ab787aece",
+    "size": 16496994,
+    "downloaded_at": "2026-08-15T03:25:46+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  },
+  "acgr25.txt": {
+    "dataset": "acgr",
+    "filename": "acgr25.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/acgr/acgr25.txt",
+    "sha256": "885d8a43ac04dd31e44c6a592e380838478fc6964963b1b656dc2153018f4258",
+    "size": 17197494,
+    "downloaded_at": "2026-08-15T03:25:40+00:00",
+    "note": "adjusted cohort graduation rate (2016-17+; methodology break vs earlier)"
+  }
+}

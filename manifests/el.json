@@ -1,0 +1,137 @@
+{
+  "elsch11.txt": {
+    "dataset": "el",
+    "filename": "elsch11.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2011-12&cCat=EL&cPage=fileselsch",
+    "sha256": "08a12a0abdac1571ed79ee62151fea41bc360a0790d45445f6e5b5f31c4d3816",
+    "size": 6770986,
+    "downloaded_at": "2026-08-15T03:32:09+00:00",
+    "note": "EL by school/grade/language, 2011-12"
+  },
+  "elsch12.txt": {
+    "dataset": "el",
+    "filename": "elsch12.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2012-13&cCat=EL&cPage=fileselsch",
+    "sha256": "9d368186bfd80f5e3688fc08ebfe17e1b35864a4fcf48b8f1e520cdfb602bce7",
+    "size": 6760117,
+    "downloaded_at": "2026-08-15T03:32:23+00:00",
+    "note": "EL by school/grade/language, 2012-13"
+  },
+  "elsch13.txt": {
+    "dataset": "el",
+    "filename": "elsch13.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2013-14&cCat=EL&cPage=fileselsch",
+    "sha256": "0fa66583635a6ac3e7f8515f2b2a26f4cab19601a2fe3283d846791c792e619c",
+    "size": 7008414,
+    "downloaded_at": "2026-08-15T03:32:36+00:00",
+    "note": "EL by school/grade/language, 2013-14"
+  },
+  "elsch14.txt": {
+    "dataset": "el",
+    "filename": "elsch14.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2014-15&cCat=EL&cPage=fileselsch",
+    "sha256": "ae44b0d5984fc6b9d4796f9a789b89f656bb7b957ca9b6c487633a5b2bda0496",
+    "size": 7154869,
+    "downloaded_at": "2026-08-15T03:32:49+00:00",
+    "note": "EL by school/grade/language, 2014-15"
+  },
+  "elsch15.txt": {
+    "dataset": "el",
+    "filename": "elsch15.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2015-16&cCat=EL&cPage=fileselsch",
+    "sha256": "1ddf8955af3ce2e3eb3bc5bfde114c78bca74b7c0b634d5674e5e4e04483485a",
+    "size": 7294369,
+    "downloaded_at": "2026-08-15T03:33:03+00:00",
+    "note": "EL by school/grade/language, 2015-16"
+  },
+  "elsch16.txt": {
+    "dataset": "el",
+    "filename": "elsch16.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2016-17&cCat=EL&cPage=fileselsch",
+    "sha256": "6d81086cc50e6bd949e2ab22da10d04477ee1cf85efb8de2ba8dd2add52f73ec",
+    "size": 7348819,
+    "downloaded_at": "2026-08-15T03:33:16+00:00",
+    "note": "EL by school/grade/language, 2016-17"
+  },
+  "elsch17.txt": {
+    "dataset": "el",
+    "filename": "elsch17.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2017-18&cCat=EL&cPage=fileselsch",
+    "sha256": "a1579e1389172a8f5752aa80a2e5acb332bad9536c2bba6882a5286ed0291d30",
+    "size": 7341232,
+    "downloaded_at": "2026-08-15T03:33:31+00:00",
+    "note": "EL by school/grade/language, 2017-18"
+  },
+  "elsch18.txt": {
+    "dataset": "el",
+    "filename": "elsch18.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2018-19&cCat=EL&cPage=fileselsch",
+    "sha256": "ce4d8019f77ea2d9b016a549834d73823413a9ae310865877dfe762c57e82452",
+    "size": 7255269,
+    "downloaded_at": "2026-08-15T03:33:44+00:00",
+    "note": "EL by school/grade/language, 2018-19"
+  },
+  "elsch19.txt": {
+    "dataset": "el",
+    "filename": "elsch19.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2019-20&cCat=EL&cPage=fileselsch",
+    "sha256": "c54333ea867d24e7e164a5b30a5b65ac4c249d8224d7ca1112593894fc7a7bb2",
+    "size": 7136093,
+    "downloaded_at": "2026-08-15T03:33:58+00:00",
+    "note": "EL by school/grade/language, 2019-20"
+  },
+  "elsch20.txt": {
+    "dataset": "el",
+    "filename": "elsch20.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2020-21&cCat=EL&cPage=fileselsch",
+    "sha256": "55dc7b944ba52817276f5508297d4adf5042b9e3845eb3926bc7713107ae8bd7",
+    "size": 6786492,
+    "downloaded_at": "2026-08-15T03:34:13+00:00",
+    "note": "EL by school/grade/language, 2020-21"
+  },
+  "elsch21.txt": {
+    "dataset": "el",
+    "filename": "elsch21.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2021-22&cCat=EL&cPage=fileselsch",
+    "sha256": "9365dfebc5b64c3d61e0d182557ab7e3f2e7df13bd093c5646e793b8e735cc67",
+    "size": 7033877,
+    "downloaded_at": "2026-08-15T03:34:29+00:00",
+    "note": "EL by school/grade/language, 2021-22"
+  },
+  "elsch22.txt": {
+    "dataset": "el",
+    "filename": "elsch22.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2022-23&cCat=EL&cPage=fileselsch",
+    "sha256": "44e53a533c1114b9adf92d60b4231e3b819403ae51ffb14a6d7bd5fa0abe41d9",
+    "size": 7029835,
+    "downloaded_at": "2026-08-15T03:34:42+00:00",
+    "note": "EL by school/grade/language, 2022-23"
+  },
+  "elsch23.txt": {
+    "dataset": "el",
+    "filename": "elsch23.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2023-24&cCat=EL&cPage=fileselsch",
+    "sha256": "bd1bc45a0d36cedd3905f8f1fe4aefaa3b825f61d809f98af99bc17fa6ca8676",
+    "size": 7462884,
+    "downloaded_at": "2026-08-15T03:34:56+00:00",
+    "note": "EL by school/grade/language, 2023-24"
+  },
+  "elsch24.txt": {
+    "dataset": "el",
+    "filename": "elsch24.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2024-25&cCat=EL&cPage=fileselsch",
+    "sha256": "0abd867820581c4ac0073f296d996b45abe85cae9e89724a23d81168bfdb933b",
+    "size": 7351207,
+    "downloaded_at": "2026-08-15T03:35:12+00:00",
+    "note": "EL by school/grade/language, 2024-25"
+  },
+  "elsch25.txt": {
+    "dataset": "el",
+    "filename": "elsch25.txt",
+    "url": "https://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2025-26&cCat=EL&cPage=fileselsch",
+    "sha256": "656fa33260bcecaf8e2f0713b1aebd22ae67ae3e5250b9052789f05473b29e40",
+    "size": 7186381,
+    "downloaded_at": "2026-08-15T03:35:25+00:00",
+    "note": "EL by school/grade/language, 2025-26"
+  }
+}

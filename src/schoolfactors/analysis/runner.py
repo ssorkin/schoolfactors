@@ -41,6 +41,17 @@ def run_analysis() -> None:
     cov = build_covariates()
     effects = effects.join(cov, on="cds", how="left")
 
+    from schoolfactors.analysis.cde_covariates import build_cde_covariates
+
+    cde_cov = build_cde_covariates()
+    effects = effects.join(cde_cov, on="cds", how="left")
+    both = effects.filter(
+        pl.col("share_econ_dis").is_not_null() & pl.col("frpm_share").is_not_null()
+    )
+    r = np.corrcoef(both["share_econ_dis"].to_numpy(), both["frpm_share"].to_numpy())[0, 1]
+    print(f"  cross-source check: corr(CAASPP econ-dis share, CDE FRPM share) = {r:+.3f} "
+          f"({len(both):,} schools)")
+
     coefs = []
     for param in ("level", "growth"):
         effects, coef, tau2 = adjust(effects, param)
@@ -75,6 +86,8 @@ def run_analysis() -> None:
             "log_tested",
         ],
         "full": ADJUST_COVARIATES,
+        "cde_admin": ["frpm_share", "upc_share", "log_tested"],
+        "full_plus_cde": [*ADJUST_COVARIATES, "upc_share", "absent_rate", "stability_rate"],
     }
     spec_resids: dict[str, pl.DataFrame] = {}
     for name, cols in specs.items():
@@ -82,12 +95,15 @@ def run_analysis() -> None:
                                             or "_adj_" in c]), "level", cols)
         spec_resids[name] = adj_df.select("cds", pl.col("level_adj").alias(f"adj_{name}"))
     sens = spec_resids["econ_only"]
-    for name in ("econ_race", "full"):
+    for name in ("econ_race", "full", "cde_admin", "full_plus_cde"):
         sens = sens.join(spec_resids[name], on="cds", how="inner")
     stats: dict = {"sensitivity": {}}
-    a = sens["adj_econ_only"].to_numpy()
-    for name in ("econ_race", "full"):
-        b = sens[f"adj_{name}"].to_numpy()
+    a_all = sens["adj_econ_only"].to_numpy()
+    for name in ("econ_race", "full", "cde_admin", "full_plus_cde"):
+        b_all = sens[f"adj_{name}"].to_numpy()
+        # Specs using CDE covariates cover fewer schools; compare on the overlap.
+        mask = np.isfinite(a_all) & np.isfinite(b_all)
+        a, b = a_all[mask], b_all[mask]
         rho = float(spearmanr(a, b).statistic)
         qa = np.quantile(a, 0.8)
         qb = np.quantile(b, 0.8)
@@ -95,9 +111,33 @@ def run_analysis() -> None:
         stats["sensitivity"][f"econ_only_vs_{name}"] = {
             "spearman": round(rho, 3),
             "top_quintile_agreement": round(top_agree, 3),
+            "n": int(mask.sum()),
         }
         print(f"  sensitivity econ_only vs {name}: spearman={rho:.3f}, "
-              f"top-quintile agreement={top_agree:.1%}")
+              f"top-quintile agreement={top_agree:.1%} (n={mask.sum():,})")
+
+    # First "factors" readout: coefficients on non-demographic school inputs,
+    # conditional on demographics. Correlational, not causal — printed with SEs
+    # implied by the precision-weighted fit's residual scale.
+    factor_cols = [
+        *ADJUST_COVARIATES,
+        "upc_share",
+        "absent_rate",
+        "stability_rate",
+        "teacher_avg_years",
+    ]
+    _, factor_coef, _ = adjust(
+        effects.drop([c for c in effects.columns if c.endswith("_adj") or "_adj_" in c]),
+        "level",
+        factor_cols,
+    )
+    print("  factor coefficients (level, conditional on demographics; SD units):")
+    for row in factor_coef.to_dicts():
+        if row["term"] in ("absent_rate", "stability_rate", "teacher_avg_years", "upc_share"):
+            print(f"    {row['term']}: {row['gamma_level']:+.3f}")
+    stats["factor_coefficients"] = {
+        r["term"]: round(r["gamma_level"], 4) for r in factor_coef.to_dicts()
+    }
 
     # How many schools are actually distinguishable from expectation?
     dd = effects.filter(

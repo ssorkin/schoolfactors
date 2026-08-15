@@ -1,0 +1,38 @@
+{
+  "tamo2021-v2.txt": {
+    "dataset": "tamo",
+    "filename": "tamo2021-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/tamo/tamo2021-v2.txt",
+    "sha256": "3922a6e2c30844a98a953071047eeac0b1541d16706b0205451400403549838a",
+    "size": 216758181,
+    "downloaded_at": "2026-08-15T03:31:58+00:00",
+    "note": "teacher assignment/credential alignment (large, ~230MB/yr)"
+  },
+  "tamo2122-v2.txt": {
+    "dataset": "tamo",
+    "filename": "tamo2122-v2.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/tamo/tamo2122-v2.txt",
+    "sha256": "525627703954c3820bac0dc422e2d074783a1104b9c360b69ceae8864f1c023c",
+    "size": 223624237,
+    "downloaded_at": "2026-08-15T03:31:38+00:00",
+    "note": "teacher assignment/credential alignment (large, ~230MB/yr)"
+  },
+  "tamo2223.txt": {
+    "dataset": "tamo",
+    "filename": "tamo2223.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/tamo/tamo2223.txt",
+    "sha256": "fb735a3b28dba2de216741d482123c6352f956f6834fc983875d3e4299758a17",
+    "size": 238272944,
+    "downloaded_at": "2026-08-15T03:31:19+00:00",
+    "note": "teacher assignment/credential alignment (large, ~230MB/yr)"
+  },
+  "tamo2324.txt": {
+    "dataset": "tamo",
+    "filename": "tamo2324.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/tamo/tamo2324.txt",
+    "sha256": "81dff3c96e3848753e345383cbf39964b828c14ab3e756b10179fc2945880320",
+    "size": 234206408,
+    "downloaded_at": "2026-08-15T03:31:00+00:00",
+    "note": "teacher assignment/credential alignment (large, ~230MB/yr)"
+  }
+}

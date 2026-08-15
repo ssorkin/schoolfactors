@@ -1,0 +1,83 @@
+{
+  "cgr12mo15.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo15.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo15.txt",
+    "sha256": "b8e00fbdec35608720d3b1000a786e836d08841a39de634bfc22403942426ac9",
+    "size": 53367814,
+    "downloaded_at": "2026-08-15T03:27:39+00:00",
+    "note": "12-month college-going rate"
+  },
+  "cgr12mo16.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo16.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo16.txt",
+    "sha256": "a46c122d4092d6d8071f36a560281b7ea3e5a4652e0c37e334ec1252f232104d",
+    "size": 54820962,
+    "downloaded_at": "2026-08-15T03:27:33+00:00",
+    "note": "12-month college-going rate"
+  },
+  "cgr12mo17.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo17.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo17.txt",
+    "sha256": "80395e116f310a72dea0e62def4c17f02abe28f413720afea3ce2dda65a6a1be",
+    "size": 55186970,
+    "downloaded_at": "2026-08-15T03:27:24+00:00",
+    "note": "12-month college-going rate"
+  },
+  "cgr12mo18.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo18.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo18.txt",
+    "sha256": "ff7cec7890a513b3890d92a39cfe996ac3391046db0d3e8f6b2608ac484be255",
+    "size": 55752608,
+    "downloaded_at": "2026-08-15T03:27:15+00:00",
+    "note": "12-month college-going rate"
+  },
+  "cgr12mo19.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo19.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo19.txt",
+    "sha256": "1d8df34f6bbdb4303184d5a8226500537d4d912b14080f633fac0750763eb47b",
+    "size": 56861736,
+    "downloaded_at": "2026-08-15T03:27:06+00:00",
+    "note": "12-month college-going rate"
+  },
+  "cgr12mo20.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo20.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo20.txt",
+    "sha256": "0bb26279b04471766f1d329cd330d0ea561a5d8950066cf06e870b19a54fa087",
+    "size": 54885628,
+    "downloaded_at": "2026-08-15T03:26:58+00:00",
+    "note": "12-month college-going rate"
+  },
+  "cgr12mo21.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo21.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo21.txt",
+    "sha256": "ca798d82c1a6169906001a143c653e0f10fcec1b7923958e48c35e9ce6ebe2ee",
+    "size": 25670782,
+    "downloaded_at": "2026-08-15T03:26:51+00:00",
+    "note": "12-month college-going rate"
+  },
+  "cgr12mo22.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo22.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo22.txt",
+    "sha256": "e0395350a1a2b7100afd328cc58f709b67a35c10d41057c8e5dbec79f04e1ab6",
+    "size": 26357096,
+    "downloaded_at": "2026-08-15T03:26:44+00:00",
+    "note": "12-month college-going rate"
+  },
+  "cgr12mo23.txt": {
+    "dataset": "cgr",
+    "filename": "cgr12mo23.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/cgr/cgr12mo23.txt",
+    "sha256": "d57379f76a2038af0e0bbc7aaa761fca27ef9a4c3b94ba904e6ce37c6a21b727",
+    "size": 26662057,
+    "downloaded_at": "2026-08-15T03:26:39+00:00",
+    "note": "12-month college-going rate"
+  }
+}

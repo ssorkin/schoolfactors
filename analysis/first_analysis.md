@@ -84,13 +84,36 @@ publish all specifications, per the central lesson of the LA Times episode.
   weights; this modestly overstates sampling variance (ICC ≈ 0.2 ⇒ ~10% conservative),
   which makes our "distinguishable" counts, if anything, understatements.
 
+## CDE administrative covariates (added after acquisition completed)
+
+Joining CDE's administrative files gives an independent check and a first look at
+non-demographic factors:
+
+- **Cross-source validation.** CAASPP's tested-population economic-disadvantage
+  share correlates **+0.984** with CDE's FRPM eligibility rate across 9,678 schools —
+  two fully independent pipelines (test-file subgroup counts vs. meal-program
+  administrative records) agree almost perfectly.
+- **The adjustment is robust to the poverty measure.** Adjusting on CDE's FRPM/UPC
+  instead of CAASPP-internal shares reproduces the rankings at Spearman **0.979**
+  (top-quintile agreement 96%).
+- **Factor correlations, conditional on demographics** (level, student-SD units;
+  correlational, not causal): chronic absenteeism **−0.78** per unit (≈ −0.08 SD per
+  10 pp), student stability rate **+1.32**, unduplicated-pupil-count share **−0.60**
+  (depth of disadvantage carries signal beyond the binary econ-dis share), average
+  teacher experience **+0.011 per year**.
+- **A caution on "controlling for" attendance and stability**: these are partly
+  mechanisms schools can influence, not fixed context. Including them changes the
+  question from "does this school outperform schools with similar students?" to
+  "…net of attendance and churn?" — rankings shift accordingly (Spearman 0.62 vs the
+  economic-only spec). We therefore publish them as a separate analytical lens, not
+  as part of the default demographic adjustment.
+
 ## Next
 
-Join CDE covariates (FRPM/UPC, teacher experience and credentials, per-pupil
-spending, chronic absenteeism, stability) as competing specifications; validate our
-growth parameter against California's official growth model; district-level subgroup
-analyses (school-level subgroup estimates are too imprecise to publish — SEDA's
-precedent).
+Validate our growth parameter against California's official growth model (Dashboard
+files still pending CDE's rate limiting); teacher credential/assignment (TAMO) and
+spending (ESSA PPE, SACS) factor analyses; district-level subgroup analyses
+(school-level subgroup estimates are too imprecise to publish — SEDA's precedent).
 
 ## References
 

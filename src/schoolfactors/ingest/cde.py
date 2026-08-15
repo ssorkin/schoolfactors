@@ -50,10 +50,9 @@ def snake(name: str) -> str:
 
 def _derive_cds(df: pl.DataFrame) -> pl.DataFrame:
     cols = {c.lower(): c for c in df.columns}
-    if "cds_code" in cols:
-        return df.with_columns(pl.col(cols["cds_code"]).str.zfill(14).alias("cds"))
-    if "cdscode" in cols:
-        return df.with_columns(pl.col(cols["cdscode"]).str.zfill(14).alias("cds"))
+    for key in ("cds_code", "cdscode", "school_cds_code", "lea_cds_code"):
+        if key in cols:
+            return df.with_columns(pl.col(cols[key]).str.zfill(14).alias("cds"))
     county = cols.get("county_code") or cols.get("countycode")
     district = cols.get("district_code") or cols.get("districtcode")
     school = cols.get("school_code") or cols.get("schoolcode")
@@ -70,6 +69,10 @@ def _derive_cds(df: pl.DataFrame) -> pl.DataFrame:
 
 def read_tab(path: Path) -> pl.DataFrame:
     raw = path.read_bytes()
+    # Some CDE files (e.g. one stability year) are UTF-16; reading them as UTF-8
+    # interleaves NULs into every header and value.
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff") or b"\x00" in raw[:200]:
+        raw = raw.decode("utf-16").encode("utf-8")
     # A few CDE files (strat) quote numbers containing thousands separators even
     # though they are tab-delimited; polars handles the quotes, we strip commas later.
     df = pl.read_csv(
@@ -93,11 +96,11 @@ def read_xlsx(path: Path) -> pl.DataFrame:
     # Choose the sheet with the most rows whose header mentions county/district codes
     best = None
     for sheet in xl.sheet_names:
-        head = xl.parse(sheet, nrows=8, header=None, dtype=str)
+        head = xl.parse(sheet, nrows=14, header=None, dtype=str)
         header_row = None
         for i, row in head.iterrows():
             joined = " ".join(str(v) for v in row.tolist())
-            if "County Code" in joined or "CountyCode" in joined:
+            if any(k in joined for k in ("County Code", "CountyCode", "CDS Code", "CDSCode")):
                 header_row = i
                 break
         if header_row is None:

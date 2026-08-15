@@ -1,0 +1,128 @@
+{
+  "expulsion12.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion12.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion12.txt",
+    "sha256": "3113e2ad851ec541541279780dd2724b4c625a3e8d80f1bfb56c1aa6b5cdec31",
+    "size": 38638216,
+    "downloaded_at": "2026-08-15T03:25:33+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion13.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion13.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion13.txt",
+    "sha256": "ffd572ccc04c76d3e09d5f9a2694d3631b4af9fef69926eb6d0935159c0aee47",
+    "size": 38833858,
+    "downloaded_at": "2026-08-15T03:25:26+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion14.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion14.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion14.txt",
+    "sha256": "c0b7ac5deec9608875a72f820dd85a3349dc51f2a663153a40ee9839bb07e1c1",
+    "size": 39192933,
+    "downloaded_at": "2026-08-15T03:25:20+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion15.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion15.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion15.txt",
+    "sha256": "6ed1a4fed148e03ceb971243c4d7c888531a9e8ab9c02d81820408b120de09ae",
+    "size": 39848600,
+    "downloaded_at": "2026-08-15T03:25:14+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion16.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion16.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion16.txt",
+    "sha256": "975382b469e825eee8341b5fcd28da47010f863cddc41977cdca87b082a61007",
+    "size": 40066209,
+    "downloaded_at": "2026-08-15T03:25:07+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion17.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion17.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion17.txt",
+    "sha256": "fbd72412a5ced29a0c8d6680c9fccfb7d5d05cb0f33cdc78a2f473de06c8ebec",
+    "size": 40036192,
+    "downloaded_at": "2026-08-15T03:25:00+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion18.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion18.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion18.txt",
+    "sha256": "88f845201f232814b878b01961238a15987b71bf5761ab7b5f3db1cdc906c74e",
+    "size": 39887796,
+    "downloaded_at": "2026-08-15T03:24:53+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion19.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion19.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion19.txt",
+    "sha256": "6f0ac7ce1199001c976883b9f4ca2795525f680c8a327eb08c183796f181dc9d",
+    "size": 39444646,
+    "downloaded_at": "2026-08-15T03:24:46+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion20.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion20.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion20.txt",
+    "sha256": "3371256f864e0ba3a5bcde0ee1122cfb48d763d78897305b12298b4e47287285",
+    "size": 24926347,
+    "downloaded_at": "2026-08-15T03:24:40+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion21.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion21.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion21.txt",
+    "sha256": "4a7465482be62533f381e106c5f88b0d57071591acc68806e5b62ecf9fc18f4e",
+    "size": 24554428,
+    "downloaded_at": "2026-08-15T03:24:34+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion22-v3.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion22-v3.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion22-v3.txt",
+    "sha256": "6505393b5b73717e847a20186b3f61c27261648391f4705ff65d9ee23c7e5b32",
+    "size": 25090820,
+    "downloaded_at": "2026-08-15T03:24:28+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion23.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion23.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion23.txt",
+    "sha256": "bd2d345b8a187079fb7b0310dd6ae67efa6b09d7f4301fc86303f2ba3c687695",
+    "size": 24936908,
+    "downloaded_at": "2026-08-15T03:24:21+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion24.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion24.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion24.txt",
+    "sha256": "117ab5ff254b8b8d5adeebc1029b49cbbcdf978cfaa93793ac364f7a854842c7",
+    "size": 25070007,
+    "downloaded_at": "2026-08-15T03:24:15+00:00",
+    "note": "expulsion counts/rates"
+  },
+  "expulsion25.txt": {
+    "dataset": "expulsion",
+    "filename": "expulsion25.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/discipline/expulsion25.txt",
+    "sha256": "96bfa99cb2bdd916b10edd0272ca11e9a75f4ec6b4e50890b4c29efa40f92d01",
+    "size": 25095717,
+    "downloaded_at": "2026-08-15T03:24:09+00:00",
+    "note": "expulsion counts/rates"
+  }
+}

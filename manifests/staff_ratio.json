@@ -1,0 +1,65 @@
+{
+  "strat1920.txt": {
+    "dataset": "staff_ratio",
+    "filename": "strat1920.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/strat1920.txt",
+    "sha256": "cb1efc4f49c27e40baeb1127424c98143a8c90cad3d3c9fcbe93566e3bbbe8a0",
+    "size": 3399327,
+    "downloaded_at": "2026-08-15T03:21:36+00:00",
+    "note": "student/staff ratios (beware quoted thousands separators)"
+  },
+  "strat2021.txt": {
+    "dataset": "staff_ratio",
+    "filename": "strat2021.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/strat2021.txt",
+    "sha256": "bbb619d17b63fae7aba8866bc842482f3dcc993921de2c3ca0dd20c734b84f1d",
+    "size": 3378843,
+    "downloaded_at": "2026-08-15T03:21:31+00:00",
+    "note": "student/staff ratios (beware quoted thousands separators)"
+  },
+  "strat2122.txt": {
+    "dataset": "staff_ratio",
+    "filename": "strat2122.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/strat2122.txt",
+    "sha256": "0e1f88e212ccf1676950e6c14860186b8bbd7a3f16007d75784a2ab5ae46144c",
+    "size": 3374031,
+    "downloaded_at": "2026-08-15T03:21:26+00:00",
+    "note": "student/staff ratios (beware quoted thousands separators)"
+  },
+  "strat2223.txt": {
+    "dataset": "staff_ratio",
+    "filename": "strat2223.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/strat2223.txt",
+    "sha256": "8f285d27153621d947ede5af7390b30556842d5efc331f63d672ded14cb0a031",
+    "size": 3384974,
+    "downloaded_at": "2026-08-15T03:21:22+00:00",
+    "note": "student/staff ratios (beware quoted thousands separators)"
+  },
+  "strat2324.txt": {
+    "dataset": "staff_ratio",
+    "filename": "strat2324.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/strat2324.txt",
+    "sha256": "0d1b7a947c5328c7ed965c3568cd4e02c784854d63c5f267c3a3570978e3a7f9",
+    "size": 3389412,
+    "downloaded_at": "2026-08-15T03:21:17+00:00",
+    "note": "student/staff ratios (beware quoted thousands separators)"
+  },
+  "strat2425.txt": {
+    "dataset": "staff_ratio",
+    "filename": "strat2425.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/strat2425.txt",
+    "sha256": "effdae03d5ea30aadfba33cf676b8aa771345fabcb8159407a5617d1737cd03a",
+    "size": 3269102,
+    "downloaded_at": "2026-08-15T03:21:12+00:00",
+    "note": "student/staff ratios (beware quoted thousands separators)"
+  },
+  "strat2526.txt": {
+    "dataset": "staff_ratio",
+    "filename": "strat2526.txt",
+    "url": "https://www3.cde.ca.gov/demo-downloads/staff/strat2526.txt",
+    "sha256": "a0016b7b9ba207288b1d7380e1c51c3134e4066c185dd5d4e30cbc75c2695963",
+    "size": 3420724,
+    "downloaded_at": "2026-08-15T03:21:07+00:00",
+    "note": "student/staff ratios (beware quoted thousands separators)"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "frpm1112.xls": {
+    "dataset": "frpm",
+    "filename": "frpm1112.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1112.xls",
+    "sha256": "6ae9f3edce48d7260a1c3b77d92e450ce0609540a03bf831f17776bbfd57df6f",
+    "size": 2485760,
+    "downloaded_at": "2026-08-15T03:15:17+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm1213.xls": {
+    "dataset": "frpm",
+    "filename": "frpm1213.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1213.xls",
+    "sha256": "4d8b84822024fb852ab3191be75294ff7472f5ae651793e0027f7ccd4553560c",
+    "size": 3839488,
+    "downloaded_at": "2026-08-15T03:15:12+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm1314.xls": {
+    "dataset": "frpm",
+    "filename": "frpm1314.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1314.xls",
+    "sha256": "95716360237994b5d70b7c0bd3c60db3c4773163c7145d0c4459db82036a4ec0",
+    "size": 4020224,
+    "downloaded_at": "2026-08-15T03:15:07+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm1415.xls": {
+    "dataset": "frpm",
+    "filename": "frpm1415.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1415.xls",
+    "sha256": "0cedcc7d1e069041d3f517af3e52ff78478e56bed9d99d47b31bff102c86aec5",
+    "size": 5110784,
+    "downloaded_at": "2026-08-15T03:15:03+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm1516.xls": {
+    "dataset": "frpm",
+    "filename": "frpm1516.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1516.xls",
+    "sha256": "d247706c41b6d80f46fc46888be4bcc57e6f552b579b63a376b3628c514ed699",
+    "size": 5180416,
+    "downloaded_at": "2026-08-15T03:14:56+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm1617.xls": {
+    "dataset": "frpm",
+    "filename": "frpm1617.xls",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1617.xls",
+    "sha256": "992b6c3535d96554733dab22a87120fef85526c03fe8ddbfd1ab8965daf98dba",
+    "size": 5436928,
+    "downloaded_at": "2026-08-15T03:14:51+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm1718.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm1718.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1718.xlsx",
+    "sha256": "be96d37c2f4f17f6f72764bdc3b0ee57d66f272a8e7cc76969e26186de2a6ffb",
+    "size": 2197522,
+    "downloaded_at": "2026-08-15T03:14:46+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm1819.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm1819.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1819.xlsx",
+    "sha256": "1cc3efc60adc823378d921ddbbe289e27642525227082effb61f9aa3ec641a6e",
+    "size": 2219336,
+    "downloaded_at": "2026-08-15T03:14:41+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm1920.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm1920.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm1920.xlsx",
+    "sha256": "c49c78d146604ad1c73733fa639157ef0b05ac98ad5ca2b9d740ca285e4dbcbf",
+    "size": 2229356,
+    "downloaded_at": "2026-08-15T03:14:36+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm2021.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm2021.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm2021.xlsx",
+    "sha256": "c6c3017257a3ac501ca845d1e5ad83e051c6f8156125cf7b2fb88d9f90e1e4a4",
+    "size": 2228494,
+    "downloaded_at": "2026-08-15T03:14:33+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm2122_v2.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm2122_v2.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm2122_v2.xlsx",
+    "sha256": "616bcfe3d8c7a29c943f43c81f8b037c89693b159e26aa672be0959be7e9bb6b",
+    "size": 1975598,
+    "downloaded_at": "2026-08-15T03:14:29+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm2223.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm2223.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm2223.xlsx",
+    "sha256": "a3f5ebabafbb4aeaf6ba6f6acf95743015fef01e90af9bd0092592f0696d8a45",
+    "size": 1998505,
+    "downloaded_at": "2026-08-15T03:14:25+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm2324.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm2324.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm2324.xlsx",
+    "sha256": "ddeade1412be1e507b7e3e7be2515f4745add08a1d55ecf6ada0c849b1ee6038",
+    "size": 2178014,
+    "downloaded_at": "2026-08-15T03:14:21+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm2425.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm2425.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm2425.xlsx",
+    "sha256": "86fb8bc64ce0e433468f4a4b9038115a82031fee56125f76bacd56037a654a40",
+    "size": 2185842,
+    "downloaded_at": "2026-08-15T03:14:16+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  },
+  "frpm2526.xlsx": {
+    "dataset": "frpm",
+    "filename": "frpm2526.xlsx",
+    "url": "https://www.cde.ca.gov/ds/ad/documents/frpm2526.xlsx",
+    "sha256": "73f1b841ec36e1ffcfce9ce7675c7f1b4cefb1c50069956d5c476417f9385ce0",
+    "size": 2202615,
+    "downloaded_at": "2026-08-15T03:14:13+00:00",
+    "note": "FRPM student poverty (xlsx)"
+  }
+}
