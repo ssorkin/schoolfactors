@@ -107,6 +107,18 @@ def run_export() -> None:
             "SELECT cds, any_value(eilcode) FROM directory_raw WHERE eilcode IS NOT NULL GROUP BY cds"
         ).fetchall()
     )
+    # Current census-day enrollment (latest CDE cdenroll year). School rows carry
+    # their own charter flag; district/county totals need the ALL rollup.
+    census_map = dict(
+        con_dir.execute("""
+            SELECT cds, max(TRY_CAST(total_enr AS INT))
+            FROM enrollment_raw
+            WHERE reportingcategory = 'TA'
+              AND academicyear = (SELECT max(academicyear) FROM enrollment_raw)
+              AND (aggregatelevel = 'S' OR charter = 'ALL')
+            GROUP BY cds
+        """).fetchall()
+    )
     con_dir.close()
     school_name_lookup = {
         r["cds"]: (r["school_name"], r["district_name"])
@@ -272,14 +284,19 @@ def run_export() -> None:
             raw_ela, raw_math = _split(eff.get("level_eb"))
             adj_ela, adj_math = _split(eff.get("level_adj_eb"))
 
-            # Sparkline: combined ELA+Math pass rate per year (count-weighted).
+            # Sparkline: combined ELA+Math pass rate per year (count-weighted);
+            # latest per-subject pass rates; last year with any usable data.
             spark_years = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
             by_year: dict[int, list] = {}
+            latest_pass: dict[str, tuple[int, float]] = {}
             for r in _rows(subgroups_by, cds):
                 if r["student_group_id"] == 1 and r["pct_met_and_above"] is not None:
                     by_year.setdefault(r["test_year"], []).append(
                         (r["pct_met_and_above"], r["n"])
                     )
+                    subj = "ela" if r["test_id"] == 1 else "math"
+                    if subj not in latest_pass or r["test_year"] > latest_pass[subj][0]:
+                        latest_pass[subj] = (r["test_year"], r["pct_met_and_above"])
             spark = []
             for y in spark_years:
                 vals = by_year.get(y)
@@ -289,6 +306,7 @@ def run_export() -> None:
                     spark.append(round(num / den) if den else None)
                 else:
                     spark.append(None)
+            last_year = max(by_year) if by_year else None
 
             index.append(
                 {
@@ -306,8 +324,12 @@ def run_export() -> None:
                     "raw_math": raw_math,
                     "adj_ela": adj_ela,
                     "adj_math": adj_math,
+                    "pass_ela": round(latest_pass["ela"][1]) if "ela" in latest_pass else None,
+                    "pass_math": round(latest_pass["math"][1]) if "math" in latest_pass else None,
+                    "last_year": last_year,
                     "growth_adj_eb": eff.get("growth_adj_eb"),
                     "econ": eff.get("share_econ_dis"),
+                    "enrollment": census_map.get(cds),
                     "total_scores": eff.get("total_scores"),
                     "spark": spark,
                 }

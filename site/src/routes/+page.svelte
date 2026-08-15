@@ -5,6 +5,7 @@
   let query = $state('');
   let kindFilter = $state('all'); // all | school | district | county
   let levelFilter = $state('all'); // all | elementary | middle | high | k-12
+  let includeInactive = $state(false); // entities with no data since 2024 (closures)
   let sortKey = $state('name');
   let sortDir = $state(1); // 1 asc, -1 desc
   let shown = $state(150);
@@ -66,6 +67,7 @@
     const level = facets.level ?? (levelFilter === 'all' ? null : levelFilter);
     const out = [];
     for (const it of items) {
+      if (!includeInactive && (it.last_year ?? 0) < 2024) continue;
       if (kind && !it.kind.startsWith(kind)) continue;
       if (level && !(it.level ?? '').startsWith(level)) continue;
       if (facets.county && !norm(it.county).includes(facets.county)) continue;
@@ -114,6 +116,7 @@
     query;
     kindFilter;
     levelFilter;
+    includeInactive;
     shown = 150;
   });
 
@@ -161,10 +164,11 @@
   const NUM_COLS = [
     ['adj_ela', 'Adj ELA', 'ELA level vs schools serving similar students (student SDs)'],
     ['adj_math', 'Adj Math', 'Math level vs schools serving similar students (student SDs)'],
-    ['raw_ela', 'Raw ELA', 'ELA level vs state average (student SDs)'],
-    ['raw_math', 'Raw Math', 'Math level vs state average (student SDs)'],
+    ['pass_ela', 'ELA met+', '% met or exceeded standard in ELA, latest year'],
+    ['pass_math', 'Math met+', '% met or exceeded standard in Math, latest year'],
     ['growth_adj_eb', 'Growth', 'Adjusted cohort growth (SDs/grade)'],
     ['econ', '% Econ', 'Share of tested students economically disadvantaged'],
+    ['enrollment', 'Students', 'Census-day enrollment, latest school year'],
     ['total_scores', 'Scores', 'Total test scores across years']
   ];
 </script>
@@ -204,6 +208,10 @@
       <button class:on={levelFilter === k} onclick={() => (levelFilter = k)}>{label}</button>
     {/each}
   </div>
+  <label class="inactive">
+    <input type="checkbox" bind:checked={includeInactive} />
+    include inactive
+  </label>
   {#if items}
     <span class="count">{sorted.length.toLocaleString()} of {items.length.toLocaleString()}</span>
   {/if}
@@ -258,15 +266,16 @@
             </td>
             <td class="tnum" class:pos={it.adj_ela > 0.1} class:neg={it.adj_ela < -0.1}>{fmt(it.adj_ela)}</td>
             <td class="tnum" class:pos={it.adj_math > 0.1} class:neg={it.adj_math < -0.1}>{fmt(it.adj_math)}</td>
-            <td class="tnum">{fmt(it.raw_ela)}</td>
-            <td class="tnum">{fmt(it.raw_math)}</td>
+            <td class="tnum">{it.pass_ela == null ? '—' : it.pass_ela + '%'}</td>
+            <td class="tnum">{it.pass_math == null ? '—' : it.pass_math + '%'}</td>
             <td class="tnum">{fmt(it.growth_adj_eb)}</td>
             <td class="tnum">{pct(it.econ)}</td>
+            <td class="tnum">{it.enrollment?.toLocaleString() ?? '—'}</td>
             <td class="tnum dim">{it.total_scores?.toLocaleString() ?? '—'}</td>
           </tr>
         {/each}
       {:else}
-        <tr><td colspan="11" class="loading">Loading {`{`}11,204{`}`} rows of public data…</td></tr>
+        <tr><td colspan="12" class="loading">Loading {`{`}11,204{`}`} rows of public data…</td></tr>
       {/if}
     </tbody>
   </table>
@@ -330,6 +339,17 @@
     color: #898781;
     font-size: 0.88rem;
     font-variant-numeric: tabular-nums;
+  }
+  .inactive {
+    color: #898781;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+  }
+  .inactive input {
+    accent-color: #2a78d6;
   }
   .tablewrap {
     border: 1px solid #e8e1d5;
