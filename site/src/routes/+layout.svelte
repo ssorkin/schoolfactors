@@ -6,6 +6,7 @@
   <header>
     <a class="brand" href="/">School<span>Factors</span></a>
     <nav>
+      <a href="/best-for">Best for…</a>
       <a href="/explore">Explore</a>
       <a href="/methodology">Methodology</a>
       <a href="/data">Data</a>

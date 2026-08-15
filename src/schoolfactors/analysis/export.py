@@ -65,6 +65,51 @@ def _rows(part: dict, cds: str) -> list[dict]:
     return df.to_dicts() if df is not None else []
 
 
+SPARK_YEARS = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
+
+# Student groups that get a "Best for" table (data/groups/{id}.json).
+BESTFOR_GROUPS = [128, 31, 160, 8, 74, 76, 77, 78, 80, 144, 52, 240, 90]
+
+
+def _group_stats(rows: list[dict]) -> dict:
+    """Latest per-subject pass rates, count-weighted spark, and last data year
+    for one student group's grade-13 rows."""
+    by_year: dict[int, list] = {}
+    latest: dict[str, tuple] = {}
+    for r in rows:
+        if r["pct_met_and_above"] is None:
+            continue
+        by_year.setdefault(r["test_year"], []).append((r["pct_met_and_above"], r["n"]))
+        subj = "ela" if r["test_id"] == 1 else "math"
+        if subj not in latest or r["test_year"] > latest[subj][0]:
+            latest[subj] = (r["test_year"], r["pct_met_and_above"], r["n"])
+    spark = []
+    for y in SPARK_YEARS:
+        vals = by_year.get(y)
+        if vals:
+            den = sum(n for _, n in vals)
+            spark.append(round(sum(p * n for p, n in vals) / den) if den else None)
+        else:
+            spark.append(None)
+    last_year = max(by_year) if by_year else None
+    combined_latest = None
+    n_latest = None
+    if last_year is not None:
+        vals = by_year[last_year]
+        den = sum(n for _, n in vals)
+        if den:
+            combined_latest = round(sum(p * n for p, n in vals) / den, 1)
+            n_latest = den
+    return {
+        "spark": spark,
+        "last_year": last_year,
+        "pass_ela": round(latest["ela"][1]) if "ela" in latest else None,
+        "pass_math": round(latest["math"][1]) if "math" in latest else None,
+        "combined_latest": combined_latest,
+        "n_latest": n_latest,
+    }
+
+
 def run_export() -> None:
     from schoolfactors.analysis import cohorts
     from schoolfactors.analysis.panel import (
@@ -119,7 +164,29 @@ def run_export() -> None:
             GROUP BY cds
         """).fetchall()
     )
+    # Full-population FRPM share (all enrolled students, latest FRPM year) — the
+    # census view of economic disadvantage, not the tested-population share.
+    frpm_school = con_dir.execute("""
+        SELECT cds,
+               TRY_CAST(frpm_count_k_12 AS DOUBLE) AS c,
+               TRY_CAST(enrollment_k_12 AS DOUBLE) AS e
+        FROM frpm_raw
+        WHERE academic_year = (SELECT max(academic_year) FROM frpm_raw)
+          AND school_code IS NOT NULL AND school_code <> '0000000'
+          AND TRY_CAST(enrollment_k_12 AS DOUBLE) > 0
+    """).fetchall()
     con_dir.close()
+    frpm_pop: dict[str, list] = {}
+    for scds, c, e in frpm_school:
+        if c is None or e is None:
+            continue
+        for key in (scds, scds[:7] + "0000000", scds[:2] + "000000000000"):
+            agg = frpm_pop.setdefault(key, [0.0, 0.0])
+            agg[0] += c
+            agg[1] += e
+    frpm_pop_share = {
+        k: round(c / e, 3) for k, (c, e) in frpm_pop.items() if e > 0
+    }
     school_name_lookup = {
         r["cds"]: (r["school_name"], r["district_name"])
         for r in names.filter(pl.col("type_id").is_in([7, 9, 10])).to_dicts()
@@ -135,6 +202,7 @@ def run_export() -> None:
     index: list[dict] = []
     district_pages: set[str] = set()
     county_pages: set[str] = set()
+    group_tables: dict[int, list[dict]] = {}
 
     # Counties, then districts, then schools, so child pages know which parent
     # links resolve.
@@ -284,29 +352,44 @@ def run_export() -> None:
             raw_ela, raw_math = _split(eff.get("level_eb"))
             adj_ela, adj_math = _split(eff.get("level_adj_eb"))
 
-            # Sparkline: combined ELA+Math pass rate per year (count-weighted);
-            # latest per-subject pass rates; last year with any usable data.
-            spark_years = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
-            by_year: dict[int, list] = {}
-            latest_pass: dict[str, tuple[int, float]] = {}
-            for r in _rows(subgroups_by, cds):
-                if r["student_group_id"] == 1 and r["pct_met_and_above"] is not None:
-                    by_year.setdefault(r["test_year"], []).append(
-                        (r["pct_met_and_above"], r["n"])
-                    )
-                    subj = "ela" if r["test_id"] == 1 else "math"
-                    if subj not in latest_pass or r["test_year"] > latest_pass[subj][0]:
-                        latest_pass[subj] = (r["test_year"], r["pct_met_and_above"])
-            spark = []
-            for y in spark_years:
-                vals = by_year.get(y)
-                if vals:
-                    num = sum(p * n for p, n in vals)
-                    den = sum(n for _, n in vals)
-                    spark.append(round(num / den) if den else None)
-                else:
-                    spark.append(None)
-            last_year = max(by_year) if by_year else None
+            # Group stats: All Students drives the index row; curated groups feed
+            # the Best-for tables.
+            sub_rows = _rows(subgroups_by, cds)
+            g1 = _group_stats([r for r in sub_rows if r["student_group_id"] == 1])
+            spark = g1["spark"]
+            last_year = g1["last_year"]
+
+            for gid in BESTFOR_GROUPS:
+                gs = _group_stats(
+                    [r for r in sub_rows if r["student_group_id"] == gid]
+                )
+                if gs["last_year"] is None:
+                    continue
+                gap = (
+                    round(gs["combined_latest"] - g1["combined_latest"], 1)
+                    if gs["combined_latest"] is not None
+                    and g1["combined_latest"] is not None
+                    and gs["last_year"] == g1["last_year"]
+                    else None
+                )
+                group_tables.setdefault(gid, []).append(
+                    {
+                        "cds": cds,
+                        "kind": payload["kind"],
+                        "name": payload["name"],
+                        "district": nrow["district_name"],
+                        "county": nrow["county_name"],
+                        "eil": eil_map.get(cds) if kind == "schools" else None,
+                        "pass_ela": gs["pass_ela"],
+                        "pass_math": gs["pass_math"],
+                        "n": gs["n_latest"],
+                        "gap": gap,
+                        "spark": gs["spark"],
+                        "last_year": gs["last_year"],
+                        "enrollment": census_map.get(cds),
+                        "econ": frpm_pop_share.get(cds),
+                    }
+                )
 
             index.append(
                 {
@@ -324,11 +407,13 @@ def run_export() -> None:
                     "raw_math": raw_math,
                     "adj_ela": adj_ela,
                     "adj_math": adj_math,
-                    "pass_ela": round(latest_pass["ela"][1]) if "ela" in latest_pass else None,
-                    "pass_math": round(latest_pass["math"][1]) if "math" in latest_pass else None,
+                    "pass_ela": g1["pass_ela"],
+                    "pass_math": g1["pass_math"],
                     "last_year": last_year,
                     "growth_adj_eb": eff.get("growth_adj_eb"),
-                    "econ": eff.get("share_econ_dis"),
+                    # Full-population FRPM share (all enrolled students), falling
+                    # back to the tested-population share where FRPM is missing.
+                    "econ": frpm_pop_share.get(cds, eff.get("share_econ_dis")),
                     "enrollment": census_map.get(cds),
                     "total_scores": eff.get("total_scores"),
                     "spark": spark,
@@ -375,6 +460,12 @@ def run_export() -> None:
         key=lambda c: c["county"] or "",
     )
     (SITE_DATA / "counties.json").write_text(json.dumps(county_list))
+
+    (SITE_DATA / "groups").mkdir(exist_ok=True)
+    for gid, rows in group_tables.items():
+        (SITE_DATA / "groups" / f"{gid}.json").write_text(json.dumps(rows))
+    print(f"  best-for tables: {len(group_tables)} groups "
+          f"({sum(len(v) for v in group_tables.values()):,} rows)")
 
     (SITE_DATA / "index.json").write_text(json.dumps(index))
     print(f"  wrote {written['schools']:,} school pages, {written['districts']:,} district pages")
