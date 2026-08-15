@@ -28,14 +28,19 @@
       .replace(/[^a-z0-9\s-]/g, ' ');
   }
 
+  let loadError = $state(false);
   onMount(async () => {
-    const raw = await (await fetch('/data/index.json')).json();
-    items = raw.map((it) => ({
-      ...it,
-      level: it.eil ? (EIL_LABEL[it.eil] ?? 'other') : it.kind !== 'school' ? '' : 'other',
-      _name: norm(it.name),
-      _extra: norm((it.district ?? '') + ' ' + (it.county ?? ''))
-    }));
+    try {
+      const raw = await (await fetch('/data/index.json')).json();
+      items = raw.map((it) => ({
+        ...it,
+        level: it.eil ? (EIL_LABEL[it.eil] ?? 'other') : it.kind !== 'school' ? '' : 'other',
+        _name: norm(it.name),
+        _extra: norm((it.district ?? '') + ' ' + (it.county ?? ''))
+      }));
+    } catch {
+      loadError = true;
+    }
   });
 
   // Facet-aware query parsing: `level:middle county:los angeles ivanhoe` etc.
@@ -161,11 +166,13 @@
       .join(', ');
   }
 
+  const PASS_COLS = [
+    ['pass_ela', 'ELA met+', '% met or exceeded standard in ELA, latest year'],
+    ['pass_math', 'Math met+', '% met or exceeded standard in Math, latest year']
+  ];
   const NUM_COLS = [
     ['adj_ela', 'Adj ELA', 'ELA level vs schools serving similar students (student SDs)'],
     ['adj_math', 'Adj Math', 'Math level vs schools serving similar students (student SDs)'],
-    ['pass_ela', 'ELA met+', '% met or exceeded standard in ELA, latest year'],
-    ['pass_math', 'Math met+', '% met or exceeded standard in Math, latest year'],
     ['growth_adj_eb', 'Growth', 'Adjusted cohort growth (SDs/grade)'],
     ['econ', '% Econ', 'Share of tested students economically disadvantaged'],
     ['enrollment', 'Students', 'Census-day enrollment, latest school year'],
@@ -230,6 +237,11 @@
         <th class="sortable" onclick={() => setSort('level')}>
           Level {sortKey === 'level' ? (sortDir > 0 ? '↑' : '↓') : ''}
         </th>
+        {#each PASS_COLS as [k, label, tip] (k)}
+          <th class="tnum sortable" title={tip} onclick={() => setSort(k, -1)}>
+            {label} {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
+          </th>
+        {/each}
         <th>Trend</th>
         {#each NUM_COLS as [k, label, tip] (k)}
           <th class="tnum sortable" title={tip} onclick={() => setSort(k, -1)}>
@@ -252,6 +264,8 @@
             </td>
             <td class="dim">{it.county}</td>
             <td class="dim">{it.level}</td>
+            <td class="tnum">{it.pass_ela == null ? '—' : it.pass_ela + '%'}</td>
+            <td class="tnum">{it.pass_math == null ? '—' : it.pass_math + '%'}</td>
             <td class="spark">
               {#if sparkRuns(it.spark).length}
                 <svg viewBox="0 0 104 24" width="104" height="24" role="img">
@@ -266,16 +280,18 @@
             </td>
             <td class="tnum" class:pos={it.adj_ela > 0.1} class:neg={it.adj_ela < -0.1}>{fmt(it.adj_ela)}</td>
             <td class="tnum" class:pos={it.adj_math > 0.1} class:neg={it.adj_math < -0.1}>{fmt(it.adj_math)}</td>
-            <td class="tnum">{it.pass_ela == null ? '—' : it.pass_ela + '%'}</td>
-            <td class="tnum">{it.pass_math == null ? '—' : it.pass_math + '%'}</td>
             <td class="tnum">{fmt(it.growth_adj_eb)}</td>
             <td class="tnum">{pct(it.econ)}</td>
             <td class="tnum">{it.enrollment?.toLocaleString() ?? '—'}</td>
             <td class="tnum dim">{it.total_scores?.toLocaleString() ?? '—'}</td>
           </tr>
         {/each}
+      {:else if loadError}
+        <tr><td colspan="12" class="loading">
+          Couldn't load the dataset — please reload the page.
+        </td></tr>
       {:else}
-        <tr><td colspan="12" class="loading">Loading {`{`}11,204{`}`} rows of public data…</td></tr>
+        <tr><td colspan="12" class="loading">Loading the full dataset…</td></tr>
       {/if}
     </tbody>
   </table>
