@@ -220,6 +220,14 @@
     return out;
   });
 
+  let typeSel = $state({
+    selective: true,
+    magnet: true,
+    charter: true,
+    alternative: true,
+    regular: true
+  });
+
   let fsel = $state({});
   function resetFacets() {
     for (const f of FACETS) fsel[f.key] = [...(bounds[f.key] ?? [0, 1])];
@@ -257,6 +265,8 @@
   let mapPoints = $derived.by(() => {
     const out = [];
     for (const it of mapEligible) {
+      const type = entityType(it);
+      if (mapKind === 'school' && !typeSel[type]) continue;
       let ok = true;
       for (const f of FACETS) {
         const b = bounds[f.key];
@@ -278,7 +288,7 @@
           ll: it.ll,
           cds: it.cds,
           kind: it.kind,
-          type: entityType(it),
+          type,
           popup: popupHtml(it)
         });
     }
@@ -355,10 +365,15 @@
     {#if mapKind === 'school'}
       <div class="legend">
         {#each Object.keys(TYPE_LABEL) as t (t)}
-          <div class="lrow">
+          <button
+            class="lrow"
+            class:off={!typeSel[t]}
+            title="Click to show/hide {TYPE_LABEL[t].toLowerCase()} schools"
+            onclick={() => (typeSel[t] = !typeSel[t])}
+          >
             <span class="dot" style:background={TYPE_COLOR[t]}></span>
             <span class="ltext">{TYPE_LABEL[t]}</span>
-          </div>
+          </button>
         {/each}
       </div>
     {/if}
@@ -378,12 +393,13 @@
     {/each}
     <button class="reset" onclick={resetFacets}>Reset filters</button>
     <p class="mapnote">
-      Filters combine. Narrowing a filter also hides entities missing that value; entities
-      without coordinates can't be mapped.
+      Filters combine, and clicking a legend entry shows/hides that school type. Narrowing
+      a filter also hides entities missing that value; entities without coordinates can't
+      be mapped.
     </p>
   </aside>
   {#if mapOpened}
-    <MapView points={mapPoints} visible={view === 'map'} />
+    <MapView points={mapPoints} visible={view === 'map'} fitKey={mapKind} />
   {/if}
 </div>
 
@@ -542,6 +558,22 @@
     font-size: 0.76rem;
     color: #6f6a61;
     line-height: 1.5;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 0;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+  .lrow:hover .ltext {
+    color: #b0552f;
+  }
+  .lrow.off {
+    opacity: 0.35;
+  }
+  .lrow.off .ltext {
+    text-decoration: line-through;
   }
   .dot {
     width: 9px;
