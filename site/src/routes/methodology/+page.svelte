@@ -5,7 +5,8 @@
   Full details, code, and figures live in the
   <a href="https://github.com/ssorkin/schoolfactors/blob/main/analysis/first_analysis.md"
     >open analysis writeup</a
-  >. This page is the plain-language version.
+  >. This page is the plain-language version; the <a href="/glossary">glossary</a>
+  defines each displayed metric and its calculation rule.
 </p>
 
 <h2>1. Scores, standardized carefully</h2>

@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Badges from '$lib/Badges.svelte';
+  import { COLTIP } from '$lib/glossary.js';
 
   let items = $state(null);
   let query = $state('');
@@ -168,17 +169,18 @@
       .join(', ');
   }
 
+  // Tooltip text lives in $lib/glossary.js — one source for headers and /glossary.
   const PASS_COLS = [
-    ['pass_ela', 'ELA met+', '% met or exceeded standard in ELA, latest year'],
-    ['pass_math', 'Math met+', '% met or exceeded standard in Math, latest year']
+    ['pass_ela', 'ELA met+'],
+    ['pass_math', 'Math met+']
   ];
   const NUM_COLS = [
-    ['adj_ela', 'Adj ELA', 'ELA level vs schools serving similar students (student SDs)'],
-    ['adj_math', 'Adj Math', 'Math level vs schools serving similar students (student SDs)'],
-    ['growth_adj_eb', 'Growth', 'Adjusted cohort growth (SDs/grade)'],
-    ['econ', '% Econ', 'Share of tested students economically disadvantaged'],
-    ['enrollment', 'Students', 'Census-day enrollment, latest school year'],
-    ['total_scores', 'Scores', 'Total test scores across years']
+    ['adj_ela', 'Adj ELA'],
+    ['adj_math', 'Adj Math'],
+    ['growth_adj_eb', 'Growth'],
+    ['econ', '% Econ'],
+    ['enrollment', 'Students'],
+    ['total_scores', 'Scores']
   ];
 </script>
 
@@ -239,15 +241,15 @@
         <th class="sortable" onclick={() => setSort('level')}>
           Level {sortKey === 'level' ? (sortDir > 0 ? '↑' : '↓') : ''}
         </th>
-        {#each PASS_COLS as [k, label, tip] (k)}
-          <th class="tnum sortable" title={tip} onclick={() => setSort(k, -1)}>
-            {label} {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
+        {#each PASS_COLS as [k, label] (k)}
+          <th class="tnum sortable" title={COLTIP[k]} onclick={() => setSort(k, -1)}>
+            <span class="deft">{label}</span> {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
           </th>
         {/each}
-        <th>Trend</th>
-        {#each NUM_COLS as [k, label, tip] (k)}
-          <th class="tnum sortable" title={tip} onclick={() => setSort(k, -1)}>
-            {label} {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
+        <th title={COLTIP.spark}><span class="deft">Met+ by year</span></th>
+        {#each NUM_COLS as [k, label] (k)}
+          <th class="tnum sortable" title={COLTIP[k]} onclick={() => setSort(k, -1)}>
+            <span class="deft">{label}</span> {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
           </th>
         {/each}
       </tr>
@@ -271,7 +273,7 @@
             <td class="spark">
               {#if sparkRuns(it.spark).length}
                 <svg viewBox="0 0 104 24" width="104" height="24" role="img">
-                  <title>Pass rate by year — {sparkTitle(it.spark)}</title>
+                  <title>Met+ by year — {sparkTitle(it.spark)}</title>
                   {#each sparkRuns(it.spark) as run, ri (ri)}
                     <polyline fill="none" stroke="#2a78d6" stroke-width="1.6" points={run} />
                   {/each}
@@ -305,6 +307,7 @@
 <p class="foot">
   Values are empirical-Bayes shrunken student-SD units; many entities are statistically
   indistinguishable from one another. Sorting is not ranking —
+  <a href="/glossary">what every column means</a> ·
   <a href="/methodology">how these numbers are made</a> ·
   <a href="/data">data sources and known issues</a> ·
   <a href="/explore">the Sonoma pilot scatter</a>.
@@ -399,6 +402,10 @@
   }
   th.sortable:hover {
     color: #b0552f;
+  }
+  th .deft {
+    text-decoration: underline dotted #c4bba8;
+    text-underline-offset: 3px;
   }
   td {
     padding: 0.32rem 0.55rem;

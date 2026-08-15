@@ -9,6 +9,7 @@
       <a href="/best-for">Best for…</a>
       <a href="/explore">Explore</a>
       <a href="/methodology">Methodology</a>
+      <a href="/glossary">Glossary</a>
       <a href="/data">Data</a>
       <a href="https://github.com/ssorkin/schoolfactors">GitHub</a>
     </nav>
