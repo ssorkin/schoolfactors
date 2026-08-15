@@ -36,13 +36,21 @@ Group 6 ("Fluent English proficient and English only") is the sum of groups 7 (I
 
 **Handling:** Analyses that need "fluent but not English-only" must use groups 7 + 8 directly, never group 6 minus anything.
 
+### Some LEAs filed implausibly low ESSA PPE — state/local dollars missing
+
+*reporting-inconsistency, affects ppe 2024, 2025* — id `ppe-implausibly-low-filings`
+
+Nine LEAs (93 school rows, ~66,000 students) filed 2024-25 ESSA per-pupil expenditures with a median total under $5,000/pupil — below the LCFF base grant alone, and impossible as a real total. Mt. Diablo Unified is the largest clear case: every one of its 50 schools reports near-zero state/local dollars (max $487/pupil district-wide, central $0), leaving only stray federal amounts — e.g. Mt. Diablo High at $1,084/pupil. Prior years show the filing decayed: Mt. Diablo High totaled roughly $27k/pupil through 2022-23, then $2.7k in 2023-24 and $1.1k in 2024-25. Sweetwater Union High ($4,038 median across 29 schools) is the other large affected LEA. A further 108 individual school rows fall under $5,000 inside otherwise-normal LEAs.
+
+**Handling:** Named transform in analysis/export.py alongside the totals-reporter normalization: an LEA whose median reported value is under $5,000/pupil is treated as a broken filing and ALL of its rows are dropped (a broken LEA's individually-plausible rows are not trusted either). Independently, any row under $5,000/pupil after normalization is dropped. (The upper bound is $500,000: legitimately expensive tiny SpEd/court/community-day programs reach $150k-$400k per pupil and are kept.) Affected schools and districts show no per-pupil spending rather than a wrong number; no substitution from prior years is attempted.
+
 ### Some LEAs file total dollars, not per-pupil amounts, in the ESSA PPE file
 
 *reporting-inconsistency, affects ppe 2025* — id `ppe-totals-reporting`
 
 The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting conventions. Most LEAs report per-pupil dollars as specified, but roughly 5% of LEAs (98 of 1,926 with membership data) filed school-level TOTAL expenditures in the per-pupil columns. Example: Granada Hills Charter reports $99,223,734 with 5,927 students — dividing by membership yields a plausible $16,741/pupil. The convention is consistent within an LEA (all of Acalanes Union High's schools are totals), so detection is per-LEA, not per-row.
 
-**Handling:** Named transform in analysis/export.py (normalize ppe totals-reporters): an LEA whose median reported value exceeds $100,000/pupil is treated as a totals-reporter and every one of its rows is divided by student membership (rows without membership become null). After normalization, values outside [$1,000, $150,000] per pupil are treated as unusable and dropped. District and county figures are rebuilt from school dollars (value x membership, summed, re-divided) — never by averaging per-pupil ratios.
+**Handling:** Named transform in analysis/export.py (normalize ppe totals-reporters): an LEA whose median reported value exceeds $100,000/pupil is treated as a totals-reporter and every one of its rows is divided by student membership (rows without membership become null). After normalization, values outside [$5,000, $500,000] per pupil are treated as unusable and dropped (see also ppe-implausibly-low-filings for the symmetric low-side LEA rule; the high ceiling deliberately keeps tiny SpEd/court/community-day programs that legitimately run $150k-$400k per pupil). District and county figures are rebuilt from school dollars (value x membership, summed, re-divided) — never by averaging per-pupil ratios.
 
 ## Check findings
 
@@ -84,24 +92,24 @@ The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting conve
   - Monte Rio Union Elementary (cds 4970813…): parent=48 vs children 47
 - 🔴 **2022** gender (male 3 + female 4 = all students): 4 district(s) violate the identity by more than 2%
   - Humboldt County Office of Education (cds 1210124…): parent=62 vs children 59
-  - Monte Rio Union Elementary (cds 4970813…): parent=40 vs children 39
-  - Napa County Office of Education (cds 2810280…): parent=42 vs children 41
   - Imperial County Office of Education (cds 1310132…): parent=49 vs children 48
+  - Napa County Office of Education (cds 2810280…): parent=42 vs children 41
+  - Monte Rio Union Elementary (cds 4970813…): parent=40 vs children 39
 - 🔴 **2023** gender (male 3 + female 4 = all students): 5 district(s) violate the identity by more than 2%
   - West Sonoma County Union High (cds 4970607…): parent=419 vs children 409
   - Sebastopol Union Elementary (cds 4970938…): parent=293 vs children 286
   - Humboldt County Office of Education (cds 1210124…): parent=73 vs children 71
-  - Dunsmuir Elementary (cds 4770243…): parent=46 vs children 45
   - Peninsula Union (cds 1262984…): parent=38 vs children 37
+  - Dunsmuir Elementary (cds 4770243…): parent=46 vs children 45
 - 🔴 **2024** gender (male 3 + female 4 = all students): 2 district(s) violate the identity by more than 2%
   - SBE - Latitude 37.8 High (cds 0177180…): parent=93 vs children 91
   - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=36 vs children 35
 - 🔴 **2025** gender (male 3 + female 4 = all students): 5 district(s) violate the identity by more than 2%
-  - Contra Costa County Office of Education (cds 0710074…): parent=90 vs children 87
   - Leggett Valley Unified (cds 2375218…): parent=68 vs children 65
+  - Contra Costa County Office of Education (cds 0710074…): parent=90 vs children 87
   - SBE - Altus Schools East County (cds 3777099…): parent=76 vs children 74
-  - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=46 vs children 45
   - Monte Rio Union Elementary (cds 4970813…): parent=44 vs children 43
+  - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=46 vs children 45
 ### entity_continuity
 
 - 🟡 **2016** 18 schools report in 2015 and 2017 but not 2016 (closures/reopenings, code changes, or reporting gaps)

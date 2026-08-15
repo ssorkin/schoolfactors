@@ -389,7 +389,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     min-width: 1060px;
   }
   thead th {
@@ -398,7 +398,7 @@
     background: #f6f1e7;
     z-index: 2;
     text-align: left;
-    padding: 0.45rem 0.55rem;
+    padding: 0.45rem 0.5rem;
     border-bottom: 1px solid #e8e1d5;
     white-space: nowrap;
     color: #52514e;
@@ -415,9 +415,16 @@
     text-underline-offset: 3px;
   }
   td {
-    padding: 0.32rem 0.55rem;
+    padding: 0.32rem 0.5rem;
     border-bottom: 1px solid #f0ead9;
     white-space: nowrap;
+  }
+  td.name {
+    /* The one column allowed to wrap — with every cell nowrap, long school
+       names push the table's natural width past any reasonable breakout. */
+    white-space: normal;
+    min-width: 15rem;
+    line-height: 1.35;
   }
   td.name a {
     font-weight: 600;

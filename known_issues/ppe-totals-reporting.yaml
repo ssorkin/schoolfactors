@@ -21,6 +21,9 @@ handling: >
   whose median reported value exceeds $100,000/pupil is treated as a
   totals-reporter and every one of its rows is divided by student membership
   (rows without membership become null). After normalization, values outside
-  [$1,000, $150,000] per pupil are treated as unusable and dropped. District and
+  [$5,000, $500,000] per pupil are treated as unusable and dropped (see also
+  ppe-implausibly-low-filings for the symmetric low-side LEA rule; the high
+  ceiling deliberately keeps tiny SpEd/court/community-day programs that
+  legitimately run $150k-$400k per pupil). District and
   county figures are rebuilt from school dollars (value x membership, summed,
   re-divided) — never by averaging per-pupil ratios.

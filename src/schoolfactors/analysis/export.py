@@ -243,7 +243,14 @@ def run_export() -> None:
     # LEAs filed total dollars in the per-pupil columns. The convention is
     # consistent within an LEA, so an LEA whose median reported value exceeds
     # $100k/pupil is treated as a totals-reporter and its rows are divided by
-    # membership. Post-normalization values outside [$1k, $150k] are unusable.
+    # membership. Symmetrically (known issue ppe-implausibly-low-filings), an
+    # LEA whose median is under $5k/pupil — below the LCFF base grant alone —
+    # filed broken data (e.g. Mt. Diablo Unified 2024-25 omitted state/local
+    # dollars entirely) and every one of its rows is unusable, including any
+    # that individually pass the floor. Post-normalization values outside
+    # [$5k, $500k] are dropped as unusable: below the LCFF base grant is
+    # impossible, but tiny SpEd/court/community-day programs legitimately run
+    # $150k-$400k per pupil, so the ceiling only cuts the physically absurd.
     ppe_by_lea: dict[str, list[float]] = {}
     for _, lea, pp, _ in ppe_rows:
         if pp > 0:
@@ -251,16 +258,19 @@ def run_export() -> None:
     ppe_totals_leas = {
         lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] > 100_000
     }
+    ppe_broken_leas = {
+        lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] < 5_000
+    }
     ppe_map: dict[str, int] = {}
     ppe_pool: dict[str, list] = {}
     for scds, lea, pp, mem in ppe_rows:
-        if pp <= 0:
+        if pp <= 0 or lea in ppe_broken_leas:
             continue
         if lea in ppe_totals_leas:
             if not mem:
                 continue
             pp = pp / mem
-        if not 1_000 <= pp <= 150_000:
+        if not 5_000 <= pp <= 500_000:
             continue
         ppe_map[scds] = round(pp)
         # District/county figures: reconstruct dollars (pp × membership), sum,
@@ -271,8 +281,13 @@ def run_export() -> None:
                 agg = ppe_pool.setdefault(key, [0.0, 0.0])
                 agg[0] += pp * mem
                 agg[1] += mem
+    # Coverage gate: after dropping unusable rows, a district/county aggregate
+    # may describe only a sliver of the entity (Mt. Diablo Unified's own
+    # schools are all dropped, leaving just co-located charters). Publish the
+    # rollup only when usable reports cover >= 70% of census enrollment.
     for key, (dollars, students) in ppe_pool.items():
-        if students > 0:
+        census = census_map.get(key)
+        if students > 0 and (census is None or students >= 0.7 * census):
             ppe_map[key] = round(dollars / students)
     school_name_lookup = {
         r["cds"]: (r["school_name"], r["district_name"])
