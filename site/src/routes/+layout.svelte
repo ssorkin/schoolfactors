@@ -1,8 +1,9 @@
 <script>
+  import { page } from '$app/state';
   let { children } = $props();
 </script>
 
-<div class="shell">
+<div class="shell" class:wide={page.url.pathname === '/'}>
   <header>
     <a class="brand" href="/">School<span>Factors</span></a>
     <nav>
@@ -55,6 +56,11 @@
     max-width: 960px;
     margin: 0 auto;
     padding: 0 1.25rem;
+  }
+  /* The homepage table needs the room; header, intro, and footer follow so
+     every block shares one width. Other pages stay at reading width. */
+  .shell.wide {
+    max-width: calc(1280px + 2.5rem);
   }
   header {
     display: flex;

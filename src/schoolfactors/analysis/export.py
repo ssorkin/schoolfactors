@@ -228,6 +228,19 @@ def run_export() -> None:
           AND TRY_CAST(school_expenditures_state_local AS DOUBLE) IS NOT NULL
           AND length(cds) = 14
     """).fetchall()
+    # Coordinates for the map view. CDE directory lat/long, bounded to
+    # California so placeholder zeros/typos don't land points in the Gulf of
+    # Guinea; entities sharing a cds across files get the average.
+    latlon_rows = con_dir.execute("""
+        SELECT cds,
+               round(avg(TRY_CAST(latitude AS DOUBLE)), 5),
+               round(avg(TRY_CAST(longitude AS DOUBLE)), 5)
+        FROM directory_raw
+        WHERE TRY_CAST(latitude AS DOUBLE) BETWEEN 32.0 AND 42.5
+          AND TRY_CAST(longitude AS DOUBLE) BETWEEN -125.0 AND -113.5
+          AND cds IS NOT NULL AND length(cds) = 14
+        GROUP BY cds
+    """).fetchall()
     con_dir.close()
     frpm_pop: dict[str, list] = {}
     for scds, c, e in frpm_school:
@@ -240,6 +253,22 @@ def run_export() -> None:
     frpm_pop_share = {
         k: round(c / e, 3) for k, (c, e) in frpm_pop.items() if e > 0
     }
+    # District/county rows missing their own directory coordinates fall back
+    # to the unweighted centroid of their schools.
+    latlon_map = {r[0]: (r[1], r[2]) for r in latlon_rows}
+    cent: dict[str, list[float]] = {}
+    for scds, (lat, lon) in list(latlon_map.items()):
+        if scds.endswith("0000000"):
+            continue
+        for key in (scds[:7] + "0000000", scds[:2] + "000000000000"):
+            agg = cent.setdefault(key, [0.0, 0.0, 0])
+            agg[0] += lat
+            agg[1] += lon
+            agg[2] += 1
+    for key, (la, lo, n) in cent.items():
+        if key not in latlon_map and n:
+            latlon_map[key] = (round(la / n, 5), round(lo / n, 5))
+
     # Normalize PPE totals-reporters (known issue ppe-totals-reporting): ~5% of
     # LEAs filed total dollars in the per-pupil columns. The convention is
     # consistent within an LEA, so an LEA whose median reported value exceeds
@@ -525,6 +554,7 @@ def run_export() -> None:
                     "ppe": ppe_map.get(cds),
                     "enrollment": census_map.get(cds),
                     "total_scores": eff.get("total_scores"),
+                    "ll": latlon_map.get(cds),
                     "spark": spark,
                 }
             )
