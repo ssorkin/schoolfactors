@@ -380,12 +380,17 @@
     background: #fffdf9;
     max-height: 72vh;
     overflow: auto;
+    /* Break out of the 960px shell so all columns fit without inner scrolling;
+       the shell is viewport-centered, so centering on it centers on the page. */
+    --tw: min(1280px, 100vw - 2.5rem);
+    width: var(--tw);
+    margin-left: calc((100% - var(--tw)) / 2);
   }
   table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.88rem;
-    min-width: 980px;
+    min-width: 1060px;
   }
   thead th {
     position: sticky;
