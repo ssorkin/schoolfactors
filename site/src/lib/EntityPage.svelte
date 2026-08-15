@@ -66,6 +66,61 @@
 <h2>How results are trending</h2>
 <TrendChart subgroups={entity.subgroup_results ?? []} scores={entity.cohort_scores ?? []} />
 
+{#if entity.neighbors && (entity.neighbors.nearby?.length || entity.neighbors.lookalike?.length)}
+  <h2>Compare with</h2>
+  <div class="compare">
+    {#if entity.neighbors.nearby?.length}
+      <div class="cmp-card">
+        <h3>Nearby schools</h3>
+        <ul>
+          {#each entity.neighbors.nearby.slice(0, 5) as s (s.cds)}
+            <li>
+              <span class="cmp-name">
+                <a href="/school/{s.cds}">{s.name}</a>
+                {#if s.district !== entity.district}<span class="cmp-sub">{s.district}</span>{/if}
+              </span>
+              <span class="cmp-vals">
+                <span class="cmp-meta">{s.miles} mi</span>
+                <span class="cmp-adj" class:pos={s.level_adj_eb > 0} class:neg={s.level_adj_eb < 0}>
+                  {s.level_adj_eb == null ? '—' : fmt(s.level_adj_eb)}
+                </span>
+              </span>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+    {#if entity.neighbors.lookalike?.length}
+      <div class="cmp-card">
+        <h3>Schools serving similar students</h3>
+        <ul>
+          {#each entity.neighbors.lookalike.slice(0, 5) as s (s.cds)}
+            <li>
+              <span class="cmp-name">
+                <a href="/school/{s.cds}">{s.name}</a>
+                <span class="cmp-sub">{s.district}</span>
+              </span>
+              <span class="cmp-vals">
+                <span class="cmp-meta">
+                  {s.share_econ_dis == null ? '' : Math.round(s.share_econ_dis * 100) + '% econ dis.'}
+                </span>
+                <span class="cmp-adj" class:pos={s.level_adj_eb > 0} class:neg={s.level_adj_eb < 0}>
+                  {s.level_adj_eb == null ? '—' : fmt(s.level_adj_eb)}
+                </span>
+              </span>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+  </div>
+  <p class="note">
+    Matched statewide on the demographics of tested students (poverty, language,
+    race/ethnicity, disabilities, parent education, size), same school level. The
+    number on the right is each school's demographically-adjusted level.
+  </p>
+{/if}
+
 {#if e.level_eb != null}
   <h2>The three modeled numbers</h2>
   <section class="tiles">
@@ -271,5 +326,62 @@
     color: #898781;
     font-size: 0.88rem;
     max-width: 46rem;
+  }
+  .compare {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .cmp-card {
+    background: #fffdf9;
+    border: 1px solid #e8e1d5;
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+  }
+  .cmp-card h3 {
+    margin: 0.2rem 0 0.4rem;
+    font-size: 1rem;
+  }
+  .cmp-card ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .cmp-card li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.8rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #f0ead9;
+    font-size: 0.92rem;
+  }
+  .cmp-card li:last-child {
+    border-bottom: none;
+  }
+  .cmp-sub {
+    display: block;
+    color: #898781;
+    font-size: 0.78rem;
+  }
+  .cmp-vals {
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+    flex-shrink: 0;
+  }
+  .cmp-meta {
+    color: #898781;
+    font-size: 0.82rem;
+  }
+  .cmp-adj {
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+  }
+  .cmp-adj.pos {
+    color: #006300;
+  }
+  .cmp-adj.neg {
+    color: #d03b3b;
   }
 </style>

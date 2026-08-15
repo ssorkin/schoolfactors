@@ -16,32 +16,9 @@
     n: { label: 'Students with scores', fmt: (r) => r.n?.toLocaleString() }
   };
 
-  const GROUP_LABELS = {
-    1: 'All students',
-    3: 'Male',
-    4: 'Female',
-    31: 'Economically disadvantaged',
-    111: 'Not econ. disadvantaged',
-    160: 'English learners',
-    8: 'Reclassified fluent (RFEP)',
-    128: 'With disabilities',
-    99: 'No reported disabilities',
-    74: 'Black or African American',
-    75: 'American Indian/Alaska Native',
-    76: 'Asian',
-    77: 'Filipino',
-    78: 'Hispanic or Latino',
-    79: 'Native Hawaiian/Pacific Isl.',
-    80: 'White',
-    144: 'Two or more races',
-    90: 'Parents: not HS graduate',
-    91: 'Parents: HS graduate',
-    92: 'Parents: some college',
-    93: 'Parents: college graduate',
-    94: 'Parents: graduate school',
-    121: 'Parents: declined to state'
-  };
-  const GROUP_ORDER = Object.keys(GROUP_LABELS).map(Number);
+  import { GROUP_LABELS, GROUP_CATEGORIES } from '$lib/groups.js';
+
+  const GROUP_ORDER = [1, ...GROUP_CATEGORIES.flatMap((c) => c.ids)];
 
   let rows = $derived(scores.filter((r) => r.subject === subject));
   let years = $derived([...new Set(rows.map((r) => r.year))].sort((a, b) => a - b));

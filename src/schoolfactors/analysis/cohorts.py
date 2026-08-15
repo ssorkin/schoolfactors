@@ -83,11 +83,22 @@ SUBGROUP_TABLE_IDS = (
     1, 3, 4, 31, 111, 160, 8, 128, 99,
     74, 75, 76, 77, 78, 79, 80, 144,
     90, 91, 92, 93, 94, 121,
+    180, 170, 52, 53, 240, 241, 28, 29, 50, 51,
 )
+
+# Singleton groups with no published complement: synthesize "everyone else" rows
+# (negative IDs) from counts — percentages must never be averaged directly, so we
+# reconstruct met counts (pct × n) for the group and for All Students and difference
+# them. Exact up to the source file's percentage rounding.
+COMPLEMENT_IDS = (160, 8, 170, 74, 75, 76, 77, 78, 79, 80, 144)
 
 
 def subgroup_results(types_sql: str) -> pl.DataFrame:
-    """Per entity × year × subject × student group: % met-and-above at grade 13."""
+    """Per entity × year × subject × student group: % met-and-above at grade 13.
+
+    Includes synthesized complement rows (student_group_id = -id) for singleton
+    groups, derived via counts from the All Students row.
+    """
     ids = ", ".join(str(i) for i in SUBGROUP_TABLE_IDS)
     con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     df = con.execute(f"""
@@ -100,7 +111,47 @@ def subgroup_results(types_sql: str) -> pl.DataFrame:
           AND test_year NOT IN {EXCLUDED_YEARS}
     """).pl()
     con.close()
-    return df
+
+    all_rows = df.filter(pl.col("student_group_id") == 1).select(
+        "cds",
+        "test_year",
+        "test_id",
+        pl.col("pct_met_and_above").alias("pm_all"),
+        pl.col("pct_exceeded").alias("pe_all"),
+        pl.col("n").alias("n_all"),
+    )
+    comp = (
+        df.filter(pl.col("student_group_id").is_in(list(COMPLEMENT_IDS)))
+        .join(all_rows, on=["cds", "test_year", "test_id"], how="inner")
+        .with_columns((pl.col("n_all") - pl.col("n")).alias("n_c"))
+        .filter(pl.col("n_c") >= MIN_N)
+        .with_columns(
+            (
+                (pl.col("pm_all") * pl.col("n_all") - pl.col("pct_met_and_above") * pl.col("n"))
+                / pl.col("n_c")
+            )
+            .clip(0, 100)
+            .round(1)
+            .alias("pm_c"),
+            (
+                (pl.col("pe_all") * pl.col("n_all") - pl.col("pct_exceeded") * pl.col("n"))
+                / pl.col("n_c")
+            )
+            .clip(0, 100)
+            .round(1)
+            .alias("pe_c"),
+        )
+        .select(
+            "cds",
+            "test_year",
+            "test_id",
+            (-pl.col("student_group_id")).alias("student_group_id"),
+            pl.col("pm_c").alias("pct_met_and_above"),
+            pl.col("pe_c").alias("pct_exceeded"),
+            pl.col("n_c").alias("n"),
+        )
+    )
+    return pl.concat([df, comp], how="vertical_relaxed")
 
 
 def cohort_blend(types_sql: str) -> pl.DataFrame:

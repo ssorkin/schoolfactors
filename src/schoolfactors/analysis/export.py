@@ -95,6 +95,21 @@ def run_export() -> None:
     sigma = estimate_sigma(school_rows(SCHOOL_TYPES))
     state = state_means()
 
+    from schoolfactors.analysis.neighbors import build_neighbors
+
+    print("  computing nearby/lookalike neighbors …")
+    neighbors = build_neighbors(schools)
+    school_name_lookup = {
+        r["cds"]: (r["school_name"], r["district_name"])
+        for r in names.filter(pl.col("type_id").is_in([7, 9, 10])).to_dicts()
+    }
+
+    def enrich_neighbor(e: dict) -> dict | None:
+        nm = school_name_lookup.get(e["cds"])
+        if nm is None or nm[0] is None:
+            return None
+        return {**e, "name": nm[0], "district": nm[1]}
+
     written = {"counties": 0, "schools": 0, "districts": 0}
     index: list[dict] = []
     district_pages: set[str] = set()
@@ -212,6 +227,16 @@ def run_export() -> None:
                     for r in _rows(steps_by, cds)
                 ],
             }
+            if kind == "schools":
+                nb = neighbors.get(cds, {})
+                payload["neighbors"] = {
+                    "nearby": [
+                        x for x in (enrich_neighbor(e) for e in nb.get("nearby", [])) if x
+                    ],
+                    "lookalike": [
+                        x for x in (enrich_neighbor(e) for e in nb.get("lookalike", [])) if x
+                    ],
+                }
             if kind == "counties":
                 county_pages.add(cds)
             elif kind == "districts":

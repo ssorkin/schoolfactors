@@ -7,6 +7,8 @@
    *   By group    — one rate for key student groups (categorical palette)
    * Lines break across the 2020-21 testing gap rather than bridging it.
    */
+  import { GROUP_LABELS, GROUP_CATEGORIES, SERIES_COLORS } from '$lib/groups.js';
+
   let { subgroups = [], scores = [] } = $props();
 
   let subject = $state('ela');
@@ -14,12 +16,32 @@
   let metric = $state('pct_met'); // used for grade/group splits
   let hover = $state(null);
 
-  const GROUPS = [
-    { id: 31, label: 'Econ. disadvantaged', color: '#2a78d6' },
-    { id: 111, label: 'Not econ. disadv.', color: '#eb6834' },
-    { id: 160, label: 'English learners', color: '#1baf7a' },
-    { id: 128, label: 'With disabilities', color: '#eda100' }
-  ];
+  // Active groups for the by-group split. Colors follow the group: assigned from
+  // the fixed palette in activation order, freed on deactivation, never cycled.
+  let activeGroups = $state([31, 111, 160, 128]);
+  let colorAssign = $state({ 31: 0, 111: 1, 160: 2, 128: 3 });
+
+  let availableGroups = $derived.by(() => {
+    const present = new Set(subgroups.map((r) => r.group));
+    return GROUP_CATEGORIES.map((cat) => ({
+      label: cat.label,
+      ids: cat.ids.filter((id) => present.has(id))
+    })).filter((cat) => cat.ids.length);
+  });
+
+  function toggleGroup(id) {
+    if (activeGroups.includes(id)) {
+      activeGroups = activeGroups.filter((g) => g !== id);
+      const { [id]: _, ...rest } = colorAssign;
+      colorAssign = rest;
+    } else {
+      if (activeGroups.length >= SERIES_COLORS.length) return;
+      const used = new Set(Object.values(colorAssign));
+      const slot = SERIES_COLORS.findIndex((_, i) => !used.has(i));
+      colorAssign = { ...colorAssign, [id]: slot };
+      activeGroups = [...activeGroups, id];
+    }
+  }
 
   const W = 820;
   const H = 380;
@@ -65,20 +87,22 @@
           .map((r) => ({ year: r.year, v: metric === 'pct_met' ? r.pct_met : r.pct_exc, n: r.n }))
       }));
     }
-    return GROUPS.map((gr) => ({
-      key: 'grp' + gr.id,
-      label: gr.label,
-      color: gr.color,
-      pts: subgroups
-        .filter(
-          (r) =>
-            r.subject === subject &&
-            r.group === gr.id &&
-            (metric === 'pct_met' ? r.pct_met : r.pct_exc) != null
-        )
-        .sort((a, b) => a.year - b.year)
-        .map((r) => ({ year: r.year, v: metric === 'pct_met' ? r.pct_met : r.pct_exc, n: r.n }))
-    })).filter((s) => s.pts.length > 1);
+    return activeGroups
+      .map((id) => ({
+        key: 'grp' + id,
+        label: GROUP_LABELS[id] ?? 'Group ' + id,
+        color: SERIES_COLORS[colorAssign[id] ?? 0],
+        pts: subgroups
+          .filter(
+            (r) =>
+              r.subject === subject &&
+              r.group === id &&
+              (metric === 'pct_met' ? r.pct_met : r.pct_exc) != null
+          )
+          .sort((a, b) => a.year - b.year)
+          .map((r) => ({ year: r.year, v: metric === 'pct_met' ? r.pct_met : r.pct_exc, n: r.n }))
+      }))
+      .filter((s) => s.pts.length > 0);
   });
 
   let years = $derived(
@@ -128,6 +152,36 @@
       </div>
     {/if}
   </div>
+
+  {#if split === 'group'}
+    <div class="chips">
+      {#each availableGroups as cat (cat.label)}
+        <div class="cat">
+          <span class="cat-label">{cat.label}</span>
+          {#each cat.ids as id (id)}
+            <button
+              class="chip"
+              class:on={activeGroups.includes(id)}
+              style={activeGroups.includes(id)
+                ? `border-color: ${SERIES_COLORS[colorAssign[id]]}; background: ${SERIES_COLORS[colorAssign[id]]}18`
+                : ''}
+              onclick={() => toggleGroup(id)}
+            >
+              {#if activeGroups.includes(id)}<span
+                  class="dot"
+                  style="background: {SERIES_COLORS[colorAssign[id]]}"
+                ></span>{/if}
+              {GROUP_LABELS[id]}
+            </button>
+          {/each}
+        </div>
+      {/each}
+      <p class="chip-note">
+        Up to {SERIES_COLORS.length} groups at a time. "Not …" groups are computed from
+        counts (group vs everyone else); suppressed cells (n&lt;11) are simply absent.
+      </p>
+    </div>
+  {/if}
 
   <svg viewBox="0 0 {W} {H}" role="img" aria-label="Share of students meeting or exceeding the standard over time">
     {#each [0, 25, 50, 75, 100] as t (t)}
@@ -225,6 +279,49 @@
     font-size: 11px;
     fill: #b8b2a5;
     font-style: italic;
+  }
+  .chips {
+    margin: 0.2rem 0 0.5rem;
+  }
+  .cat {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+  }
+  .cat-label {
+    font-size: 0.78rem;
+    color: #898781;
+    width: 7.5rem;
+    flex-shrink: 0;
+  }
+  .chip {
+    border: 1px solid #d8d0c0;
+    background: #faf7f2;
+    border-radius: 999px;
+    padding: 0.12rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #52514e;
+  }
+  .chip.on {
+    color: #211d18;
+    font-weight: 600;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .chip-note {
+    color: #898781;
+    font-size: 0.78rem;
+    margin: 0.3rem 0 0;
   }
   circle {
     cursor: pointer;
