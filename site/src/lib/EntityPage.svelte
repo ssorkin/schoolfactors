@@ -10,25 +10,82 @@
 
   let e = $derived(entity.effects ?? {});
 
-  // Comparison overlays: checked schools' overall trend, fetched on demand and
-  // drawn dashed in the chart above.
+  import { browser } from '$app/environment';
+  import { replaceState } from '$app/navigation';
+
+  // Comparison overlays: checked schools' trends, fetched on demand and drawn
+  // in the chart above. Reset (and restored from the URL) per entity.
   const MAX_OVERLAYS = 4;
   let overlays = $state([]);
   let isOverlaid = $derived((cds) => overlays.some((o) => o.cds === cds));
-  async function toggleOverlay(s) {
-    if (overlays.some((o) => o.cds === s.cds)) {
-      overlays = overlays.filter((o) => o.cds !== s.cds);
-      return;
-    }
-    if (overlays.length >= MAX_OVERLAYS) return;
+
+  async function addOverlay(cds, name = null) {
+    if (overlays.some((o) => o.cds === cds) || overlays.length >= MAX_OVERLAYS) return;
     try {
-      const j = await (await fetch(`/data/schools/${s.cds}.json`)).json();
-      const rows = (j.subgroup_results ?? []).filter((r) => r.group === 1);
-      overlays = [...overlays, { cds: s.cds, name: s.name, rows }];
+      const resp = await fetch(`/data/schools/${cds}.json`);
+      if (!resp.ok) return;
+      const j = await resp.json();
+      overlays = [
+        ...overlays,
+        {
+          cds,
+          name: name ?? j.name,
+          rows: j.subgroup_results ?? [],
+          scores: j.cohort_scores ?? []
+        }
+      ];
     } catch {
       /* comparison school payload unavailable — leave unchecked */
     }
   }
+  function toggleOverlay(s) {
+    if (overlays.some((o) => o.cds === s.cds)) {
+      overlays = overlays.filter((o) => o.cds !== s.cds);
+    } else {
+      addOverlay(s.cds, s.name);
+    }
+  }
+
+  // ---- URL state: ?s=math&v=group&r=exc&l=facets&g=31.111&c=cds1.cds2 ----
+  let chartState = $state(null);
+  let chartInitial = $state({});
+  let restoredFor = $state(null);
+
+  $effect(() => {
+    const cds = entity.cds;
+    if (!browser || restoredFor === cds) return;
+    restoredFor = cds;
+    const q = new URLSearchParams(window.location.search);
+    chartInitial = {
+      subject: q.get('s') ?? undefined,
+      split: q.get('v') ?? undefined,
+      metric: q.get('r') === 'exc' ? 'pct_exc' : q.get('r') === 'met' ? 'pct_met' : undefined,
+      layout: q.get('l') ?? undefined,
+      groups: q.get('g')?.split('.').map(Number).filter(Number.isFinite) ?? []
+    };
+    overlays = [];
+    for (const c of (q.get('c')?.split('.') ?? []).slice(0, MAX_OVERLAYS)) {
+      if (/^\d{14}$/.test(c)) addOverlay(c);
+    }
+  });
+
+  $effect(() => {
+    if (!browser || !chartState || restoredFor !== entity.cds) return;
+    const q = new URLSearchParams();
+    if (chartState.subject !== 'ela') q.set('s', chartState.subject);
+    if (chartState.split !== 'overall') q.set('v', chartState.split);
+    if (chartState.metric !== 'pct_met') q.set('r', 'exc');
+    if (chartState.layout) q.set('l', chartState.layout);
+    if (chartState.split === 'group' && chartState.groups?.length) {
+      q.set('g', chartState.groups.join('.'));
+    }
+    if (overlays.length) q.set('c', overlays.map((o) => o.cds).join('.'));
+    const qs = q.toString();
+    const target = window.location.pathname + (qs ? '?' + qs : '');
+    if (target !== window.location.pathname + window.location.search) {
+      replaceState(target, {});
+    }
+  });
   let flaggedSteps = $derived((entity.blend_steps ?? []).filter((s) => s.flag));
   let slopes = $derived(
     [...(entity.cohort_slopes ?? [])].sort((a, b) => b.grad_year - a.grad_year).slice(0, 8)
@@ -84,11 +141,15 @@
 </p>
 
 <h2>How results are trending</h2>
-<TrendChart
-  subgroups={entity.subgroup_results ?? []}
-  scores={entity.cohort_scores ?? []}
-  {overlays}
-/>
+{#key restoredFor === entity.cds ? entity.cds : 'pending'}
+  <TrendChart
+    subgroups={entity.subgroup_results ?? []}
+    scores={entity.cohort_scores ?? []}
+    {overlays}
+    initial={chartInitial}
+    onstate={(s) => (chartState = s)}
+  />
+{/key}
 
 {#if entity.neighbors && (entity.neighbors.nearby?.length || entity.neighbors.lookalike?.length)}
   <h2>Compare with</h2>

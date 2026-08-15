@@ -9,15 +9,30 @@
    */
   import { GROUP_LABELS, GROUP_CATEGORIES, SERIES_COLORS } from '$lib/groups.js';
 
-  let { subgroups = [], scores = [], overlays = [] } = $props();
+  let { subgroups = [], scores = [], overlays = [], initial = {}, onstate = null } = $props();
 
-  let subject = $state('ela');
-  let split = $state('overall');
-  let metric = $state('pct_met');
+  const initGroups = (initial.groups?.length ? initial.groups : [31, 111, 160, 128]).slice(
+    0,
+    SERIES_COLORS.length
+  );
+  let subject = $state(initial.subject === 'math' ? 'math' : 'ela');
+  let split = $state(['overall', 'grade', 'group'].includes(initial.split) ? initial.split : 'overall');
+  let metric = $state(initial.metric === 'pct_exc' ? 'pct_exc' : 'pct_met');
   let hover = $state(null);
 
-  let activeGroups = $state([31, 111, 160, 128]);
-  let colorAssign = $state({ 31: 0, 111: 1, 160: 2, 128: 3 });
+  let activeGroups = $state(initGroups);
+  let colorAssign = $state(Object.fromEntries(initGroups.map((g, i) => [g, i])));
+
+  // Report chart state upward so the page can permalink it.
+  $effect(() => {
+    onstate?.({
+      subject,
+      split,
+      metric,
+      layout: layoutChoice,
+      groups: activeGroups
+    });
+  });
 
   let availableGroups = $derived.by(() => {
     const present = new Set(subgroups.map((r) => r.group));
@@ -54,6 +69,33 @@
   let showMetricToggle = $derived(split !== 'overall' || overlays.length > 0);
   let mval = $derived((r) => (metric === 'pct_met' ? r.pct_met : r.pct_exc));
 
+  // Layout: one overlaid chart vs small multiples (a panel per group/grade).
+  // Defaults to small multiples when comparators are active in a split view.
+  let layoutChoice = $state(
+    initial.layout === 'one' || initial.layout === 'facets' ? initial.layout : null
+  );
+  let layout = $derived(
+    layoutChoice ?? (overlays.length && split !== 'overall' ? 'facets' : 'one')
+  );
+
+  // Dash pattern identifies WHICH school in split views (color carries the series).
+  const DASHES = ['6 4', '2 3', '9 3 2 3', '1 5'];
+
+  // Grade → color map over the union of this page's and the overlays' grades, so a
+  // grade keeps its color whether or not both schools serve it.
+  let gradeColor = $derived.by(() => {
+    const gset = new Set(scores.filter((r) => r.subject === subject).map((r) => r.grade));
+    for (const o of overlays) {
+      for (const r of o.scores ?? []) if (r.subject === subject) gset.add(r.grade);
+    }
+    const grades = [...gset].sort((a, b) => a - b);
+    const map = new Map();
+    grades.forEach((g, i) =>
+      map.set(g, ramp(grades.length === 1 ? 1 : i / (grades.length - 1)))
+    );
+    return map;
+  });
+
   let series = $derived.by(() => {
     if (split === 'overall') {
       const all = subgroups
@@ -87,14 +129,14 @@
     if (split === 'grade') {
       const rows = scores.filter((r) => r.subject === subject);
       const grades = [...new Set(rows.map((r) => r.grade))].sort((a, b) => a - b);
-      return grades.map((g, i) => ({
+      return grades.map((g) => ({
         key: 'g' + g,
         label: 'Grade ' + g,
-        color: ramp(grades.length === 1 ? 1 : i / (grades.length - 1)),
+        color: gradeColor.get(g),
         pts: rows
-          .filter((r) => r.grade === g && (metric === 'pct_met' ? r.pct_met : r.pct_exc) != null)
+          .filter((r) => r.grade === g && mval(r) != null)
           .sort((a, b) => a.year - b.year)
-          .map((r) => ({ year: r.year, v: metric === 'pct_met' ? r.pct_met : r.pct_exc, n: r.n }))
+          .map((r) => ({ year: r.year, v: mval(r), n: r.n }))
       }));
     }
     return activeGroups
@@ -110,29 +152,127 @@
       .filter((s) => s.pts.length > 0);
   });
 
-  // Overlay series: dashed, colors from palette slots not used by the main series.
+  // Overlay series mirror the CURRENT view for each checked school: same series
+  // (per group / per grade / overall), same colors, distinguished by dash pattern.
   let overlaySeries = $derived.by(() => {
-    const used = new Set();
-    if (split === 'overall') {
-      used.add(0);
-      if (!overlays.length) used.add(1);
-    } else if (split === 'group') {
-      for (const s of Object.values(colorAssign)) used.add(s);
-    }
-    const free = SERIES_COLORS.map((_, i) => i).filter((i) => !used.has(i));
-    return overlays.map((o, oi) => ({
-      key: 'ov' + o.cds,
-      label: o.name,
-      color: SERIES_COLORS[free[oi % free.length] ?? (oi % SERIES_COLORS.length)],
-      dashed: true,
-      pts: (o.rows ?? [])
-        .filter((r) => r.subject === subject && r.group === 1 && mval(r) != null)
-        .sort((a, b) => a.year - b.year)
-        .map((r) => ({ year: r.year, v: mval(r), n: r.n }))
-    }));
+    const out = [];
+    overlays.forEach((o, oi) => {
+      const dash = DASHES[oi % DASHES.length];
+      const mkpts = (rows) =>
+        rows
+          .filter((r) => mval(r) != null)
+          .sort((a, b) => a.year - b.year)
+          .map((r) => ({ year: r.year, v: mval(r), n: r.n }));
+
+      if (split === 'overall') {
+        // color per school here (one series each); free slots after the base line
+        const free = SERIES_COLORS.map((_, i) => i).filter((i) => i !== 0);
+        out.push({
+          key: `ov-${o.cds}`,
+          label: o.name,
+          school: o.name,
+          color: SERIES_COLORS[free[oi % free.length]],
+          dash,
+          endLabel: true,
+          pts: mkpts((o.rows ?? []).filter((r) => r.subject === subject && r.group === 1))
+        });
+      } else if (split === 'grade') {
+        const rows = (o.scores ?? []).filter((r) => r.subject === subject);
+        const grades = [...new Set(rows.map((r) => r.grade))].sort((a, b) => a - b);
+        for (const g of grades) {
+          out.push({
+            key: `ov-${o.cds}-g${g}`,
+            label: `${o.name} — Grade ${g}`,
+            school: o.name,
+            color: gradeColor.get(g),
+            dash,
+            endLabel: false,
+            pts: mkpts(rows.filter((r) => r.grade === g))
+          });
+        }
+      } else {
+        for (const id of activeGroups) {
+          const pts = mkpts(
+            (o.rows ?? []).filter((r) => r.subject === subject && r.group === id)
+          );
+          if (!pts.length) continue;
+          out.push({
+            key: `ov-${o.cds}-grp${id}`,
+            label: `${o.name} — ${GROUP_LABELS[id] ?? id}`,
+            school: o.name,
+            color: SERIES_COLORS[colorAssign[id] ?? 0],
+            dash,
+            endLabel: false,
+            pts
+          });
+        }
+      }
+    });
+    return out.filter((s) => s.pts.length > 0);
   });
 
   let allSeries = $derived([...series, ...overlaySeries]);
+
+  // Small-multiples panels: one per visible series (group or grade); within a
+  // panel, color identifies the SCHOOL (this page = slot 1, comparators next),
+  // consistent across panels.
+  const SCHOOL_COLORS = SERIES_COLORS;
+  let facetPanels = $derived.by(() => {
+    if (split === 'overall') return [];
+    const mkpts = (rows) =>
+      rows
+        .filter((r) => mval(r) != null)
+        .sort((a, b) => a.year - b.year)
+        .map((r) => ({ year: r.year, v: mval(r), n: r.n }));
+
+    const defs =
+      split === 'grade'
+        ? [...gradeColor.keys()].map((g) => ({
+            key: 'g' + g,
+            label: 'Grade ' + g,
+            base: () => mkpts(scores.filter((r) => r.subject === subject && r.grade === g)),
+            over: (o) =>
+              mkpts((o.scores ?? []).filter((r) => r.subject === subject && r.grade === g))
+          }))
+        : activeGroups.map((id) => ({
+            key: 'grp' + id,
+            label: GROUP_LABELS[id] ?? 'Group ' + id,
+            base: () =>
+              mkpts(subgroups.filter((r) => r.subject === subject && r.group === id)),
+            over: (o) =>
+              mkpts((o.rows ?? []).filter((r) => r.subject === subject && r.group === id))
+          }));
+
+    return defs
+      .map((d) => {
+        const lines = [];
+        const basePts = d.base();
+        if (basePts.length) {
+          lines.push({ school: 'This page', color: SCHOOL_COLORS[0], pts: basePts });
+        }
+        overlays.forEach((o, oi) => {
+          const pts = d.over(o);
+          if (pts.length) {
+            lines.push({
+              school: o.name,
+              color: SCHOOL_COLORS[(oi + 1) % SCHOOL_COLORS.length],
+              pts
+            });
+          }
+        });
+        return { key: d.key, label: d.label, lines };
+      })
+      .filter((p) => p.lines.length);
+  });
+
+  const FW = 250;
+  const FH = 160;
+  const FM = { top: 8, right: 10, bottom: 20, left: 30 };
+  const fsx = (yr) =>
+    FM.left +
+    ((yr - (years[0] ?? 2015)) / Math.max(1, (years.at(-1) ?? 2025) - (years[0] ?? 2015))) *
+      (FW - FM.left - FM.right);
+  const fsy = (v) => FM.top + (1 - v / 100) * (FH - FM.top - FM.bottom);
 
   let years = $derived(
     [...new Set(allSeries.flatMap((s) => s.pts.map((p) => p.year)))].sort((a, b) => a - b)
@@ -160,6 +300,62 @@
 
 <div class="chart">
   <div class="plot">
+    {#if layout === 'facets' && facetPanels.length}
+      <div class="facets">
+        {#each facetPanels as panel (panel.key)}
+          <div class="facet">
+            <div class="facet-title">{panel.label}</div>
+            <svg viewBox="0 0 {FW} {FH}" role="img" aria-label={panel.label + ' over time'}>
+              {#each [0, 50, 100] as t (t)}
+                <line x1={FM.left} x2={FW - FM.right} y1={fsy(t)} y2={fsy(t)} stroke="#eee9df" />
+                <text x={FM.left - 4} y={fsy(t) + 3} class="ftick" text-anchor="end">{t}</text>
+              {/each}
+              {#if years.length}
+                <text x={fsx(years[0])} y={FH - 6} class="ftick" text-anchor="middle">{years[0]}</text>
+                <text x={fsx(years.at(-1))} y={FH - 6} class="ftick" text-anchor="middle">{years.at(-1)}</text>
+              {/if}
+              {#each panel.lines as line (line.school)}
+                {#each runs(line.pts) as run, ri (ri)}
+                  <polyline
+                    fill="none"
+                    stroke={line.color}
+                    stroke-width="2"
+                    points={run.map((p) => `${fsx(p.year)},${fsy(p.v)}`).join(' ')}
+                  />
+                {/each}
+                {#each line.pts as p (p.year)}
+                  <circle
+                    cx={fsx(p.year)}
+                    cy={fsy(p.v)}
+                    r="2.8"
+                    fill={line.color}
+                    stroke="#fffdf9"
+                    stroke-width="1"
+                    onmouseenter={() =>
+                      (hover = {
+                        series: panel.key + line.school,
+                        label: `${line.school} — ${panel.label}`,
+                        year: p.year,
+                        v: p.v,
+                        n: p.n
+                      })}
+                    onmouseleave={() => (hover = null)}
+                  />
+                {/each}
+              {/each}
+            </svg>
+          </div>
+        {/each}
+      </div>
+      <div class="tip" aria-live="polite">
+        {#if hover}
+          <strong>{hover.label}</strong>, {hover.year}: {hover.v.toFixed(0)}% ·
+          {hover.n.toLocaleString()} students with scores
+        {:else}
+          &nbsp;
+        {/if}
+      </div>
+    {:else}
     <svg viewBox="0 0 {W} {H}" role="img" aria-label="Share of students meeting or exceeding the standard over time">
       {#each [0, 25, 50, 75, 100] as t (t)}
         <line x1={M.left} x2={W - M.right} y1={sy(t)} y2={sy(t)} stroke="#eee9df" />
@@ -179,7 +375,7 @@
             fill="none"
             stroke={s.color}
             stroke-width="2"
-            stroke-dasharray={s.dashed ? '6 4' : 'none'}
+            stroke-dasharray={s.dash ?? 'none'}
             opacity={hover && hover.series !== s.key ? 0.3 : 0.95}
             points={run.map((p) => `${sx(p.year)},${sy(p.v)}`).join(' ')}
           />
@@ -197,7 +393,7 @@
             onmouseleave={() => (hover = null)}
           />
         {/each}
-        {#if s.pts.length}
+        {#if s.pts.length && s.endLabel !== false}
           <text x={sx(s.pts.at(-1).year) + 8} y={sy(s.pts.at(-1).v) + 4} class="lbl" fill="#52514e">
             {s.label.length > 18 ? s.label.slice(0, 17) + '…' : s.label}
           </text>
@@ -212,6 +408,7 @@
         &nbsp;
       {/if}
     </div>
+    {/if}
   </div>
 
   <div class="rail">
@@ -233,12 +430,53 @@
         <button class:active={metric === 'pct_exc'} onclick={() => (metric = 'pct_exc')}>Exceeded</button>
       </div>
     {/if}
+    {#if split !== 'overall'}
+      <div class="rail-sec">
+        <span class="rail-label">Layout</span>
+        <button class:active={layout === 'one'} onclick={() => (layoutChoice = 'one')}>
+          One chart
+        </button>
+        <button class:active={layout === 'facets'} onclick={() => (layoutChoice = 'facets')}>
+          Small multiples
+        </button>
+      </div>
+    {/if}
     {#if overlays.length}
       <div class="rail-sec">
-        <span class="rail-label">Comparing (dashed)</span>
-        {#each overlaySeries as o (o.key)}
-          <span class="ov-item"><span class="dash" style="border-color: {o.color}"></span>{o.label}</span>
-        {/each}
+        <span class="rail-label">Comparing</span>
+        {#if layout === 'facets' && split !== 'overall'}
+          <span class="ov-item">
+            <span class="swatch" style="background: {SERIES_COLORS[0]}"></span>This page
+          </span>
+          {#each overlays as o, oi (o.cds)}
+            <span class="ov-item">
+              <span class="swatch" style="background: {SERIES_COLORS[(oi + 1) % SERIES_COLORS.length]}"></span>
+              {o.name}
+            </span>
+          {/each}
+          <p class="chip-note">One panel per series; color identifies the school.</p>
+        {:else}
+          {#each overlays as o, oi (o.cds)}
+            <span class="ov-item">
+              <svg width="26" height="8" aria-hidden="true">
+                <line
+                  x1="0"
+                  y1="4"
+                  x2="26"
+                  y2="4"
+                  stroke="#52514e"
+                  stroke-width="2"
+                  stroke-dasharray={DASHES[oi % DASHES.length]}
+                />
+              </svg>
+              {o.name}
+            </span>
+          {/each}
+          <p class="chip-note">
+            Dashes identify the school; colors keep meaning the series (rate, grade, or
+            group).
+          </p>
+        {/if}
       </div>
     {/if}
     {#if split === 'group'}
@@ -369,10 +607,37 @@
     color: #52514e;
     width: 100%;
   }
-  .dash {
-    width: 18px;
-    border-top: 2px dashed;
+  .facets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.6rem;
+  }
+  .facet {
+    border: 1px solid #f0ead9;
+    border-radius: 8px;
+    padding: 0.35rem 0.4rem 0.1rem;
+    background: #fffdf9;
+  }
+  .facet-title {
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: #52514e;
+    padding-left: 0.2rem;
+  }
+  .facet svg {
+    width: 100%;
+    height: auto;
+  }
+  .ftick {
+    font-size: 9px;
+    fill: #b0aa9c;
+  }
+  .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
     display: inline-block;
+    flex-shrink: 0;
   }
   .tick {
     font-size: 12px;
