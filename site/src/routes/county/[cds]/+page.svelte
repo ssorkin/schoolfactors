@@ -7,7 +7,7 @@
 
 <EntityPage
   entity={data.entity}
-  subItems={data.schools}
-  subKind="school"
-  subLabel="Schools in this district"
+  subItems={data.districts}
+  subKind="district"
+  subLabel="Districts in this county"
 />

@@ -2,8 +2,10 @@
   import CohortChart from '$lib/CohortChart.svelte';
   import BlendChart from '$lib/BlendChart.svelte';
   import SearchBox from '$lib/SearchBox.svelte';
+  import PerfList from '$lib/PerfList.svelte';
+  import ResultsTables from '$lib/ResultsTables.svelte';
 
-  let { entity, schools = null } = $props();
+  let { entity, subItems = null, subKind = 'school', subLabel = '' } = $props();
 
   let e = $derived(entity.effects ?? {});
   let flaggedSteps = $derived((entity.blend_steps ?? []).filter((s) => s.flag));
@@ -34,16 +36,23 @@
 <SearchBox />
 
 <nav class="crumbs">
-  <a href="/explore">Explore</a> ›
-  {#if entity.kind === 'school'}
-    {#if entity.district_has_page}
-      <a href="/district/{entity.district_cds}">{entity.district}</a> ›
-    {:else}
-      <span>{entity.district}</span> ›
-    {/if}
+  <a href="/">California</a> ›
+  {#if entity.kind === 'county'}
     <span>{entity.name}</span>
   {:else}
-    <span>{entity.county} County</span> › <span>{entity.name}</span>
+    {#if entity.county_has_page}
+      <a href="/county/{entity.county_cds}">{entity.county} County</a> ›
+    {:else}
+      <span>{entity.county} County</span> ›
+    {/if}
+    {#if entity.kind === 'school'}
+      {#if entity.district_has_page}
+        <a href="/district/{entity.district_cds}">{entity.district}</a> ›
+      {:else}
+        <span>{entity.district}</span> ›
+      {/if}
+    {/if}
+    <span>{entity.name}</span>
   {/if}
 </nav>
 
@@ -132,23 +141,35 @@
 <h2>Who takes the tests here</h2>
 <BlendChart blend={entity.blend ?? []} />
 
-{#if schools?.length}
-  <h2>Schools in this district</h2>
-  <table>
-    <thead>
-      <tr><th>School</th><th>Adj. level</th><th>Adj. growth</th></tr>
-    </thead>
-    <tbody>
-      {#each schools as s (s.cds)}
+{#if subItems?.length}
+  <h2>{subLabel}</h2>
+  <PerfList items={subItems} kind={subKind} childPath={'/' + subKind} />
+  <details>
+    <summary>All {subItems.length} {subKind}s</summary>
+    <table>
+      <thead>
         <tr>
-          <td><a href="/school/{s.cds}">{s.name}</a></td>
-          <td class="tnum">{s.level_adj_eb == null ? '—' : fmt(s.level_adj_eb)}</td>
-          <td class="tnum">{s.growth_adj_eb == null ? '—' : fmt(s.growth_adj_eb)}</td>
+          <th style="text-transform: capitalize">{subKind}</th>
+          <th>Adj. level</th><th>Raw level</th><th>Adj. growth</th><th>Scores</th>
         </tr>
-      {/each}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {#each subItems as s (s.cds)}
+          <tr>
+            <td><a href="/{subKind}/{s.cds}">{s.name}</a></td>
+            <td class="tnum">{s.level_adj_eb == null ? '—' : fmt(s.level_adj_eb)}</td>
+            <td class="tnum">{s.level_eb == null ? '—' : fmt(s.level_eb)}</td>
+            <td class="tnum">{s.growth_adj_eb == null ? '—' : fmt(s.growth_adj_eb)}</td>
+            <td class="tnum">{s.total_scores == null ? '—' : s.total_scores.toLocaleString()}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </details>
 {/if}
+
+<h2>The underlying numbers</h2>
+<ResultsTables scores={entity.cohort_scores ?? []} subgroups={entity.subgroup_results ?? []} />
 
 <p class="caveat">
   These are relationships between {entity.kind} averages on one set of tests — not

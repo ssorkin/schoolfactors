@@ -129,10 +129,26 @@ def run_analysis() -> None:
     for param in ("level", "growth"):
         deffects, _, _ = adjust(deffects, param)
 
+    # County-level fits: only 58 counties, so the adjustment uses a reduced
+    # covariate set to avoid overfitting the cross-section.
+    print("fitting county models …")
+    from schoolfactors.analysis.panel import COUNTY_TYPES
+
+    cpanel = build_panel(COUNTY_TYPES)
+    ceffects = fit_school_models(cpanel)
+    print(f"  {len(ceffects):,} counties with enough data")
+    for param in ("level", "growth", "trend"):
+        ceffects, _, _ = eb_shrink(ceffects, param)
+    ceffects = ceffects.join(build_covariates(COUNTY_TYPES), on="cds", how="left")
+    county_covs = ["share_econ_dis", "share_el", "share_swd", "share_hispanic", "share_white"]
+    for param in ("level", "growth"):
+        ceffects, _, _ = adjust(ceffects, param, county_covs)
+
     out = PARQUET_DIR / "analysis"
     out.mkdir(parents=True, exist_ok=True)
     effects.write_parquet(out / "school_effects.parquet")
     deffects.write_parquet(out / "district_effects.parquet")
+    ceffects.write_parquet(out / "county_effects.parquet")
     coef_table.write_parquet(out / "adjustment_coefficients.parquet")
 
     import json

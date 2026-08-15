@@ -43,7 +43,7 @@ def cohort_scores(types_sql: str, sigma: pl.DataFrame, state: pl.DataFrame) -> p
     con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     df = con.execute(f"""
         SELECT cds, test_year, grade, test_id,
-               mean_scale_score, students_with_scores AS n
+               mean_scale_score, pct_met_and_above, students_with_scores AS n
         FROM caaspp_sb
         WHERE type_id IN {types_sql}
           AND student_group_id = 1 AND grade BETWEEN 3 AND 11 AND test_id IN (1, 2)
@@ -59,7 +59,46 @@ def cohort_scores(types_sql: str, sigma: pl.DataFrame, state: pl.DataFrame) -> p
         .round(3)
         .alias("z"),
         (pl.col("test_year") + 12 - pl.col("grade")).alias("grad_year"),
-    ).select("cds", "test_year", "grade", "test_id", "grad_year", "z", "n")
+        pl.col("state_mean").round(1),
+    ).select(
+        "cds",
+        "test_year",
+        "grade",
+        "test_id",
+        "grad_year",
+        "z",
+        "n",
+        "mean_scale_score",
+        "pct_met_and_above",
+        "state_mean",
+    )
+
+
+# Student groups shown in the "underlying data by group" table (grade-13 combined
+# rows carry no mean scale score — scales differ by grade — so these use percent
+# met-and-above). IDs per caaspp_student_groups.
+SUBGROUP_TABLE_IDS = (
+    1, 3, 4, 31, 111, 160, 8, 128, 99,
+    74, 75, 76, 77, 78, 79, 80, 144,
+    90, 91, 92, 93, 94, 121,
+)
+
+
+def subgroup_results(types_sql: str) -> pl.DataFrame:
+    """Per entity × year × subject × student group: % met-and-above at grade 13."""
+    ids = ", ".join(str(i) for i in SUBGROUP_TABLE_IDS)
+    con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    df = con.execute(f"""
+        SELECT cds, test_year, test_id, student_group_id,
+               pct_met_and_above, students_with_scores AS n
+        FROM caaspp_sb
+        WHERE type_id IN {types_sql} AND grade = 13 AND test_id IN (1, 2)
+          AND student_group_id IN ({ids})
+          AND pct_met_and_above IS NOT NULL AND students_with_scores >= {MIN_N}
+          AND test_year NOT IN {EXCLUDED_YEARS}
+    """).pl()
+    con.close()
+    return df
 
 
 def cohort_blend(types_sql: str) -> pl.DataFrame:

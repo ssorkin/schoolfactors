@@ -41,8 +41,16 @@ def acquire(year: int | None = None) -> None:
     for url, note in REFERENCE_FILES:
         download("caaspp", url, note=note)
 
+    from schoolfactors.paths import RAW_DIR
+
     for y in years:
         print(f"CAASPP Smarter Balanced {y}:")
+        # Skip version probing entirely when a file is already on disk — probe
+        # bursts are what trip CDE's WAF.
+        existing = sorted((RAW_DIR / "caaspp").glob(f"sb_ca{y}_all_csv_v*.zip"))
+        if existing:
+            print(f"  have {existing[-1].name}, skipping probe")
+            continue
         url = find_versioned(y)
         if url is None:
             print(f"  no research file found for {y} (2020 is expected to be missing)")

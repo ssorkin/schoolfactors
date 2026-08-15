@@ -29,6 +29,7 @@ def _con() -> duckdb.DuckDBPyConnection:
 
 SCHOOL_TYPES = (7, 9, 10)
 DISTRICT_TYPES = (6,)
+COUNTY_TYPES = (5,)
 
 
 def school_rows(types: tuple[int, ...] = SCHOOL_TYPES) -> pl.DataFrame:

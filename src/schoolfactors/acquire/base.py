@@ -59,16 +59,19 @@ def _waf_guard(exc: httpx.HTTPError, url: str) -> None:
         raise WafBlocked(f"redirect loop (WAF block) at {url}") from exc
 
 
-def head_ok(url: str, throttle_seconds: float = 2.0) -> bool:
+def head_ok(url: str, throttle_seconds: float = 4.0) -> bool:
     """True if the URL exists (HEAD 200). Throttled: probe bursts trip CDE's WAF."""
-    time.sleep(throttle_seconds)
+    import random
+
+    time.sleep(throttle_seconds + random.uniform(0, 2))
     try:
         resp = client().head(url)
         _check_waf(resp)
         return resp.status_code == 200
     except WafBlocked:
         raise
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
+        _waf_guard(exc, url)
         return False
 
 
@@ -159,6 +162,9 @@ def download(
         raise WafBlocked(f"block page served for {url}")
 
     tmp.rename(dest)
+    import random
+
+    time.sleep(random.uniform(0, 2))
     manifest[filename] = ManifestEntry(
         dataset=dataset,
         filename=filename,
