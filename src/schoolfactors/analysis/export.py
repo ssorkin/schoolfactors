@@ -152,6 +152,43 @@ def run_export() -> None:
             "SELECT cds, any_value(eilcode) FROM directory_raw WHERE eilcode IS NOT NULL GROUP BY cds"
         ).fetchall()
     )
+
+    # Admission/type flags. CDE knows magnet/charter/EdOps; it has NO field for
+    # exam-based admission (verified: Whitney (Gretchen) High and Oxford Academy
+    # are Magnet=N/EdOps=Traditional), so selective schools come from the
+    # community-curated, cited list in curated/selective_admissions.yaml.
+    import yaml
+
+    from schoolfactors.paths import REPO_ROOT as _ROOT
+
+    EDOPS_FLAG = {
+        "ALTSOC": "alt-choice",
+        "CON": "continuation",
+        "COMMDAY": "community-day",
+        "COMM": "community",
+        "JUV": "court",
+        "SPEC": "special-ed",
+    }
+    flags_map: dict[str, list[str]] = {}
+    for cds_, magnet, charter, edops in con_dir.execute(
+        "SELECT cds, any_value(magnet), any_value(charter), any_value(edopscode) "
+        "FROM directory_raw GROUP BY cds"
+    ).fetchall():
+        fl = []
+        if magnet == "Y":
+            fl.append("magnet")
+        if charter == "Y":
+            fl.append("charter")
+        if edops in EDOPS_FLAG:
+            fl.append(EDOPS_FLAG[edops])
+        if fl:
+            flags_map[cds_] = fl
+    curated_path = _ROOT / "curated" / "selective_admissions.yaml"
+    if curated_path.exists():
+        for entry in yaml.safe_load(curated_path.read_text()):
+            flags_map.setdefault(entry["cds"], [])
+            if "selective" not in flags_map[entry["cds"]]:
+                flags_map[entry["cds"]].insert(0, "selective")
     # Current census-day enrollment (latest CDE cdenroll year). School rows carry
     # their own charter flag; district/county totals need the ALL rollup.
     census_map = dict(
@@ -380,6 +417,7 @@ def run_export() -> None:
                         "district": nrow["district_name"],
                         "county": nrow["county_name"],
                         "eil": eil_map.get(cds) if kind == "schools" else None,
+                        "flags": flags_map.get(cds) if kind == "schools" else None,
                         "pass_ela": gs["pass_ela"],
                         "pass_math": gs["pass_math"],
                         "n": gs["n_latest"],
@@ -401,6 +439,7 @@ def run_export() -> None:
                     "county": nrow["county_name"],
                     "county_cds": payload["county_cds"],
                     "eil": eil_map.get(cds) if kind == "schools" else None,
+                    "flags": flags_map.get(cds) if kind == "schools" else None,
                     "level_eb": eff.get("level_eb"),
                     "level_adj_eb": eff.get("level_adj_eb"),
                     "raw_ela": raw_ela,

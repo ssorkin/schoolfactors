@@ -1,0 +1,62 @@
+# Schools with selective (exam/criteria-based) or application-gated admissions.
+#
+# CDE publishes NO field for this — verified: Whitney (Gretchen) High and Oxford
+# Academy, both exam-entry, are Magnet=N/Charter=N/EdOps=Traditional in the public
+# schools directory. This list is therefore community-curated, with a source per
+# entry. It is deliberately conservative: only schools whose admission process is
+# publicly documented. Corrections and additions welcome via pull request.
+#
+# kind: exam      — admission requires an entrance exam / test-score criteria
+#       criteria  — application with academic or audition criteria (no open lottery)
+#       lottery+  — application-based with weighted lottery and eligibility criteria
+
+- cds: "19642121931880"
+  name: Whitney (Gretchen) High
+  district: ABC Unified
+  kind: exam
+  note: Admission by competitive entrance examination (grades 6-12).
+  source: https://www.whitneyhs.us/apps/pages/admissions
+
+- cds: "30664313030616"
+  name: Oxford Academy
+  district: Anaheim Union High
+  kind: exam
+  note: Application plus entrance-assessment based admission (grades 7-12).
+  source: https://oxford.auhsd.us/
+
+- cds: "19647251995539"
+  name: California Academy of Mathematics and Science
+  district: Long Beach Unified
+  kind: criteria
+  note: Application with academic criteria; serves multiple districts.
+  source: https://www.camshigh.org/
+
+- cds: "38684783833407"
+  name: Lowell High
+  district: San Francisco Unified
+  kind: criteria
+  note: Merit-based admission (grades/test criteria; briefly lottery 2021-22,
+    merit restored from the 2023-24 admissions cycle).
+  source: https://www.sfusd.edu/schools/enroll/apply/lowell-high-school
+
+- cds: "19647330133736"
+  name: Science Academy STEM Magnet
+  district: Los Angeles Unified
+  kind: criteria
+  note: Application-based LAUSD magnet with additional program criteria.
+  source: https://www.thescienceacademystemmagnet.org/
+
+- cds: "37683383731189"
+  name: Preuss School UCSD
+  district: San Diego Unified
+  kind: lottery+
+  note: Charter for low-income, first-generation students; application with
+    eligibility criteria and lottery.
+  source: https://preuss.ucsd.edu/admissions/
+
+- cds: "33672150131359"
+  name: Riverside STEM Academy
+  district: Riverside Unified
+  kind: criteria
+  note: Application-based specialized program.
+  source: https://riversidestem.riversideunified.org/

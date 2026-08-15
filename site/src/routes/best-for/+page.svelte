@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { replaceState } from '$app/navigation';
+  import Badges from '$lib/Badges.svelte';
 
   const CATEGORIES = [
     [128, 'Students with disabilities'],
@@ -246,7 +247,7 @@
         {#each sorted.slice(0, shown) as r (r.cds)}
           <tr>
             <td class="name">
-              <a href="/{r.kind}/{r.cds}">{r.name}</a>
+              <a href="/{r.kind}/{r.cds}">{r.name}</a><Badges flags={r.flags} />
               {#if r.kind === 'school'}<span class="sub">{r.district}</span>{/if}
             </td>
             <td class="dim">{r.county}</td>

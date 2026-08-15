@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import Badges from '$lib/Badges.svelte';
 
   let items = $state(null);
   let query = $state('');
@@ -45,13 +46,13 @@
 
   // Facet-aware query parsing: `level:middle county:los angeles ivanhoe` etc.
   // Words after a facet keyword attach to that facet until the next facet.
-  const FACET_KEYS = ['level', 'kind', 'county', 'district', 'type'];
+  const FACET_KEYS = ['level', 'kind', 'county', 'district', 'type', 'is'];
   let parsed = $derived.by(() => {
     const facets = {};
     const free = [];
     let cur = null;
     for (const p of query.split(/\s+/).filter(Boolean)) {
-      const m = p.match(/^(level|kind|county|district|type):(.*)$/i);
+      const m = p.match(/^(level|kind|county|district|type|is):(.*)$/i);
       if (m) {
         cur = m[1].toLowerCase() === 'type' ? 'level' : m[1].toLowerCase();
         if (m[2]) facets[cur] = norm(m[2]).trim();
@@ -77,6 +78,7 @@
       if (level && !(it.level ?? '').startsWith(level)) continue;
       if (facets.county && !norm(it.county).includes(facets.county)) continue;
       if (facets.district && !norm(it.district ?? '').includes(facets.district)) continue;
+      if (facets.is && !(it.flags ?? []).some((f) => f.startsWith(facets.is))) continue;
       let ok = true;
       for (const t of free) {
         if (!it._name.includes(t) && !it._extra.includes(t)) {
@@ -201,7 +203,7 @@
 <div class="controls">
   <input
     class="filter"
-    placeholder={'Filter… try "ivanhoe", "county:sonoma level:high", or "district:los angeles unified"'}
+    placeholder={'Filter… try "county:sonoma level:high", "is:magnet", or "is:selective"'}
     bind:value={query}
     aria-label="Filter table"
   />
@@ -255,7 +257,7 @@
         {#each sorted.slice(0, shown) as it (it.cds)}
           <tr>
             <td class="name">
-              <a href="/{it.kind}/{it.cds}">{it.name}</a>
+              <a href="/{it.kind}/{it.cds}">{it.name}</a><Badges flags={it.flags} />
               {#if it.kind === 'school'}
                 <span class="sub">{it.district}</span>
               {:else if it.kind === 'district'}
