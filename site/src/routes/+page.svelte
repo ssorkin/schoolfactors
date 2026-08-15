@@ -135,7 +135,6 @@
     }
   }
 
-  const fmt = (v) => (v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(2));
   const pct = (v) => (v == null ? '—' : Math.round(v * 100) + '%');
 
   // Sparkline: 9 slots (2015-19, 2022-25), per-row scale, gap between runs.
@@ -175,13 +174,11 @@
     ['pass_math', 'Math met+']
   ];
   const NUM_COLS = [
-    ['adj_ela', 'Adj ELA'],
-    ['adj_math', 'Adj Math'],
-    ['growth_adj_eb', 'Growth'],
+    ['adj_pct', 'Adj %ile'],
+    ['growth_pct', 'Growth %ile'],
     ['ppe', '$/Pupil'],
     ['econ', '% Econ'],
-    ['enrollment', 'Students'],
-    ['total_scores', 'Scores']
+    ['enrollment', 'Students']
   ];
 </script>
 
@@ -283,21 +280,19 @@
                 <span class="dim">—</span>
               {/if}
             </td>
-            <td class="tnum" class:pos={it.adj_ela > 0.1} class:neg={it.adj_ela < -0.1}>{fmt(it.adj_ela)}</td>
-            <td class="tnum" class:pos={it.adj_math > 0.1} class:neg={it.adj_math < -0.1}>{fmt(it.adj_math)}</td>
-            <td class="tnum">{fmt(it.growth_adj_eb)}</td>
+            <td class="tnum" class:pos={it.adj_pct >= 75} class:neg={it.adj_pct <= 25}>{it.adj_pct ?? '—'}</td>
+            <td class="tnum" class:pos={it.growth_pct >= 75} class:neg={it.growth_pct <= 25}>{it.growth_pct ?? '—'}</td>
             <td class="tnum">{it.ppe == null ? '—' : '$' + it.ppe.toLocaleString()}</td>
             <td class="tnum">{pct(it.econ)}</td>
             <td class="tnum">{it.enrollment?.toLocaleString() ?? '—'}</td>
-            <td class="tnum dim">{it.total_scores?.toLocaleString() ?? '—'}</td>
           </tr>
         {/each}
       {:else if loadError}
-        <tr><td colspan="13" class="loading">
+        <tr><td colspan="11" class="loading">
           Couldn't load the dataset — please reload the page.
         </td></tr>
       {:else}
-        <tr><td colspan="13" class="loading">Loading the full dataset…</td></tr>
+        <tr><td colspan="11" class="loading">Loading the full dataset…</td></tr>
       {/if}
     </tbody>
   </table>
@@ -307,8 +302,9 @@
 </div>
 
 <p class="foot">
-  Values are empirical-Bayes shrunken student-SD units; many entities are statistically
-  indistinguishable from one another. Sorting is not ranking —
+  Percentiles rank shrunken, demographically adjusted estimates among entities of the
+  same kind; many are statistically indistinguishable, so small differences are noise.
+  Sorting is not ranking —
   <a href="/glossary">what every column means</a> ·
   <a href="/methodology">how these numbers are made</a> ·
   <a href="/data">data sources and known issues</a> ·
@@ -331,6 +327,10 @@
     gap: 0.6rem;
     align-items: center;
     margin-bottom: 0.6rem;
+    /* Same breakout as .tablewrap so controls and table share one width. */
+    --tw: min(1280px, 100vw - 2.5rem);
+    width: var(--tw);
+    margin-left: calc((100% - var(--tw)) / 2);
   }
   .filter {
     flex: 1 1 380px;
@@ -390,7 +390,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
-    min-width: 1060px;
+    min-width: 950px;
   }
   thead th {
     position: sticky;

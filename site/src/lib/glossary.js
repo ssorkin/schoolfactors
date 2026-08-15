@@ -88,6 +88,28 @@ export const GLOSSARY = [
     ]
   },
   {
+    id: 'adj-percentile',
+    term: 'Adj %ile (adjusted percentile)',
+    unit: 'percentile, 1–99',
+    tip: 'Percentile of the adjusted score level among entities of the same kind (schools vs schools, districts vs districts). 50 = typical for the students served. Small differences are noise; shown only when the estimate is reliable.',
+    def: [
+      'Where an entity’s adjusted score level falls among entities of the same kind — schools are ranked among schools, districts among districts, counties among counties. A 75 means the adjusted level is higher than about three-quarters of comparable entities; 50 is typical for the students served.',
+      'This is a presentation of the adjusted level (see Adjusted), in the spirit of the Urban Institute’s demographically adjusted rankings: estimates are shrunken first, and no percentile is shown when the estimate’s reliability falls below 0.70. The underlying student-SD values remain on each entity’s page.',
+      'Read it loosely: many entities are statistically indistinguishable, so a 55 and a 62 should be treated as the same. And like every adjusted number, it is not a measure of school quality — it contains everything the adjustment misses.'
+    ]
+  },
+  {
+    id: 'growth-percentile',
+    term: 'Growth %ile (cohort-growth percentile)',
+    unit: 'percentile, 1–99',
+    tip: 'Percentile of adjusted cohort growth among entities of the same kind. Above 50 = classes gain more per grade than comparable entities. Small differences are noise; shown only when the estimate is reliable.',
+    def: [
+      'Where an entity’s adjusted cohort growth (see Growth) falls among entities of the same kind. Above 50, classes gain more ground per grade — relative to the state, given the students served — than most comparable entities; below 50, less.',
+      'Growth percentiles answer the closest thing to a "value-added" question this data can support: aggregate cohorts moving through a school, standardized against the state, adjusted for the population served, shrunken, and reliability-gated (below 0.70, no percentile is shown). Unlike teacher value-added models built on linked student records, it makes no claim about causation — and our growth measure is essentially uncorrelated with prior achievement (+0.01), the falsification test single-model rankings have famously failed.',
+      'Read it loosely: growth is estimated with more noise than level, so treat mid-range differences as ties.'
+    ]
+  },
+  {
     id: 'shrinkage',
     term: 'Shrunken estimate & reliability',
     unit: '0–1 (reliability)',
@@ -175,11 +197,9 @@ export const COLTIP = {
   pass_ela: 'ELA — ' + TIP['met-plus'],
   pass_math: 'Math — ' + TIP['met-plus'],
   spark: TIP['met-plus-by-year'],
-  adj_ela: 'ELA — ' + TIP['adjusted'],
-  adj_math: 'Math — ' + TIP['adjusted'],
-  growth_adj_eb: TIP['growth'] + ' Adjusted for the students served.',
+  adj_pct: TIP['adj-percentile'],
+  growth_pct: TIP['growth-percentile'],
   ppe: TIP['ppe'],
   econ: TIP['econ-share'],
-  enrollment: TIP['enrollment'],
-  total_scores: TIP['scores']
+  enrollment: TIP['enrollment']
 };

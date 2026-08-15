@@ -10,6 +10,7 @@ Everything is precomputed — the site has no API.
 
 from __future__ import annotations
 
+import bisect
 import json
 
 import duckdb
@@ -515,6 +516,9 @@ def run_export() -> None:
                     "pass_math": g1["pass_math"],
                     "last_year": last_year,
                     "growth_adj_eb": eff.get("growth_adj_eb"),
+                    # Stripped before writing — used only for percentile gating.
+                    "_lrel": eff.get("level_reliability"),
+                    "_grel": eff.get("growth_reliability"),
                     # Full-population FRPM share (all enrolled students), falling
                     # back to the tested-population share where FRPM is missing.
                     "econ": frpm_pop_share.get(cds, eff.get("share_econ_dis")),
@@ -571,6 +575,38 @@ def run_export() -> None:
         (SITE_DATA / "groups" / f"{gid}.json").write_text(json.dumps(rows))
     print(f"  best-for tables: {len(group_tables)} groups "
           f"({sum(len(v) for v in group_tables.values()):,} rows)")
+
+    # Percentile presentation of the adjusted estimates (in the spirit of the
+    # Urban Institute's demographically adjusted rankings): midrank percentile
+    # among entities of the same kind, gated on reliability >= 0.70 (SEDA's
+    # rule — an estimate that is mostly noise gets no percentile). The
+    # underlying student-SD values stay in the payloads; this is display only.
+    for kind_ in ("school", "district", "county"):
+        for src, rel_key, out in (
+            ("level_adj_eb", "_lrel", "adj_pct"),
+            ("growth_adj_eb", "_grel", "growth_pct"),
+        ):
+            pool = sorted(
+                e[src]
+                for e in index
+                if e["kind"] == kind_
+                and e.get(src) is not None
+                and (e.get(rel_key) or 0) >= 0.7
+            )
+            if len(pool) < 20:
+                continue
+            for e in index:
+                if (
+                    e["kind"] == kind_
+                    and e.get(src) is not None
+                    and (e.get(rel_key) or 0) >= 0.7
+                ):
+                    lo = bisect.bisect_left(pool, e[src])
+                    hi = bisect.bisect_right(pool, e[src])
+                    e[out] = min(99, max(1, round(100 * (lo + hi) / 2 / len(pool))))
+    for e in index:
+        e.pop("_lrel", None)
+        e.pop("_grel", None)
 
     (SITE_DATA / "index.json").write_text(json.dumps(index))
     print(f"  wrote {written['schools']:,} school pages, {written['districts']:,} district pages")
