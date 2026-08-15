@@ -7,6 +7,10 @@ pipeline (acquire → ingest → quality → analysis) in Python, static SvelteK
 
 - `uv sync` — install; `uv run sf --help` — pipeline CLI (`acquire`, `ingest`, `check`, `analyze`, `export`)
 - `uv run pytest` — tests; `uv run ruff check src tests` — lint
+- Site: `cd site && npm run dev` / `npm run build` (static; data from `sf export`)
+- Deploy (atomic): rsync `site/build/` to dronesclub `/var/www/schoolfactors-releases/<ts>/`,
+  swap symlink `/var/www/schoolfactors-current` via `ln -s` + `mv -T`, prune to last
+  3 releases. NEVER `rsync --delete` into the live root (mid-deploy hydration breaks).
 
 ## Hard rules (data integrity)
 
@@ -23,6 +27,12 @@ pipeline (acquire → ingest → quality → analysis) in Python, static SvelteK
 - **Mean scale score, not percent-proficient**, is the primary achievement metric.
 - Data problems are documented in `known_issues/` and surfaced in the DQ report —
   never silently patched. Cleaning steps are explicit, named transforms.
+- **Percentages are never averaged** — reconstruct counts (pct × n), combine, re-divide
+  (see the complement computation in `analysis/cohorts.py`).
+- `curated/` entries (facts CDE doesn't publish, e.g. selective admissions) require a
+  per-entry `source` URL; keep claims conservative and factual.
+- CDE's WAF blocks burst traffic: acquisition paces itself and aborts on block pages
+  or redirect loops (`WafBlocked`); on a block, stop and retry hours later.
 - `data/` is gitignored; provenance lives in `manifests/` (URL, version, sha256, dates).
 
 ## Style

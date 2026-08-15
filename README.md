@@ -8,7 +8,9 @@ improving schools.
 scripts, the cleaning transforms, the statistical models, the data-quality findings,
 and the website that presents them. Anyone can reproduce every number we publish.
 
-Website: [schoolfactors.org](https://schoolfactors.org) *(under construction)*
+Website: [schoolfactors.org](https://schoolfactors.org) — every California school,
+district, and county in one sortable table, with per-school pages, cohort tracking,
+demographically-adjusted comparisons, and "Best for" views by student group.
 
 ## What this project does
 
@@ -44,10 +46,15 @@ Website: [schoolfactors.org](https://schoolfactors.org) *(under construction)*
 
 ```bash
 uv sync                        # install the pipeline (Python 3.12+, managed by uv)
-uv run sf acquire --dataset caaspp --year 2024   # download source data
+uv run sf acquire              # download all source data (~5 GB), record checksums
 uv run sf ingest               # normalize to Parquet + DuckDB
-uv run sf check                # run data-quality validation
+uv run sf check                # run data-quality validation -> DATA_QUALITY.md
+uv run sf analyze              # fit models, render figures
+uv run sf export               # generate the site's JSON data
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, the data-integrity
+rules, and how to add sources or curated facts.
 
 ## Layout
 
@@ -56,9 +63,10 @@ uv run sf check                # run data-quality validation
 | `src/schoolfactors/` | pipeline: `acquire/`, `ingest/`, `quality/`, `analysis/`, `cli.py` |
 | `manifests/` | provenance: URL, version, sha256, dates for every source file |
 | `known_issues/` | registry of documented problems in the source data |
-| `analysis/` | statistical analysis notebooks and writeups |
-| `site/` | the schoolfactors.org website (SvelteKit) |
-| `docs/` | methodology documentation |
+| `curated/` | community-maintained, per-entry-sourced facts CDE doesn't publish (e.g. selective admissions) |
+| `analysis/` | statistical writeups and figures (`first_analysis.md`) |
+| `site/` | the schoolfactors.org website (SvelteKit, fully static) |
+| `DATA_QUALITY.md` | generated data-quality report (`sf check`) |
 
 ## Data provenance and licensing
 
