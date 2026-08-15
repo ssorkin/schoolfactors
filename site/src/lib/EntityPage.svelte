@@ -9,6 +9,26 @@
   let { entity, subItems = null, subKind = 'school', subLabel = '' } = $props();
 
   let e = $derived(entity.effects ?? {});
+
+  // Comparison overlays: checked schools' overall trend, fetched on demand and
+  // drawn dashed in the chart above.
+  const MAX_OVERLAYS = 4;
+  let overlays = $state([]);
+  let isOverlaid = $derived((cds) => overlays.some((o) => o.cds === cds));
+  async function toggleOverlay(s) {
+    if (overlays.some((o) => o.cds === s.cds)) {
+      overlays = overlays.filter((o) => o.cds !== s.cds);
+      return;
+    }
+    if (overlays.length >= MAX_OVERLAYS) return;
+    try {
+      const j = await (await fetch(`/data/schools/${s.cds}.json`)).json();
+      const rows = (j.subgroup_results ?? []).filter((r) => r.group === 1);
+      overlays = [...overlays, { cds: s.cds, name: s.name, rows }];
+    } catch {
+      /* comparison school payload unavailable — leave unchecked */
+    }
+  }
   let flaggedSteps = $derived((entity.blend_steps ?? []).filter((s) => s.flag));
   let slopes = $derived(
     [...(entity.cohort_slopes ?? [])].sort((a, b) => b.grad_year - a.grad_year).slice(0, 8)
@@ -64,7 +84,11 @@
 </p>
 
 <h2>How results are trending</h2>
-<TrendChart subgroups={entity.subgroup_results ?? []} scores={entity.cohort_scores ?? []} />
+<TrendChart
+  subgroups={entity.subgroup_results ?? []}
+  scores={entity.cohort_scores ?? []}
+  {overlays}
+/>
 
 {#if entity.neighbors && (entity.neighbors.nearby?.length || entity.neighbors.lookalike?.length)}
   <h2>Compare with</h2>
@@ -75,6 +99,12 @@
         <ul>
           {#each entity.neighbors.nearby.slice(0, 5) as s (s.cds)}
             <li>
+              <input
+                type="checkbox"
+                title="Overlay on the chart above"
+                checked={isOverlaid(s.cds)}
+                onchange={() => toggleOverlay(s)}
+              />
               <span class="cmp-name">
                 <a href="/school/{s.cds}">{s.name}</a>
                 {#if s.district !== entity.district}<span class="cmp-sub">{s.district}</span>{/if}
@@ -96,6 +126,12 @@
         <ul>
           {#each entity.neighbors.lookalike.slice(0, 5) as s (s.cds)}
             <li>
+              <input
+                type="checkbox"
+                title="Overlay on the chart above"
+                checked={isOverlaid(s.cds)}
+                onchange={() => toggleOverlay(s)}
+              />
               <span class="cmp-name">
                 <a href="/school/{s.cds}">{s.name}</a>
                 <span class="cmp-sub">{s.district}</span>
@@ -115,9 +151,11 @@
     {/if}
   </div>
   <p class="note">
-    Matched statewide on the demographics of tested students (poverty, language,
-    race/ethnicity, disabilities, parent education, size), same school level. The
-    number on the right is each school's demographically-adjusted level.
+    Check a school to overlay its trend (dashed) on the chart above — up to four at
+    a time. Lookalikes are matched statewide on the demographics of tested students
+    (poverty, language, race/ethnicity, disabilities, parent education, size), same
+    school level. The number on the right is each school's demographically-adjusted
+    level.
   </p>
 {/if}
 
@@ -351,10 +389,21 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 0.8rem;
+    gap: 0.6rem;
     padding: 0.3rem 0;
     border-bottom: 1px solid #f0ead9;
     font-size: 0.92rem;
+  }
+  .cmp-card input[type='checkbox'] {
+    accent-color: #2a78d6;
+    flex-shrink: 0;
+    position: relative;
+    top: 2px;
+    cursor: pointer;
+  }
+  .cmp-name {
+    flex: 1;
+    min-width: 0;
   }
   .cmp-card li:last-child {
     border-bottom: none;
