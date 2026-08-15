@@ -1,160 +1,418 @@
 <script>
-  import SearchBox from '$lib/SearchBox.svelte';
-  import PerfList from '$lib/PerfList.svelte';
+  import { onMount } from 'svelte';
 
-  let { data } = $props();
-  let summary = $derived(data.summary);
-  let counties = $derived(data.counties);
+  let items = $state(null);
+  let query = $state('');
+  let kindFilter = $state('all'); // all | school | district | county
+  let levelFilter = $state('all'); // all | elementary | middle | high | k-12
+  let sortKey = $state('name');
+  let sortDir = $state(1); // 1 asc, -1 desc
+  let shown = $state(150);
+
+  const EIL_LABEL = {
+    ELEM: 'elementary',
+    INTMIDJR: 'middle',
+    HS: 'high',
+    ELEMHIGH: 'k-12',
+    PS: 'preschool',
+    A: 'adult',
+    UG: 'other'
+  };
+
+  function norm(s) {
+    return (s ?? '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9\s-]/g, ' ');
+  }
+
+  onMount(async () => {
+    const raw = await (await fetch('/data/index.json')).json();
+    items = raw.map((it) => ({
+      ...it,
+      level: it.eil ? (EIL_LABEL[it.eil] ?? 'other') : it.kind !== 'school' ? '' : 'other',
+      _name: norm(it.name),
+      _extra: norm((it.district ?? '') + ' ' + (it.county ?? ''))
+    }));
+  });
+
+  // Facet-aware query parsing: `level:middle county:los angeles ivanhoe` etc.
+  // Words after a facet keyword attach to that facet until the next facet.
+  const FACET_KEYS = ['level', 'kind', 'county', 'district', 'type'];
+  let parsed = $derived.by(() => {
+    const facets = {};
+    const free = [];
+    let cur = null;
+    for (const p of query.split(/\s+/).filter(Boolean)) {
+      const m = p.match(/^(level|kind|county|district|type):(.*)$/i);
+      if (m) {
+        cur = m[1].toLowerCase() === 'type' ? 'level' : m[1].toLowerCase();
+        if (m[2]) facets[cur] = norm(m[2]).trim();
+        else facets[cur] = '';
+      } else if (cur !== null) {
+        facets[cur] = (facets[cur] + ' ' + norm(p)).trim();
+      } else {
+        free.push(norm(p).trim());
+      }
+    }
+    return { facets, free: free.filter(Boolean) };
+  });
+
+  let filtered = $derived.by(() => {
+    if (!items) return [];
+    const { facets, free } = parsed;
+    const kind = facets.kind ?? (kindFilter === 'all' ? null : kindFilter);
+    const level = facets.level ?? (levelFilter === 'all' ? null : levelFilter);
+    const out = [];
+    for (const it of items) {
+      if (kind && !it.kind.startsWith(kind)) continue;
+      if (level && !(it.level ?? '').startsWith(level)) continue;
+      if (facets.county && !norm(it.county).includes(facets.county)) continue;
+      if (facets.district && !norm(it.district ?? '').includes(facets.district)) continue;
+      let ok = true;
+      for (const t of free) {
+        if (!it._name.includes(t) && !it._extra.includes(t)) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) out.push(it);
+    }
+    return out;
+  });
+
+  let sorted = $derived.by(() => {
+    const arr = [...filtered];
+    const k = sortKey;
+    const d = sortDir;
+    if (k === 'name' || k === 'district' || k === 'county' || k === 'level' || k === 'kind') {
+      arr.sort((a, b) => d * String(a[k] ?? '').localeCompare(String(b[k] ?? '')));
+    } else {
+      arr.sort((a, b) => {
+        const av = a[k];
+        const bv = b[k];
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1; // nulls last regardless of direction
+        if (bv == null) return -1;
+        return d * (av - bv);
+      });
+    }
+    return arr;
+  });
+
+  function setSort(k, defaultDir = 1) {
+    if (sortKey === k) sortDir = -sortDir;
+    else {
+      sortKey = k;
+      sortDir = defaultDir;
+    }
+    shown = 150;
+  }
+
+  $effect(() => {
+    query;
+    kindFilter;
+    levelFilter;
+    shown = 150;
+  });
+
+  function onscroll(ev) {
+    const el = ev.target;
+    if (el.scrollTop + el.clientHeight > el.scrollHeight - 600 && shown < sorted.length) {
+      shown += 200;
+    }
+  }
+
   const fmt = (v) => (v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(2));
+  const pct = (v) => (v == null ? '—' : Math.round(v * 100) + '%');
+
+  // Sparkline: 9 slots (2015-19, 2022-25), per-row scale, gap between runs.
+  const SPARK_YEARS = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025];
+  function sparkRuns(spark) {
+    if (!spark) return [];
+    const pts = spark
+      .map((v, i) => ({ v, i }))
+      .filter((p) => p.v != null);
+    if (pts.length < 2) return [];
+    const vals = pts.map((p) => p.v);
+    const lo = Math.min(...vals);
+    const hi = Math.max(...vals);
+    const span = Math.max(hi - lo, 8); // avoid amplifying noise into drama
+    const X = (i) => 3 + (i / 8) * 98;
+    const Y = (v) => 21 - ((v - lo) / span) * 16;
+    const runs = [[]];
+    for (const p of pts) {
+      const cur = runs[runs.length - 1];
+      if (cur.length && p.i - cur[cur.length - 1].i > 1) runs.push([p]);
+      else cur.push(p);
+    }
+    return runs
+      .filter((r) => r.length > 1)
+      .map((r) => r.map((p) => `${X(p.i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' '));
+  }
+  function sparkTitle(spark) {
+    if (!spark) return '';
+    return SPARK_YEARS.map((y, i) => (spark[i] == null ? null : `${y}: ${spark[i]}%`))
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  const NUM_COLS = [
+    ['adj_ela', 'Adj ELA', 'ELA level vs schools serving similar students (student SDs)'],
+    ['adj_math', 'Adj Math', 'Math level vs schools serving similar students (student SDs)'],
+    ['raw_ela', 'Raw ELA', 'ELA level vs state average (student SDs)'],
+    ['raw_math', 'Raw Math', 'Math level vs state average (student SDs)'],
+    ['growth_adj_eb', 'Growth', 'Adjusted cohort growth (SDs/grade)'],
+    ['econ', '% Econ', 'Share of tested students economically disadvantaged'],
+    ['total_scores', 'Scores', 'Total test scores across years']
+  ];
 </script>
 
-<svelte:head><title>SchoolFactors — honest statistics about California schools</title></svelte:head>
+<svelte:head><title>SchoolFactors — every California school, measured honestly</title></svelte:head>
 
-<section class="hero">
-  <h1>Public schools, public data,<br />honest statistics.</h1>
-  <p class="lede">
-    SchoolFactors gathers all the public data we can find about California's public
-    schools — test scores, demographics, staffing, spending — and analyzes what
-    actually travels with strong and improving results. Everything is open source,
-    every transform is documented, and every finding comes with its uncertainty
-    attached.
+<div class="intro">
+  <h1>Every California school, in one honest table.</h1>
+  <p>
+    {#if items}
+      {items.length.toLocaleString()} schools, districts, and counties from ten years of
+      public data.
+    {:else}
+      Loading the dataset…
+    {/if}
+    Adjusted columns compare against entities serving similar students; raw columns
+    against the state average — <a href="/methodology">correlations, not causes, with
+    error margins</a>. Reproducible from
+    <a href="https://github.com/ssorkin/schoolfactors">source</a>.
   </p>
-  <SearchBox />
-</section>
+</div>
 
-<section class="tiles">
-  <div class="tile">
-    <div class="num">{summary.n_schools_modeled.toLocaleString()}</div>
-    <div class="label">schools modeled</div>
+<div class="controls">
+  <input
+    class="filter"
+    placeholder={'Filter… try "ivanhoe", "county:sonoma level:high", or "district:los angeles unified"'}
+    bind:value={query}
+    aria-label="Filter table"
+  />
+  <div class="chips" role="group" aria-label="Kind">
+    {#each [['all', 'All'], ['school', 'Schools'], ['district', 'Districts'], ['county', 'Counties']] as [k, label] (k)}
+      <button class:on={kindFilter === k} onclick={() => (kindFilter = k)}>{label}</button>
+    {/each}
   </div>
-  <div class="tile">
-    <div class="num">{summary.n_districts_modeled.toLocaleString()}</div>
-    <div class="label">districts</div>
+  <div class="chips" role="group" aria-label="School level">
+    {#each [['all', 'Any level'], ['elementary', 'Elementary'], ['middle', 'Middle'], ['high', 'High']] as [k, label] (k)}
+      <button class:on={levelFilter === k} onclick={() => (levelFilter = k)}>{label}</button>
+    {/each}
   </div>
-  <div class="tile">
-    <div class="num">{summary.n_counties_modeled}</div>
-    <div class="label">counties</div>
-  </div>
-  <div class="tile">
-    <div class="num">−0.76 → −0.00</div>
-    <div class="label">
-      correlation of school scores with student poverty, before → after demographic
-      adjustment
-    </div>
-  </div>
-</section>
+  {#if items}
+    <span class="count">{sorted.length.toLocaleString()} of {items.length.toLocaleString()}</span>
+  {/if}
+</div>
 
-<section>
-  <h2>Counties</h2>
-  <p class="note">
-    Start statewide and drill down: county → district → school. Every level shows the
-    same three numbers — level, growth, trend — raw and adjusted for the students
-    served.
-  </p>
-  <PerfList items={counties} kind="county" childPath="/county" />
-  <details>
-    <summary>All {counties.length} counties</summary>
-    <table>
-      <thead>
-        <tr><th>County</th><th>Adj. level</th><th>Raw level</th><th>Adj. growth</th><th>Scores</th></tr>
-      </thead>
-      <tbody>
-        {#each counties as c (c.cds)}
+<div class="tablewrap" {onscroll}>
+  <table>
+    <thead>
+      <tr>
+        <th class="name sortable" onclick={() => setSort('name')}>
+          Name {sortKey === 'name' ? (sortDir > 0 ? '↑' : '↓') : ''}
+        </th>
+        <th class="sortable" onclick={() => setSort('county')}>
+          County {sortKey === 'county' ? (sortDir > 0 ? '↑' : '↓') : ''}
+        </th>
+        <th class="sortable" onclick={() => setSort('level')}>
+          Level {sortKey === 'level' ? (sortDir > 0 ? '↑' : '↓') : ''}
+        </th>
+        <th>Trend</th>
+        {#each NUM_COLS as [k, label, tip] (k)}
+          <th class="tnum sortable" title={tip} onclick={() => setSort(k, -1)}>
+            {label} {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
+          </th>
+        {/each}
+      </tr>
+    </thead>
+    <tbody>
+      {#if items}
+        {#each sorted.slice(0, shown) as it (it.cds)}
           <tr>
-            <td><a href="/county/{c.cds}">{c.county}</a></td>
-            <td class="tnum">{fmt(c.level_adj_eb)}</td>
-            <td class="tnum">{fmt(c.level_eb)}</td>
-            <td class="tnum">{fmt(c.growth_adj_eb)}</td>
-            <td class="tnum">{c.total_scores?.toLocaleString() ?? '—'}</td>
+            <td class="name">
+              <a href="/{it.kind}/{it.cds}">{it.name}</a>
+              {#if it.kind === 'school'}
+                <span class="sub">{it.district}</span>
+              {:else if it.kind === 'district'}
+                <span class="sub">district</span>
+              {/if}
+            </td>
+            <td class="dim">{it.county}</td>
+            <td class="dim">{it.level}</td>
+            <td class="spark">
+              {#if sparkRuns(it.spark).length}
+                <svg viewBox="0 0 104 24" width="104" height="24" role="img">
+                  <title>Pass rate by year — {sparkTitle(it.spark)}</title>
+                  {#each sparkRuns(it.spark) as run, ri (ri)}
+                    <polyline fill="none" stroke="#2a78d6" stroke-width="1.6" points={run} />
+                  {/each}
+                </svg>
+              {:else}
+                <span class="dim">—</span>
+              {/if}
+            </td>
+            <td class="tnum" class:pos={it.adj_ela > 0.1} class:neg={it.adj_ela < -0.1}>{fmt(it.adj_ela)}</td>
+            <td class="tnum" class:pos={it.adj_math > 0.1} class:neg={it.adj_math < -0.1}>{fmt(it.adj_math)}</td>
+            <td class="tnum">{fmt(it.raw_ela)}</td>
+            <td class="tnum">{fmt(it.raw_math)}</td>
+            <td class="tnum">{fmt(it.growth_adj_eb)}</td>
+            <td class="tnum">{pct(it.econ)}</td>
+            <td class="tnum dim">{it.total_scores?.toLocaleString() ?? '—'}</td>
           </tr>
         {/each}
-      </tbody>
-    </table>
-  </details>
-</section>
+      {:else}
+        <tr><td colspan="11" class="loading">Loading {`{`}11,204{`}`} rows of public data…</td></tr>
+      {/if}
+    </tbody>
+  </table>
+  {#if items && shown < sorted.length}
+    <p class="more">Scroll for more — {(sorted.length - shown).toLocaleString()} rows below</p>
+  {/if}
+</div>
 
-<section>
-  <h2>What makes this site different</h2>
-  <ul class="principles">
-    <li>
-      <strong>Correlations, not causes.</strong> School-level data cannot say what a
-      school <em>causes</em> — only how its students' results compare with schools
-      serving similar students. Our language reflects that everywhere.
-    </li>
-    <li>
-      <strong>Error margins always.</strong> Small schools are noisy by construction.
-      We shrink estimates accordingly, show intervals, and say "not distinguishable
-      from average" when that's the honest answer — no bare rankings.
-    </li>
-    <li>
-      <strong>Data problems in the open.</strong> Official files contain real
-      inconsistencies. We detect them with automated checks and publish them —
-      <a href="/data">see the data-quality report</a> — rather than silently patching.
-    </li>
-    <li>
-      <strong>Reproducible to the byte.</strong> The
-      <a href="https://github.com/ssorkin/schoolfactors">pipeline</a> records the
-      exact source URL and checksum of every file behind every number.
-    </li>
-  </ul>
-</section>
+<p class="foot">
+  Values are empirical-Bayes shrunken student-SD units; many entities are statistically
+  indistinguishable from one another. Sorting is not ranking —
+  <a href="/methodology">how these numbers are made</a> ·
+  <a href="/data">data sources and known issues</a> ·
+  <a href="/explore">the Sonoma pilot scatter</a>.
+</p>
 
 <style>
-  .hero h1 {
-    font-size: 2.3rem;
-    margin: 1rem 0 0.6rem;
+  .intro h1 {
+    font-size: 1.8rem;
+    margin: 0.8rem 0 0.4rem;
   }
-  .lede {
-    font-size: 1.12rem;
-    max-width: 44rem;
+  .intro p {
+    max-width: 52rem;
     color: #4a453d;
+    margin: 0 0 0.8rem;
   }
-  .tiles {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    margin: 1.6rem 0;
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 0.6rem;
   }
-  .tile {
+  .filter {
+    flex: 1 1 380px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.97rem;
+    border: 1px solid #d8d0c0;
+    border-radius: 8px;
     background: #fffdf9;
+  }
+  .chips {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .chips button {
+    border: 1px solid #d8d0c0;
+    background: #faf7f2;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: #52514e;
+  }
+  .chips button.on {
+    background: #2a78d6;
+    border-color: #2a78d6;
+    color: #fff;
+  }
+  .count {
+    color: #898781;
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .tablewrap {
     border: 1px solid #e8e1d5;
     border-radius: 10px;
-    padding: 1.1rem 1.2rem;
-  }
-  .num {
-    font-size: 1.7rem;
-    font-weight: 700;
-    color: #b0552f;
-  }
-  .label {
-    color: #6f6a61;
-    font-size: 0.92rem;
-  }
-  .note {
-    color: #6f6a61;
-    max-width: 44rem;
-  }
-  .principles li {
-    margin-bottom: 0.8rem;
-    max-width: 46rem;
-  }
-  details {
-    margin-top: 0.6rem;
+    background: #fffdf9;
+    max-height: 72vh;
+    overflow: auto;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.93rem;
-    margin-top: 0.5rem;
+    font-size: 0.88rem;
+    min-width: 980px;
   }
-  th,
-  td {
+  thead th {
+    position: sticky;
+    top: 0;
+    background: #f6f1e7;
+    z-index: 2;
     text-align: left;
-    padding: 0.32rem 0.5rem;
-    border-bottom: 1px solid #eee9df;
+    padding: 0.45rem 0.55rem;
+    border-bottom: 1px solid #e8e1d5;
+    white-space: nowrap;
+    color: #52514e;
+  }
+  th.sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+  th.sortable:hover {
+    color: #b0552f;
+  }
+  td {
+    padding: 0.32rem 0.55rem;
+    border-bottom: 1px solid #f0ead9;
+    white-space: nowrap;
+  }
+  td.name a {
+    font-weight: 600;
+    text-decoration: none;
+  }
+  td.name a:hover {
+    text-decoration: underline;
+  }
+  .sub {
+    display: block;
+    color: #898781;
+    font-size: 0.76rem;
+  }
+  .dim {
+    color: #6f6a61;
   }
   .tnum {
     text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+  td.pos {
+    color: #006300;
+    font-weight: 600;
+  }
+  td.neg {
+    color: #d03b3b;
+    font-weight: 600;
+  }
+  .spark {
+    line-height: 0;
+  }
+  .loading {
+    padding: 2rem;
+    text-align: center;
+    color: #898781;
+  }
+  .more {
+    text-align: center;
+    color: #898781;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    margin: 0;
+  }
+  .foot {
+    color: #898781;
+    font-size: 0.85rem;
+    max-width: 52rem;
+    margin-top: 0.8rem;
   }
 </style>

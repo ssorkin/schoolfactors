@@ -99,6 +99,15 @@ def run_export() -> None:
 
     print("  computing nearby/lookalike neighbors …")
     neighbors = build_neighbors(schools)
+
+    # School level (elementary/middle/high) from the directory, for table facets.
+    con_dir = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    eil_map = dict(
+        con_dir.execute(
+            "SELECT cds, any_value(eilcode) FROM directory_raw WHERE eilcode IS NOT NULL GROUP BY cds"
+        ).fetchall()
+    )
+    con_dir.close()
     school_name_lookup = {
         r["cds"]: (r["school_name"], r["district_name"])
         for r in names.filter(pl.col("type_id").is_in([7, 9, 10])).to_dicts()
@@ -248,6 +257,39 @@ def run_export() -> None:
             (SITE_DATA / kind / f"{cds}.json").write_text(json.dumps(payload))
             written[kind] += 1
             eff = payload["effects"]
+            full_eff = eff_by_cds.get(cds, {})
+
+            # Per-subject levels via the fitted subject gap (math - ela):
+            # ela = level - gap/2, math = level + gap/2, for raw and adjusted alike.
+            def _split(level):
+                gap = full_eff.get("subj_gap")
+                if level is None:
+                    return None, None
+                if gap is None:
+                    return round(level, 2), round(level, 2)
+                return round(level - gap / 2, 2), round(level + gap / 2, 2)
+
+            raw_ela, raw_math = _split(eff.get("level_eb"))
+            adj_ela, adj_math = _split(eff.get("level_adj_eb"))
+
+            # Sparkline: combined ELA+Math pass rate per year (count-weighted).
+            spark_years = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
+            by_year: dict[int, list] = {}
+            for r in _rows(subgroups_by, cds):
+                if r["student_group_id"] == 1 and r["pct_met_and_above"] is not None:
+                    by_year.setdefault(r["test_year"], []).append(
+                        (r["pct_met_and_above"], r["n"])
+                    )
+            spark = []
+            for y in spark_years:
+                vals = by_year.get(y)
+                if vals:
+                    num = sum(p * n for p, n in vals)
+                    den = sum(n for _, n in vals)
+                    spark.append(round(num / den) if den else None)
+                else:
+                    spark.append(None)
+
             index.append(
                 {
                     "cds": cds,
@@ -257,10 +299,17 @@ def run_export() -> None:
                     "district_cds": payload["district_cds"],
                     "county": nrow["county_name"],
                     "county_cds": payload["county_cds"],
+                    "eil": eil_map.get(cds) if kind == "schools" else None,
                     "level_eb": eff.get("level_eb"),
                     "level_adj_eb": eff.get("level_adj_eb"),
+                    "raw_ela": raw_ela,
+                    "raw_math": raw_math,
+                    "adj_ela": adj_ela,
+                    "adj_math": adj_math,
                     "growth_adj_eb": eff.get("growth_adj_eb"),
+                    "econ": eff.get("share_econ_dis"),
                     "total_scores": eff.get("total_scores"),
+                    "spark": spark,
                 }
             )
 
