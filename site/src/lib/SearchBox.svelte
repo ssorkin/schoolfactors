@@ -5,7 +5,11 @@
 <script>
   import { goto } from '$app/navigation';
 
-  let { placeholder = 'Find any California school or district…' } = $props();
+  let {
+    placeholder = 'Find any California school or district…',
+    onselect = null,
+    kinds = null
+  } = $props();
   let query = $state('');
   let items = $state(null);
 
@@ -22,6 +26,7 @@
     const starts = [];
     const contains = [];
     for (const it of items) {
+      if (kinds && !kinds.includes(it.kind)) continue;
       const n = it.name?.toLowerCase() ?? '';
       if (n.startsWith(q)) starts.push(it);
       else if (n.includes(q) || it.district?.toLowerCase().includes(q)) contains.push(it);
@@ -32,7 +37,11 @@
 
   function open(it) {
     query = '';
-    goto(`/${it.kind}/${it.cds}`);
+    if (onselect) {
+      onselect(it);
+    } else {
+      goto(`/${it.kind}/${it.cds}`);
+    }
   }
 </script>
 

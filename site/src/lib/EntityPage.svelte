@@ -20,6 +20,7 @@
   let isOverlaid = $derived((cds) => overlays.some((o) => o.cds === cds));
 
   async function addOverlay(cds, name = null) {
+    if (cds === entity.cds) return;
     if (overlays.some((o) => o.cds === cds) || overlays.length >= MAX_OVERLAYS) return;
     try {
       const resp = await fetch(`/data/schools/${cds}.json`);
@@ -211,12 +212,32 @@
       </div>
     {/if}
   </div>
+  <div class="add-compare">
+    <SearchBox
+      placeholder="Add any school to the comparison…"
+      kinds={['school']}
+      onselect={(it) => addOverlay(it.cds, it.name)}
+    />
+    {#if overlays.length}
+      <div class="ov-chips">
+        {#each overlays as o (o.cds)}
+          <button
+            class="ov-chip"
+            title="Remove from comparison"
+            onclick={() => (overlays = overlays.filter((x) => x.cds !== o.cds))}
+          >
+            {o.name} <span aria-hidden="true">×</span>
+          </button>
+        {/each}
+      </div>
+    {/if}
+  </div>
   <p class="note">
-    Check a school to overlay its trend (dashed) on the chart above — up to four at
-    a time. Lookalikes are matched statewide on the demographics of tested students
-    (poverty, language, race/ethnicity, disabilities, parent education, size), same
-    school level. The number on the right is each school's demographically-adjusted
-    level.
+    Check a school (or search for any school statewide) to overlay its trend on the
+    chart above — up to four at a time. Lookalikes are matched statewide on the
+    demographics of tested students (poverty, language, race/ethnicity, disabilities,
+    parent education, size), same school level. The number on the right is each
+    school's demographically-adjusted level.
   </p>
 {/if}
 
@@ -492,6 +513,29 @@
     color: #006300;
   }
   .cmp-adj.neg {
+    color: #d03b3b;
+  }
+  .add-compare {
+    margin-top: 0.6rem;
+    max-width: 28rem;
+  }
+  .ov-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.3rem;
+  }
+  .ov-chip {
+    border: 1px solid #d8d0c0;
+    background: #fffdf9;
+    border-radius: 999px;
+    padding: 0.15rem 0.7rem;
+    font-size: 0.84rem;
+    cursor: pointer;
+    color: #52514e;
+  }
+  .ov-chip:hover {
+    border-color: #d03b3b;
     color: #d03b3b;
   }
 </style>
