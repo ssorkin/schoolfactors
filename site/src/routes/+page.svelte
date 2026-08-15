@@ -178,6 +178,7 @@
     ['adj_ela', 'Adj ELA'],
     ['adj_math', 'Adj Math'],
     ['growth_adj_eb', 'Growth'],
+    ['ppe', '$/Pupil'],
     ['econ', '% Econ'],
     ['enrollment', 'Students'],
     ['total_scores', 'Scores']
@@ -285,17 +286,18 @@
             <td class="tnum" class:pos={it.adj_ela > 0.1} class:neg={it.adj_ela < -0.1}>{fmt(it.adj_ela)}</td>
             <td class="tnum" class:pos={it.adj_math > 0.1} class:neg={it.adj_math < -0.1}>{fmt(it.adj_math)}</td>
             <td class="tnum">{fmt(it.growth_adj_eb)}</td>
+            <td class="tnum">{it.ppe == null ? '—' : '$' + it.ppe.toLocaleString()}</td>
             <td class="tnum">{pct(it.econ)}</td>
             <td class="tnum">{it.enrollment?.toLocaleString() ?? '—'}</td>
             <td class="tnum dim">{it.total_scores?.toLocaleString() ?? '—'}</td>
           </tr>
         {/each}
       {:else if loadError}
-        <tr><td colspan="12" class="loading">
+        <tr><td colspan="13" class="loading">
           Couldn't load the dataset — please reload the page.
         </td></tr>
       {:else}
-        <tr><td colspan="12" class="loading">Loading the full dataset…</td></tr>
+        <tr><td colspan="13" class="loading">Loading the full dataset…</td></tr>
       {/if}
     </tbody>
   </table>

@@ -1,6 +1,6 @@
 # Data Quality Report
 
-Generated 2026-08-14 by `sf check`. This report is a first-class artifact of the pipeline: problems in the source data are surfaced here and in `known_issues/`, never silently patched.
+Generated 2026-08-15 by `sf check`. This report is a first-class artifact of the pipeline: problems in the source data are surfaced here and in `known_issues/`, never silently patched.
 
 ## Known issues (documented registry)
 
@@ -20,6 +20,14 @@ Originally observed in district 70953 (Sonoma Valley Unified), where fluency sub
 
 **Handling:** Never use 2015 subgroup-level students_enrolled. Subgroup denominators for 2015 must come from students_tested / students_with_scores, or the series starts at 2016.
 
+### Male + Female no longer partitions All Students from 2021
+
+*definition-note, affects caaspp 2021, 2022, 2023, 2024, 2025* — id `caaspp-gender-nonbinary-2021`
+
+From 2020-21 onward a handful of districts each year report male + female enrollment slightly below All Students. CALPADS added nonbinary gender markers, and CAASPP publishes only Male (3) and Female (4) groups, so students with other markers appear in neither. Violations are small (2-5 districts/year above the 2% tolerance) but the partition identity is no longer exact.
+
+**Handling:** Treat gender groups as overlapping-incomplete, not a partition; never derive a "nonbinary" count by subtraction (n<11 suppression would make it unreliable anyway).
+
 ### Student group 6 includes English Only students (6 = 7 + 8 + 180)
 
 *definition-note, affects caaspp 2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025* — id `caaspp-group6-definition`
@@ -27,6 +35,14 @@ Originally observed in district 70953 (Sonoma Valley Unified), where fluency sub
 Group 6 ("Fluent English proficient and English only") is the sum of groups 7 (IFEP) + 8 (RFEP) + 180 (English Only), not 7 + 8 as one might assume from the name "fluent". Verified empirically: the identity 6 = 7 + 8 + 180 holds exactly for enrollment in 2016+ and for tested counts in all years including 2015. Older CDE layout documents describe group 6 inconsistently ("IFEP and EO" in some years), so treat the empirical identity as authoritative.
 
 **Handling:** Analyses that need "fluent but not English-only" must use groups 7 + 8 directly, never group 6 minus anything.
+
+### Some LEAs file total dollars, not per-pupil amounts, in the ESSA PPE file
+
+*reporting-inconsistency, affects ppe 2025* — id `ppe-totals-reporting`
+
+The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting conventions. Most LEAs report per-pupil dollars as specified, but roughly 5% of LEAs (98 of 1,926 with membership data) filed school-level TOTAL expenditures in the per-pupil columns. Example: Granada Hills Charter reports $99,223,734 with 5,927 students — dividing by membership yields a plausible $16,741/pupil. The convention is consistent within an LEA (all of Acalanes Union High's schools are totals), so detection is per-LEA, not per-row.
+
+**Handling:** Named transform in analysis/export.py (normalize ppe totals-reporters): an LEA whose median reported value exceeds $100,000/pupil is treated as a totals-reporter and every one of its rows is divided by student membership (rows without membership become null). After normalization, values outside [$1,000, $150,000] per pupil are treated as unusable and dropped. District and county figures are rebuilt from school dollars (value x membership, summed, re-divided) — never by averaging per-pupil ratios.
 
 ## Check findings
 
@@ -68,15 +84,15 @@ Group 6 ("Fluent English proficient and English only") is the sum of groups 7 (I
   - Monte Rio Union Elementary (cds 4970813…): parent=48 vs children 47
 - 🔴 **2022** gender (male 3 + female 4 = all students): 4 district(s) violate the identity by more than 2%
   - Humboldt County Office of Education (cds 1210124…): parent=62 vs children 59
-  - Imperial County Office of Education (cds 1310132…): parent=49 vs children 48
-  - Napa County Office of Education (cds 2810280…): parent=42 vs children 41
   - Monte Rio Union Elementary (cds 4970813…): parent=40 vs children 39
+  - Napa County Office of Education (cds 2810280…): parent=42 vs children 41
+  - Imperial County Office of Education (cds 1310132…): parent=49 vs children 48
 - 🔴 **2023** gender (male 3 + female 4 = all students): 5 district(s) violate the identity by more than 2%
   - West Sonoma County Union High (cds 4970607…): parent=419 vs children 409
   - Sebastopol Union Elementary (cds 4970938…): parent=293 vs children 286
   - Humboldt County Office of Education (cds 1210124…): parent=73 vs children 71
-  - Peninsula Union (cds 1262984…): parent=38 vs children 37
   - Dunsmuir Elementary (cds 4770243…): parent=46 vs children 45
+  - Peninsula Union (cds 1262984…): parent=38 vs children 37
 - 🔴 **2024** gender (male 3 + female 4 = all students): 2 district(s) violate the identity by more than 2%
   - SBE - Latitude 37.8 High (cds 0177180…): parent=93 vs children 91
   - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=36 vs children 35

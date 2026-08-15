@@ -108,6 +108,17 @@ export const GLOSSARY = [
     ]
   },
   {
+    id: 'ppe',
+    term: 'Per-pupil spending ($/pupil)',
+    unit: 'dollars per pupil per year',
+    tip: 'Total ESSA per-pupil expenditure — school-site plus allocated central costs, federal plus state/local — latest available year (2024–25). District and county values are rebuilt from school dollars, weighted by membership.',
+    def: [
+      'Total expenditure per pupil from CDE’s ESSA per-pupil expenditure reports — the only school-level spending data California publishes. It sums four components: school-site and allocated central-office costs, each split into federal and state/local dollars, for the latest available year (currently 2024–25).',
+      'District and county figures are reconstructed from school-level dollars (per-pupil value × student membership, summed, then re-divided) — per-pupil ratios are never averaged. Charter schools are included under their CDS-prefix district, matching how test-score rollups work on this site.',
+      'Caveats: spending is largely need-driven — schools serving more high-need students receive more funding by design — so higher spending is neither praise nor criticism. Central costs are allocated to schools by each district’s own method, which limits fine-grained comparisons across districts. About 5% of LEAs filed total dollars instead of per-pupil amounts in the source file; we detect and normalize this (documented as a known issue), and drop implausible values rather than guessing.'
+    ]
+  },
+  {
     id: 'econ-share',
     term: '% Econ',
     unit: '% of students',
@@ -167,6 +178,7 @@ export const COLTIP = {
   adj_ela: 'ELA — ' + TIP['adjusted'],
   adj_math: 'Math — ' + TIP['adjusted'],
   growth_adj_eb: TIP['growth'] + ' Adjusted for the students served.',
+  ppe: TIP['ppe'],
   econ: TIP['econ-share'],
   enrollment: TIP['enrollment'],
   total_scores: TIP['scores']

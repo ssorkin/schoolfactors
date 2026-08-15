@@ -212,6 +212,21 @@ def run_export() -> None:
           AND school_code IS NOT NULL AND school_code <> '0000000'
           AND TRY_CAST(enrollment_k_12 AS DOUBLE) > 0
     """).fetchall()
+    # ESSA per-pupil expenditure, latest file (lexicographic max works for
+    # essappeXXYYdata names). Total = school + allocated central, federal +
+    # state/local.
+    ppe_rows = con_dir.execute("""
+        SELECT cds, lea_cds_code,
+               COALESCE(TRY_CAST(school_expenditures_federal AS DOUBLE), 0)
+             + COALESCE(TRY_CAST(school_expenditures_state_local AS DOUBLE), 0)
+             + COALESCE(TRY_CAST(central_expenditures_federal AS DOUBLE), 0)
+             + COALESCE(TRY_CAST(central_expenditures_state_local AS DOUBLE), 0) AS pp,
+               TRY_CAST(student_membership AS DOUBLE) AS mem
+        FROM ppe_raw
+        WHERE file = (SELECT max(file) FROM ppe_raw)
+          AND TRY_CAST(school_expenditures_state_local AS DOUBLE) IS NOT NULL
+          AND length(cds) = 14
+    """).fetchall()
     con_dir.close()
     frpm_pop: dict[str, list] = {}
     for scds, c, e in frpm_school:
@@ -224,6 +239,41 @@ def run_export() -> None:
     frpm_pop_share = {
         k: round(c / e, 3) for k, (c, e) in frpm_pop.items() if e > 0
     }
+    # Normalize PPE totals-reporters (known issue ppe-totals-reporting): ~5% of
+    # LEAs filed total dollars in the per-pupil columns. The convention is
+    # consistent within an LEA, so an LEA whose median reported value exceeds
+    # $100k/pupil is treated as a totals-reporter and its rows are divided by
+    # membership. Post-normalization values outside [$1k, $150k] are unusable.
+    ppe_by_lea: dict[str, list[float]] = {}
+    for _, lea, pp, _ in ppe_rows:
+        if pp > 0:
+            ppe_by_lea.setdefault(lea, []).append(pp)
+    ppe_totals_leas = {
+        lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] > 100_000
+    }
+    ppe_map: dict[str, int] = {}
+    ppe_pool: dict[str, list] = {}
+    for scds, lea, pp, mem in ppe_rows:
+        if pp <= 0:
+            continue
+        if lea in ppe_totals_leas:
+            if not mem:
+                continue
+            pp = pp / mem
+        if not 1_000 <= pp <= 150_000:
+            continue
+        ppe_map[scds] = round(pp)
+        # District/county figures: reconstruct dollars (pp × membership), sum,
+        # re-divide — never average per-pupil ratios. Charter schools fold into
+        # their CDS-prefix district, matching the CAASPP Charter='All' rollups.
+        if mem:
+            for key in (scds[:7] + "0000000", scds[:2] + "000000000000"):
+                agg = ppe_pool.setdefault(key, [0.0, 0.0])
+                agg[0] += pp * mem
+                agg[1] += mem
+    for key, (dollars, students) in ppe_pool.items():
+        if students > 0:
+            ppe_map[key] = round(dollars / students)
     school_name_lookup = {
         r["cds"]: (r["school_name"], r["district_name"])
         for r in names.filter(pl.col("type_id").is_in([7, 9, 10])).to_dicts()
@@ -453,6 +503,7 @@ def run_export() -> None:
                     # Full-population FRPM share (all enrolled students), falling
                     # back to the tested-population share where FRPM is missing.
                     "econ": frpm_pop_share.get(cds, eff.get("share_econ_dis")),
+                    "ppe": ppe_map.get(cds),
                     "enrollment": census_map.get(cds),
                     "total_scores": eff.get("total_scores"),
                     "spark": spark,

@@ -1,0 +1,26 @@
+id: ppe-totals-reporting
+dataset: ppe
+years: [2025]
+kind: reporting-inconsistency
+title: Some LEAs file total dollars, not per-pupil amounts, in the ESSA PPE file
+description: >
+  The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting
+  conventions. Most LEAs report per-pupil dollars as specified, but roughly 5% of
+  LEAs (98 of 1,926 with membership data) filed school-level TOTAL expenditures in
+  the per-pupil columns. Example: Granada Hills Charter reports $99,223,734 with
+  5,927 students — dividing by membership yields a plausible $16,741/pupil. The
+  convention is consistent within an LEA (all of Acalanes Union High's schools are
+  totals), so detection is per-LEA, not per-row.
+evidence: >
+  data/raw/ppe/essappe2425data.xlsx — 124 school rows above $500k "per pupil";
+  per-LEA medians separate cleanly (79 LEAs with median > $500k, 19 between
+  $100k-$500k, everything else below $100k). Dividing the outlier rows by
+  student_membership lands them in the normal $12k-$57k range.
+handling: >
+  Named transform in analysis/export.py (normalize ppe totals-reporters): an LEA
+  whose median reported value exceeds $100,000/pupil is treated as a
+  totals-reporter and every one of its rows is divided by student membership
+  (rows without membership become null). After normalization, values outside
+  [$1,000, $150,000] per pupil are treated as unusable and dropped. District and
+  county figures are rebuilt from school dollars (value x membership, summed,
+  re-divided) — never by averaging per-pupil ratios.
