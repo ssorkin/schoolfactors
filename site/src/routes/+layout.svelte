@@ -12,6 +12,7 @@
       <a href="/methodology">Methodology</a>
       <a href="/glossary">Glossary</a>
       <a href="/data">Data</a>
+      <a href="/about">About</a>
       <a href="https://github.com/ssorkin/schoolfactors">GitHub</a>
     </nav>
   </header>

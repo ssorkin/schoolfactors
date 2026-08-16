@@ -27,16 +27,33 @@
   shrunk toward the average — a 40-student grade simply tells us less than a
   400-student one — and estimates that stay unreliable after shrinkage are not shown.
 </p>
+<p>
+  The level answers "where is this school <em>now</em>", not "where has it averaged
+  over a decade": each year's weight in the level halves for every 1.5 years of age,
+  so a school that was strong in 2016 but ordinary today shows an ordinary level. We
+  chose that half-life by holdout — fitting on earlier years and predicting each
+  school's held-out latest year, the recency-weighted level beat both the all-years
+  average and a linear-trend extrapolation. Growth and trend still use the full
+  window: slopes need it.
+</p>
 
 <h2>3. Comparing schools that serve similar students</h2>
 <p>
-  Raw score levels correlate <strong>−0.76</strong> with the share of economically
+  Raw score levels correlate <strong>−0.74</strong> with the share of economically
   disadvantaged students — demography, not schooling, dominates raw comparisons. So we
   also report performance <em>relative to schools serving similar students</em>:
   what remains after accounting for the tested population's economic disadvantage,
   race/ethnicity, English-learner and disability shares, parental education, and
   school size. This residual is <strong>not</strong> a measure of school quality —
   it still contains everything our covariates miss.
+</p>
+<p>
+  Where the site shows percentiles, they are computed from the <em>lower bound</em> of
+  the 95% band around each shrunken estimate, not the point estimate — an imprecise
+  high estimate ranks below a precise, slightly lower one. Percentiles are also
+  withheld from entities with no test data in the latest year: a recency-weighted
+  level for a school whose data stopped years ago describes a school that may no
+  longer exist in that form.
 </p>
 
 <h2>4. What we refuse to do</h2>
@@ -49,9 +66,10 @@
   </li>
   <li>
     No hiding of specification sensitivity: when reasonable modeling choices move a
-    school's result, we say so. Rankings agree between our specifications at
-    Spearman 0.82–0.92 — good, but far from perfect, and that disagreement
-    <em>is</em> the error bar that matters most.
+    school's result, we say so. Rankings agree between our demographic
+    specifications at Spearman 0.84–0.98 — good, but far from perfect — and drop to
+    0.66 when school-influenced factors like attendance are added. That
+    disagreement <em>is</em> the error bar that matters most.
   </li>
 </ul>
 
@@ -63,7 +81,7 @@
   work and Stanford's SEDA project showed the responsible alternative: precision
   weighting, shrinkage, reliability gates, and published sensitivity. We follow the
   second tradition, and our growth measure passes the falsification test the LA Times
-  model failed (correlation with prior achievement: +0.01 here vs their 0.50).
+  model failed (correlation with prior achievement: −0.01 here vs their 0.50).
 </p>
 
 <style>
