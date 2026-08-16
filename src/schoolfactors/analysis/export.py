@@ -244,6 +244,18 @@ def run_export() -> None:
           AND cds IS NOT NULL AND length(cds) = 14
         GROUP BY cds
     """).fetchall()
+    # Enrollment trend for the table sparkline: CAASPP grade-13 census-day
+    # enrollment of tested grades — the only year-by-year series covering the
+    # full decade (warehouse CDE census files start 2023-24). A proxy for the
+    # census: exact for middle schools, missing K-2 for elementary, grade 11
+    # only for high schools; the displayed number stays the true census.
+    enr_hist: dict[str, dict[int, int]] = {}
+    for cds_, yr_, n_ in con_dir.execute(
+        "SELECT cds, test_year, max(students_enrolled) FROM caaspp_sb "
+        "WHERE student_group_id = 1 AND grade = 13 AND test_id = 1 GROUP BY 1, 2"
+    ).fetchall():
+        if n_:
+            enr_hist.setdefault(cds_, {})[yr_] = int(n_)
     con_dir.close()
     frpm_pop: dict[str, list] = {}
     for scds, c, e in frpm_school:
@@ -562,6 +574,11 @@ def run_export() -> None:
                     "total_scores": eff.get("total_scores"),
                     "ll": latlon_map.get(cds),
                     "spark": spark,
+                    "enr": (
+                        [enr_hist[cds].get(y) for y in SPARK_YEARS]
+                        if cds in enr_hist
+                        else None
+                    ),
                 }
             )
 

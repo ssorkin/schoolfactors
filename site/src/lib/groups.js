@@ -60,6 +60,41 @@ export const GROUP_CATEGORIES = [
   { label: 'Circumstances', ids: [52, 53, 240, 241, 28, 29, 50, 51] }
 ];
 
+// Themed comparison rows for the default "By group" chart view: one compact
+// row per theme, at most four series each. Themes with more members with data
+// are chunked into consecutive rows at render time.
+export const GROUP_THEMES = [
+  { label: 'Economic status', ids: [31, 111] },
+  { label: 'Disability', ids: [128, 99] },
+  { label: 'English learners', ids: [-170, 160, 8] },
+  { label: 'Race/ethnicity', ids: [78, 80, 76, 74, 77, 144, 75, 79] },
+  { label: 'Parent education', ids: [90, 91, 92, 93, 94] }
+];
+
+// Compact labels for the themed-row legends.
+export const GROUP_SHORT = {
+  31: 'Econ dis.',
+  111: 'Not econ dis.',
+  128: 'Disabilities',
+  99: 'No disabilities',
+  '-170': 'Never EL',
+  160: 'EL',
+  8: 'RFEP',
+  78: 'Hispanic',
+  80: 'White',
+  76: 'Asian',
+  74: 'Black',
+  77: 'Filipino',
+  144: '2+ races',
+  75: 'Am. Indian',
+  79: 'Pac. Isl.',
+  90: 'Not HS',
+  91: 'HS grad',
+  92: 'Some college',
+  93: 'College grad',
+  94: 'Grad school'
+};
+
 // Fixed categorical palette (validated reference palette, light mode) — assigned
 // to groups in activation order, freed on deactivation, never cycled.
 export const SERIES_COLORS = [

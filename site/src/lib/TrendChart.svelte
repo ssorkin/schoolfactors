@@ -7,9 +7,22 @@
    * active the overall view shows a single rate so lines are comparable.
    * Lines break across the 2020-21 testing gap rather than bridging it.
    */
-  import { GROUP_LABELS, GROUP_CATEGORIES, SERIES_COLORS } from '$lib/groups.js';
+  import {
+    GROUP_LABELS,
+    GROUP_CATEGORIES,
+    GROUP_THEMES,
+    GROUP_SHORT,
+    SERIES_COLORS
+  } from '$lib/groups.js';
 
-  let { subgroups = [], scores = [], overlays = [], initial = {}, onstate = null } = $props();
+  let {
+    subgroups = [],
+    scores = [],
+    overlays = [],
+    initial = {},
+    onstate = null,
+    name = 'This page'
+  } = $props();
 
   const initGroups = (initial.groups?.length ? initial.groups : [31, 111, 160, 128]).slice(
     0,
@@ -69,13 +82,15 @@
   let showMetricToggle = $derived(split !== 'overall' || overlays.length > 0);
   let mval = $derived((r) => (metric === 'pct_met' ? r.pct_met : r.pct_exc));
 
-  // Layout: one overlaid chart vs small multiples (a panel per group/grade).
-  // Defaults to small multiples when comparators are active in a split view.
+  // Layout: one overlaid chart vs small multiples. The group split defaults to
+  // themed rows (facets); the grade split defaults to small multiples only when
+  // comparators are active.
   let layoutChoice = $state(
     initial.layout === 'one' || initial.layout === 'facets' ? initial.layout : null
   );
   let layout = $derived(
-    layoutChoice ?? (overlays.length && split !== 'overall' ? 'facets' : 'one')
+    layoutChoice ??
+      (split === 'group' ? 'facets' : overlays.length && split !== 'overall' ? 'facets' : 'one')
   );
 
   // Dash pattern identifies WHICH school in split views (color carries the series).
@@ -105,7 +120,7 @@
         return [
           {
             key: 'base',
-            label: metric === 'pct_met' ? 'This page (met+)' : 'This page (exceeded)',
+            label: `${name} (${metric === 'pct_met' ? 'met+' : 'exceeded'})`,
             color: SERIES_COLORS[0],
             pts: all.filter((r) => mval(r) != null).map((r) => ({ year: r.year, v: mval(r), n: r.n }))
           }
@@ -248,7 +263,7 @@
         const lines = [];
         const basePts = d.base();
         if (basePts.length) {
-          lines.push({ school: 'This page', color: SCHOOL_COLORS[0], pts: basePts });
+          lines.push({ school: name, color: SCHOOL_COLORS[0], pts: basePts });
         }
         overlays.forEach((o, oi) => {
           const pts = d.over(o);
@@ -264,6 +279,87 @@
       })
       .filter((p) => p.lines.length);
   });
+
+  // Themed rows: the default group view. One compact full-width row per theme
+  // (economic, disability, language, race/ethnicity, parent education), at most
+  // four series per row — themes with more members chunk into extra rows, never
+  // leaving a singleton behind.
+  function chunkIds(ids, max = 4) {
+    if (ids.length <= max) return [ids];
+    const rows = [];
+    let i = 0;
+    while (ids.length - i > max) {
+      const take = ids.length - i - max === 1 ? max - 1 : max;
+      rows.push(ids.slice(i, i + take));
+      i += take;
+    }
+    rows.push(ids.slice(i));
+    return rows;
+  }
+
+  let themedRows = $derived.by(() => {
+    if (split !== 'group') return [];
+    const mkpts = (rows, id) =>
+      rows
+        .filter((r) => r.subject === subject && r.group === id && mval(r) != null)
+        .sort((a, b) => a.year - b.year)
+        .map((r) => ({ year: r.year, v: mval(r), n: r.n }));
+    const out = [];
+    for (const theme of GROUP_THEMES) {
+      const withData = theme.ids.filter((id) => mkpts(subgroups, id).length >= 2);
+      const chunks = chunkIds(withData);
+      chunks.forEach((chunk, ci) => {
+        const lines = [];
+        const legend = [];
+        chunk.forEach((id, i) => {
+          const short = GROUP_SHORT[id] ?? GROUP_LABELS[id] ?? 'Group ' + id;
+          legend.push({ id, label: short, color: SERIES_COLORS[i] });
+          lines.push({
+            key: `${id}-base`,
+            full: `${name} — ${GROUP_LABELS[id] ?? id}`,
+            color: SERIES_COLORS[i],
+            dash: null,
+            pts: mkpts(subgroups, id)
+          });
+          overlays.forEach((o, oi) => {
+            const pts = mkpts(o.rows ?? [], id);
+            if (pts.length) {
+              lines.push({
+                key: `${id}-ov${o.cds}`,
+                full: `${o.name} — ${GROUP_LABELS[id] ?? id}`,
+                color: SERIES_COLORS[i],
+                dash: DASHES[oi % DASHES.length],
+                pts
+              });
+            }
+          });
+        });
+        if (lines.length) {
+          out.push({
+            key: theme.label + ci,
+            label: theme.label + (chunks.length > 1 ? ` (${ci + 1}/${chunks.length})` : ''),
+            lines,
+            legend
+          });
+        }
+      });
+    }
+    return out;
+  });
+
+  const RW = 680;
+  const RH = 118;
+  const RM = { top: 8, right: 14, bottom: 18, left: 34 };
+  let tyears = $derived(
+    [...new Set(themedRows.flatMap((r) => r.lines.flatMap((l) => l.pts.map((p) => p.year))))].sort(
+      (a, b) => a - b
+    )
+  );
+  const tsx = (yr) =>
+    RM.left +
+    ((yr - (tyears[0] ?? 2015)) / Math.max(1, (tyears.at(-1) ?? 2025) - (tyears[0] ?? 2015))) *
+      (RW - RM.left - RM.right);
+  const tsy = (v) => RM.top + (1 - v / 100) * (RH - RM.top - RM.bottom);
 
   const FW = 250;
   const FH = 160;
@@ -300,7 +396,71 @@
 
 <div class="chart">
   <div class="plot">
-    {#if layout === 'facets' && facetPanels.length}
+    {#if layout === 'facets' && split === 'group' && themedRows.length}
+      <div class="rows">
+        {#each themedRows as row (row.key)}
+          <div class="trow">
+            <div class="trow-head">
+              <span class="trow-title">{row.label}</span>
+              {#each row.legend as g (g.id)}
+                <span class="trow-key">
+                  <span class="dot" style="background: {g.color}"></span>{g.label}
+                </span>
+              {/each}
+            </div>
+            <svg viewBox="0 0 {RW} {RH}" role="img" aria-label={row.label + ' over time'}>
+              {#each [0, 50, 100] as t (t)}
+                <line x1={RM.left} x2={RW - RM.right} y1={tsy(t)} y2={tsy(t)} stroke="#eee9df" />
+                <text x={RM.left - 5} y={tsy(t) + 3} class="ftick" text-anchor="end">{t}</text>
+              {/each}
+              {#each tyears as yr (yr)}
+                <text x={tsx(yr)} y={RH - 5} class="ftick" text-anchor="middle">{yr}</text>
+              {/each}
+              {#each row.lines as line (line.key)}
+                {#each runs(line.pts) as run, ri (ri)}
+                  <polyline
+                    fill="none"
+                    stroke={line.color}
+                    stroke-width="2"
+                    stroke-dasharray={line.dash ?? 'none'}
+                    opacity={hover && hover.series !== row.key + line.key ? 0.35 : 0.95}
+                    points={run.map((p) => `${tsx(p.year)},${tsy(p.v)}`).join(' ')}
+                  />
+                {/each}
+                {#each line.pts as p (p.year)}
+                  <circle
+                    cx={tsx(p.year)}
+                    cy={tsy(p.v)}
+                    r={hover?.series === row.key + line.key && hover?.year === p.year ? 4.5 : 2.6}
+                    fill={line.color}
+                    stroke="#fffdf9"
+                    stroke-width="1"
+                    opacity={hover && hover.series !== row.key + line.key ? 0.35 : 1}
+                    onmouseenter={() =>
+                      (hover = {
+                        series: row.key + line.key,
+                        label: line.full,
+                        year: p.year,
+                        v: p.v,
+                        n: p.n
+                      })}
+                    onmouseleave={() => (hover = null)}
+                  />
+                {/each}
+              {/each}
+            </svg>
+          </div>
+        {/each}
+      </div>
+      <div class="tip" aria-live="polite">
+        {#if hover}
+          <strong>{hover.label}</strong>, {hover.year}: {hover.v.toFixed(0)}% ·
+          {hover.n.toLocaleString()} students with scores
+        {:else}
+          Groups with fewer than 11 students are suppressed at the source and absent here.
+        {/if}
+      </div>
+    {:else if layout === 'facets' && facetPanels.length}
       <div class="facets">
         {#each facetPanels as panel (panel.key)}
           <div class="facet">
@@ -433,20 +593,29 @@
     {#if split !== 'overall'}
       <div class="rail-sec">
         <span class="rail-label">Layout</span>
-        <button class:active={layout === 'one'} onclick={() => (layoutChoice = 'one')}>
-          One chart
-        </button>
-        <button class:active={layout === 'facets'} onclick={() => (layoutChoice = 'facets')}>
-          Small multiples
-        </button>
+        {#if split === 'group'}
+          <button class:active={layout === 'facets'} onclick={() => (layoutChoice = 'facets')}>
+            Themed rows
+          </button>
+          <button class:active={layout === 'one'} onclick={() => (layoutChoice = 'one')}>
+            Pick groups
+          </button>
+        {:else}
+          <button class:active={layout === 'one'} onclick={() => (layoutChoice = 'one')}>
+            One chart
+          </button>
+          <button class:active={layout === 'facets'} onclick={() => (layoutChoice = 'facets')}>
+            Small multiples
+          </button>
+        {/if}
       </div>
     {/if}
     {#if overlays.length}
       <div class="rail-sec">
         <span class="rail-label">Comparing</span>
-        {#if layout === 'facets' && split !== 'overall'}
+        {#if layout === 'facets' && split === 'grade'}
           <span class="ov-item">
-            <span class="swatch" style="background: {SERIES_COLORS[0]}"></span>This page
+            <span class="swatch" style="background: {SERIES_COLORS[0]}"></span>{name}
           </span>
           {#each overlays as o, oi (o.cds)}
             <span class="ov-item">
@@ -479,7 +648,7 @@
         {/if}
       </div>
     {/if}
-    {#if split === 'group'}
+    {#if split === 'group' && layout === 'one'}
       <div class="rail-sec chips">
         <span class="rail-label">Groups (up to {SERIES_COLORS.length})</span>
         {#each availableGroups as cat (cat.label)}
@@ -611,6 +780,40 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 0.6rem;
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .trow {
+    border: 1px solid #f0ead9;
+    border-radius: 8px;
+    padding: 0.3rem 0.4rem 0;
+    background: #fffdf9;
+  }
+  .trow-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    padding: 0 0.2rem 0.1rem;
+  }
+  .trow-title {
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: #52514e;
+  }
+  .trow-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.74rem;
+    color: #6f6a61;
+  }
+  .trow svg {
+    width: 100%;
+    height: auto;
   }
   .facet {
     border: 1px solid #f0ead9;

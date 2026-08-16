@@ -226,8 +226,10 @@
   const pct = (v) => (v == null ? '—' : Math.round(v * 100) + '%');
 
   // Sparkline: 9 slots (2015-19, 2022-25), per-row scale, gap between runs.
+  // The span floor keeps near-flat lines from amplifying noise into drama:
+  // 8 points for Met+ percentages, 15% of the peak for enrollment counts.
   const SPARK_YEARS = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025];
-  function sparkRuns(spark) {
+  function sparkRuns(spark, relFloor = false) {
     if (!spark) return [];
     const pts = spark
       .map((v, i) => ({ v, i }))
@@ -236,7 +238,7 @@
     const vals = pts.map((p) => p.v);
     const lo = Math.min(...vals);
     const hi = Math.max(...vals);
-    const span = Math.max(hi - lo, 8); // avoid amplifying noise into drama
+    const span = Math.max(hi - lo, relFloor ? Math.max(4, hi * 0.15) : 8);
     const X = (i) => 3 + (i / 8) * 98;
     const Y = (v) => 21 - ((v - lo) / span) * 16;
     const runs = [[]];
@@ -249,9 +251,9 @@
       .filter((r) => r.length > 1)
       .map((r) => r.map((p) => `${X(p.i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' '));
   }
-  function sparkTitle(spark) {
+  function sparkTitle(spark, unit = '%') {
     if (!spark) return '';
-    return SPARK_YEARS.map((y, i) => (spark[i] == null ? null : `${y}: ${spark[i]}%`))
+    return SPARK_YEARS.map((y, i) => (spark[i] == null ? null : `${y}: ${spark[i]}${unit}`))
       .filter(Boolean)
       .join(', ');
   }
@@ -404,18 +406,17 @@
 <svelte:head><title>SchoolFactors — every California school, measured honestly</title></svelte:head>
 
 <div class="intro">
-  <h1>Every California school, in one honest table.</h1>
+  <h1>Every California publicly funded K-12 school.</h1>
   <p>
     {#if items}
-      {items.length.toLocaleString()} schools, districts, and counties from ten years of
-      public data.
+      Detailed performance data from {items.length.toLocaleString()} schools, districts
+      and counties.
     {:else}
       Loading the dataset…
     {/if}
-    Adjusted columns compare against entities serving similar students; raw columns
-    against the state average — <a href="/methodology">correlations, not causes, with
-    error margins</a>. Reproducible from
-    <a href="https://github.com/ssorkin/schoolfactors">source</a>.
+    Both the raw data and adjustments for demographics at your fingertips.
+    <a href="https://github.com/ssorkin/schoolfactors">100% open source</a>, with the
+    <a href="/methodology">methodology fully documented</a>.
   </p>
 </div>
 
@@ -559,7 +560,17 @@
             <td class="tnum" class:pos={it.growth_pct >= 75} class:neg={it.growth_pct <= 25}>{it.growth_pct ?? '—'}</td>
             <td class="tnum">{it.ppe == null ? '—' : '$' + it.ppe.toLocaleString()}</td>
             <td class="tnum">{pct(it.econ)}</td>
-            <td class="tnum">{it.enrollment?.toLocaleString() ?? '—'}</td>
+            <td class="tnum students">
+              {#if sparkRuns(it.enr, true).length}
+                <svg viewBox="0 0 104 24" width="62" height="15" role="img">
+                  <title>Tested-grade enrollment — {sparkTitle(it.enr, '')}</title>
+                  {#each sparkRuns(it.enr, true) as run, ri (ri)}
+                    <polyline fill="none" stroke="#a89a80" stroke-width="2.4" points={run} />
+                  {/each}
+                </svg>
+              {/if}
+              {it.enrollment?.toLocaleString() ?? '—'}
+            </td>
           </tr>
         {/each}
       {:else if loadError}
@@ -583,7 +594,7 @@
   <a href="/glossary">what every column means</a> ·
   <a href="/methodology">how these numbers are made</a> ·
   <a href="/data">data sources and known issues</a> ·
-  <a href="/explore">the Sonoma pilot scatter</a>.
+  <a href="/insights">insights from the data</a>.
 </p>
 
 <style>
@@ -816,6 +827,10 @@
   }
   .spark {
     line-height: 0;
+  }
+  td.students svg {
+    vertical-align: -2px;
+    margin-right: 0.3rem;
   }
   .loading {
     padding: 2rem;

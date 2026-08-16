@@ -169,6 +169,7 @@
     {overlays}
     initial={chartInitial}
     onstate={(s) => (chartState = s)}
+    name={entity.name}
   />
 {/key}
 

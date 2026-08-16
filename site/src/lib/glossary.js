@@ -154,9 +154,10 @@ export const GLOSSARY = [
     id: 'enrollment',
     term: 'Students (enrollment)',
     unit: 'students',
-    tip: 'Census-day enrollment in the latest school year.',
+    tip: 'Census-day enrollment in the latest school year. The small line shows the enrollment trend since 2015 (tested grades only).',
     def: [
-      'Census-day (early-October) enrollment from CDE, for the latest available school year. District and county rows are K–12 totals.'
+      'Census-day (early-October) enrollment from CDE, for the latest available school year. District and county rows are K–12 totals.',
+      'The small line beside the number shows how enrollment has trended since 2015. It is drawn from CAASPP files, which count enrollment in tested grades only (3–8 and 11) — exact for middle schools, excluding K–2 at elementary schools, and grade 11 only at high schools — because CDE census files with full history are not yet in the pipeline. The shape of the trend is what to read, not the level.'
     ]
   },
   {
