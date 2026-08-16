@@ -225,10 +225,12 @@
 
   const pct = (v) => (v == null ? '—' : Math.round(v * 100) + '%');
 
-  // Sparkline: 9 slots (2015-19, 2022-25), per-row scale, gap between runs.
-  // The span floor keeps near-flat lines from amplifying noise into drama:
-  // 8 points for Met+ percentages, 15% of the peak for enrollment counts.
+  // Sparklines: Met+ has 9 slots (2015-19, 2022-25, gap at COVID); enrollment
+  // has 12 gapless slots (2015-2026 — the census ran right through COVID).
+  // Per-row scale; the span floor keeps near-flat lines from amplifying noise
+  // into drama: 8 points for Met+ percentages, 15% of the peak for counts.
   const SPARK_YEARS = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025];
+  const ENR_YEARS = Array.from({ length: 12 }, (_, i) => 2015 + i);
   function sparkRuns(spark, relFloor = false) {
     if (!spark) return [];
     const pts = spark
@@ -239,7 +241,7 @@
     const lo = Math.min(...vals);
     const hi = Math.max(...vals);
     const span = Math.max(hi - lo, relFloor ? Math.max(4, hi * 0.15) : 8);
-    const X = (i) => 3 + (i / 8) * 98;
+    const X = (i) => 3 + (i / (spark.length - 1)) * 98;
     const Y = (v) => 21 - ((v - lo) / span) * 16;
     const runs = [[]];
     for (const p of pts) {
@@ -251,9 +253,9 @@
       .filter((r) => r.length > 1)
       .map((r) => r.map((p) => `${X(p.i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' '));
   }
-  function sparkTitle(spark, unit = '%') {
+  function sparkTitle(spark, unit = '%', years = SPARK_YEARS) {
     if (!spark) return '';
-    return SPARK_YEARS.map((y, i) => (spark[i] == null ? null : `${y}: ${spark[i]}${unit}`))
+    return years.map((y, i) => (spark[i] == null ? null : `${y}: ${spark[i]}${unit}`))
       .filter(Boolean)
       .join(', ');
   }
@@ -563,7 +565,7 @@
             <td class="tnum students">
               {#if sparkRuns(it.enr, true).length}
                 <svg viewBox="0 0 104 24" width="62" height="15" role="img">
-                  <title>Tested-grade enrollment — {sparkTitle(it.enr, '')}</title>
+                  <title>Census enrollment — {sparkTitle(it.enr, '', ENR_YEARS)}</title>
                   {#each sparkRuns(it.enr, true) as run, ri (ri)}
                     <polyline fill="none" stroke="#a89a80" stroke-width="2.4" points={run} />
                   {/each}

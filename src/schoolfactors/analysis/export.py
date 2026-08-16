@@ -71,6 +71,10 @@ def _rows(part: dict, cds: str) -> list[dict]:
 
 SPARK_YEARS = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
 
+# Enrollment sparkline axis: unlike test scores, census enrollment exists for
+# every year including 2020 and 2021, and extends to the current school year.
+ENR_YEARS = list(range(2015, 2027))
+
 # Student groups that get a "Best for" table (data/groups/{id}.json).
 BESTFOR_GROUPS = [128, 31, 160, 8, 74, 76, 77, 78, 80, 144, 52, 240, 90]
 
@@ -195,14 +199,18 @@ def run_export() -> None:
                 flags_map[entry["cds"]].insert(0, "selective")
     # Current census-day enrollment (latest CDE cdenroll year). School rows carry
     # their own charter flag; district/county totals need the ALL rollup.
+    # County rows in the new-format census files carry no cds (only countycode);
+    # rebuild their 14-char key so county pages get enrollment too.
     census_map = dict(
         con_dir.execute("""
-            SELECT cds, max(TRY_CAST(total_enr AS INT))
+            SELECT COALESCE(cds, countycode || '000000000000'),
+                   max(TRY_CAST(total_enr AS INT))
             FROM enrollment_raw
             WHERE reportingcategory = 'TA'
               AND academicyear = (SELECT max(academicyear) FROM enrollment_raw)
               AND (aggregatelevel = 'S' OR charter = 'ALL')
-            GROUP BY cds
+              AND aggregatelevel IN ('S', 'D', 'C')
+            GROUP BY 1
         """).fetchall()
     )
     # Full-population FRPM share (all enrolled students, latest FRPM year) — the
@@ -244,18 +252,44 @@ def run_export() -> None:
           AND cds IS NOT NULL AND length(cds) = 14
         GROUP BY cds
     """).fetchall()
-    # Enrollment trend for the table sparkline: CAASPP grade-13 census-day
-    # enrollment of tested grades — the only year-by-year series covering the
-    # full decade (warehouse CDE census files start 2023-24). A proxy for the
-    # census: exact for middle schools, missing K-2 for elementary, grade 11
-    # only for high schools; the displayed number stays the true census.
+    # Census enrollment history for the table sparkline: CDE's historical
+    # enrollment-by-school files through 2022-23 (enr_type 'C', the census-day
+    # combined count — statewide total matches CDE's published 5,852,544 for
+    # 2022-23) stitched to the new-format census files from 2023-24 on
+    # (school-level seam is continuous). Includes 2019-20 through 2021-22:
+    # enrollment was collected in the COVID years even though testing wasn't.
+    # Years are labeled by spring (2014-15 → 2015) to match test_year.
+    # District/county series roll up ALL rows by CDS prefix — including
+    # school-code-0000000 district-office programs and charters — matching how
+    # every other rollup on the site folds charters into their CDS district.
     enr_hist: dict[str, dict[int, int]] = {}
-    for cds_, yr_, n_ in con_dir.execute(
-        "SELECT cds, test_year, max(students_enrolled) FROM caaspp_sb "
-        "WHERE student_group_id = 1 AND grade = 13 AND test_id = 1 GROUP BY 1, 2"
-    ).fetchall():
+    for cds_, ay_, n_ in con_dir.execute("""
+        SELECT cds, academic_year, sum(TRY_CAST(enr_total AS BIGINT))
+        FROM enrollment_hist_raw
+        WHERE enr_type = 'C' AND academic_year >= '2014-15'
+          AND length(academic_year) = 7 AND length(cds) = 14
+        GROUP BY 1, 2
+    """).fetchall():
+        if not n_:
+            continue
+        year = int(ay_[:4]) + 1
+        # dict.fromkeys dedupes: a district-office row (school code 0000000)
+        # IS its own district key and must count once, not twice.
+        for key in dict.fromkeys(
+            (cds_, cds_[:7] + "0000000", cds_[:2] + "000000000000")
+        ):
+            d = enr_hist.setdefault(key, {})
+            d[year] = d.get(year, 0) + int(n_)
+    for cds_, ay_, n_ in con_dir.execute("""
+        SELECT COALESCE(cds, countycode || '000000000000'),
+               academicyear, max(TRY_CAST(total_enr AS INT))
+        FROM enrollment_raw
+        WHERE reportingcategory = 'TA' AND (aggregatelevel = 'S' OR charter = 'ALL')
+          AND aggregatelevel IN ('S', 'D', 'C')
+        GROUP BY 1, 2
+    """).fetchall():
         if n_:
-            enr_hist.setdefault(cds_, {})[yr_] = int(n_)
+            enr_hist.setdefault(cds_, {})[int(ay_[:4]) + 1] = int(n_)
     con_dir.close()
     frpm_pop: dict[str, list] = {}
     for scds, c, e in frpm_school:
@@ -575,7 +609,7 @@ def run_export() -> None:
                     "ll": latlon_map.get(cds),
                     "spark": spark,
                     "enr": (
-                        [enr_hist[cds].get(y) for y in SPARK_YEARS]
+                        [enr_hist[cds].get(y) for y in ENR_YEARS]
                         if cds in enr_hist
                         else None
                     ),

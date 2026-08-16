@@ -47,8 +47,8 @@
   );
 
   // ---- Chart B: enrollment change vs early scores, LAUSD standard elementaries ----
-  // Change = tested-grade enrollment, 2015-16 average -> 2024-25 average
-  // (enr slots: [2015,2016,2017,2018,2019,2022,2023,2024,2025]).
+  // Change = census enrollment, 2014-15/2015-16 average -> 2024-25/2025-26
+  // average (enr slots: 12 gapless years, 2015..2026 spring labels).
   const LAUSD = '19647330000000';
   const SMALL = 200;
   let shrinkRows = $derived.by(() => {
@@ -58,7 +58,7 @@
       if (e.eil !== 'ELEM' || (e.flags ?? []).length) continue;
       const early = (e.spark ?? []).slice(0, 2).filter((v) => v != null);
       const a = (e.enr ?? []).slice(0, 2).filter((v) => v);
-      const b = (e.enr ?? []).slice(7, 9).filter((v) => v);
+      const b = (e.enr ?? []).slice(10, 12).filter((v) => v);
       if (!early.length || !a.length || !b.length) continue;
       out.push({
         cds: e.cds,
@@ -146,8 +146,8 @@
     with abundant school choice and a decade of declining enrollment — is a natural
     place to look. Each dot is one of {shrinkRows.length} standard (non-charter,
     non-magnet) LAUSD elementary schools, placed by its raw Met+ rate in 2015–16
-    (<strong>horizontal</strong>) and how its tested-grade enrollment changed from
-    2015–16 to 2024–25 (<strong>vertical</strong>).
+    (<strong>horizontal</strong>) and how its census enrollment changed from
+    2014–15/2015–16 to 2024–25/2025–26 (<strong>vertical</strong>).
     <span class="hl">Orange</span> dots are schools now critically small
     (under {SMALL} students; {nSmall} of them). Enrollment change correlates
     {shrinkCorr == null ? '…' : fmt2(shrinkCorr)} with those early raw scores —
@@ -169,7 +169,7 @@
     </text>
     <text x={16} y={(M.top + H - M.bottom) / 2} class="axis" text-anchor="middle"
       transform="rotate(-90 16 {(M.top + H - M.bottom) / 2})">
-      Tested-grade enrollment change, 2015–16 → 2024–25
+      Census enrollment change, 2015–16 → 2025–26
     </text>
     {#each shrinkRows as s (s.cds)}
       <a href="/school/{s.cds}">
@@ -188,10 +188,10 @@
   <p class="note">
     Cautions: LAUSD enrollment fell district-wide over this period — even large
     elementaries shrank ~25% at the median — so the pattern is "who shrank
-    <em>more</em>", not "who shrank". Enrollment counts cover tested grades (3–5)
-    only, and shrinking to critically small size itself changes a school (mixed-grade
-    classrooms, fixed costs over fewer students). Correlation here does not
-    establish that scores caused the moves. Every dot links to that school's page.
+    <em>more</em>", not "who shrank". Shrinking to critically small size itself
+    changes a school (mixed-grade classrooms, fixed costs over fewer students),
+    and correlation here does not establish that scores caused the moves. Every
+    dot links to that school's page.
   </p>
 {:else if loadError}
   <p class="note">Couldn't load the dataset — please reload the page.</p>
