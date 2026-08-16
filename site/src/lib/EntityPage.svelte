@@ -17,12 +17,16 @@
   // in the chart above. Reset (and restored from the URL) per entity.
   const MAX_OVERLAYS = 4;
   let overlays = $state([]);
+  // Overlay cds restored from the URL whose payloads are still in flight.
+  // The URL-writing effect includes these, so a reload never strips ?c=
+  // while the comparison schools load.
+  let pendingOverlays = $state([]);
   let isOverlaid = $derived((cds) => overlays.some((o) => o.cds === cds));
 
   async function addOverlay(cds, name = null) {
-    if (cds === entity.cds) return;
-    if (overlays.some((o) => o.cds === cds) || overlays.length >= MAX_OVERLAYS) return;
     try {
+      if (cds === entity.cds) return;
+      if (overlays.some((o) => o.cds === cds) || overlays.length >= MAX_OVERLAYS) return;
       const resp = await fetch(`/data/schools/${cds}.json`);
       if (!resp.ok) return;
       const j = await resp.json();
@@ -37,6 +41,8 @@
       ];
     } catch {
       /* comparison school payload unavailable — leave unchecked */
+    } finally {
+      pendingOverlays = pendingOverlays.filter((c) => c !== cds);
     }
   }
   function toggleOverlay(s) {
@@ -65,9 +71,11 @@
       groups: q.get('g')?.split('.').map(Number).filter(Number.isFinite) ?? []
     };
     overlays = [];
-    for (const c of (q.get('c')?.split('.') ?? []).slice(0, MAX_OVERLAYS)) {
-      if (/^\d{14}$/.test(c)) addOverlay(c);
-    }
+    const want = (q.get('c')?.split('.') ?? [])
+      .slice(0, MAX_OVERLAYS)
+      .filter((c) => /^\d{14}$/.test(c) && c !== cds);
+    pendingOverlays = want;
+    for (const c of want) addOverlay(c);
   });
 
   $effect(() => {
@@ -80,7 +88,8 @@
     if (chartState.split === 'group' && chartState.groups?.length) {
       q.set('g', chartState.groups.join('.'));
     }
-    if (overlays.length) q.set('c', overlays.map((o) => o.cds).join('.'));
+    const ovCds = [...new Set([...overlays.map((o) => o.cds), ...pendingOverlays])];
+    if (ovCds.length) q.set('c', ovCds.join('.'));
     const qs = q.toString();
     const target = window.location.pathname + (qs ? '?' + qs : '');
     if (target !== window.location.pathname + window.location.search) {

@@ -73,8 +73,8 @@ export const GROUP_THEMES = [
 
 // Compact labels for the themed-row legends.
 export const GROUP_SHORT = {
-  31: 'Econ dis.',
-  111: 'Not econ dis.',
+  31: 'Econ disadvantaged',
+  111: 'Not econ disadvantaged',
   128: 'Disabilities',
   99: 'No disabilities',
   '-170': 'Never EL',
