@@ -28,6 +28,9 @@ LOOKALIKE_FEATURES = [
     "log_tested",
 ]
 N_NEIGHBORS = 6
+# Lookalikes get a deeper pool so the page can show similar schools performing
+# both better and worse than the subject school.
+N_LOOKALIKE = 12
 MAX_NEARBY_MILES = 25.0
 
 
@@ -99,14 +102,14 @@ def build_neighbors(effects: pl.DataFrame) -> dict[str, dict]:
         demo = grp.filter(
             pl.all_horizontal([pl.col(c).is_not_null() for c in feat_cols])
         )
-        if len(demo) > N_NEIGHBORS:
+        if len(demo) > N_LOOKALIKE:
             X = np.column_stack([demo[c].to_numpy() for c in feat_cols])
             mu = X.mean(axis=0)
             sd = X.std(axis=0)
             sd[sd == 0] = 1
             Xz = (X - mu) / sd
             tree = cKDTree(Xz)
-            dists, idxs = tree.query(Xz, k=N_NEIGHBORS + 1)
+            dists, idxs = tree.query(Xz, k=N_LOOKALIKE + 1)
             cds_arr = demo["cds"].to_list()
             for i, cds in enumerate(cds_arr):
                 for d, j in zip(dists[i][1:], idxs[i][1:]):

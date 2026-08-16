@@ -23,6 +23,7 @@ SITE_DATA = REPO_ROOT / "site" / "static" / "data"
 EFFECT_COLS = [
     "total_scores",
     "n_years",
+    "last_year",
     "level_eb",
     "level_se",
     "growth_eb",
@@ -30,7 +31,9 @@ EFFECT_COLS = [
     "trend_eb",
     "trend_se",
     "level_adj_eb",
+    "level_adj_lcb",
     "growth_adj_eb",
+    "growth_adj_lcb",
     "level_reliability",
     "growth_reliability",
     "share_econ_dis",
@@ -473,7 +476,7 @@ def run_export() -> None:
 
             # Per-subject levels via the fitted subject gap (math - ela):
             # ela = level - gap/2, math = level + gap/2, for raw and adjusted alike.
-            def _split(level):
+            def _split(level, full_eff=full_eff):
                 gap = full_eff.get("subj_gap")
                 if level is None:
                     return None, None
@@ -537,6 +540,7 @@ def run_export() -> None:
                     "flags": flags_map.get(cds) if kind == "schools" else None,
                     "level_eb": eff.get("level_eb"),
                     "level_adj_eb": eff.get("level_adj_eb"),
+                    "adj_lcb": eff.get("level_adj_lcb"),
                     "raw_ela": raw_ela,
                     "raw_math": raw_math,
                     "adj_ela": adj_ela,
@@ -545,9 +549,11 @@ def run_export() -> None:
                     "pass_math": g1["pass_math"],
                     "last_year": last_year,
                     "growth_adj_eb": eff.get("growth_adj_eb"),
+                    "growth_lcb": eff.get("growth_adj_lcb"),
                     # Stripped before writing — used only for percentile gating.
                     "_lrel": eff.get("level_reliability"),
                     "_grel": eff.get("growth_reliability"),
+                    "_ly": eff.get("last_year"),
                     # Full-population FRPM share (all enrolled students), falling
                     # back to the tested-population share where FRPM is missing.
                     "econ": frpm_pop_share.get(cds, eff.get("share_econ_dis")),
@@ -567,6 +573,7 @@ def run_export() -> None:
             "name": e["name"],
             "level_eb": e["level_eb"],
             "level_adj_eb": e["level_adj_eb"],
+            "adj_lcb": e["adj_lcb"],
             "growth_adj_eb": e["growth_adj_eb"],
             "total_scores": e["total_scores"],
         }
@@ -608,35 +615,43 @@ def run_export() -> None:
 
     # Percentile presentation of the adjusted estimates (in the spirit of the
     # Urban Institute's demographically adjusted rankings): midrank percentile
-    # among entities of the same kind, gated on reliability >= 0.70 (SEDA's
-    # rule — an estimate that is mostly noise gets no percentile). The
-    # underlying student-SD values stay in the payloads; this is display only.
+    # among entities of the same kind, computed on the LOWER bound of the 95%
+    # band around the shrunken residual — an unconfident high estimate ranks
+    # below a confident slightly-lower one. Gated on reliability >= 0.70
+    # (SEDA's rule — an estimate that is mostly noise gets no percentile) and
+    # on having modeled data in the statewide latest year: the level is
+    # recency-weighted, so for a school whose data stopped years ago it
+    # describes a school that may no longer exist in that form. The underlying
+    # student-SD values stay in the payloads; this is display only.
     for kind_ in ("school", "district", "county"):
+        latest = max(
+            (e["_ly"] for e in index if e["kind"] == kind_ and e.get("_ly")),
+            default=None,
+        )
         for src, rel_key, out in (
-            ("level_adj_eb", "_lrel", "adj_pct"),
-            ("growth_adj_eb", "_grel", "growth_pct"),
+            ("adj_lcb", "_lrel", "adj_pct"),
+            ("growth_lcb", "_grel", "growth_pct"),
         ):
-            pool = sorted(
-                e[src]
-                for e in index
-                if e["kind"] == kind_
-                and e.get(src) is not None
-                and (e.get(rel_key) or 0) >= 0.7
-            )
-            if len(pool) < 20:
-                continue
-            for e in index:
-                if (
+            def eligible(e, kind_=kind_, src=src, rel_key=rel_key, latest=latest):
+                return (
                     e["kind"] == kind_
                     and e.get(src) is not None
                     and (e.get(rel_key) or 0) >= 0.7
-                ):
+                    and e.get("_ly") == latest
+                )
+
+            pool = sorted(e[src] for e in index if eligible(e))
+            if len(pool) < 20:
+                continue
+            for e in index:
+                if eligible(e):
                     lo = bisect.bisect_left(pool, e[src])
                     hi = bisect.bisect_right(pool, e[src])
                     e[out] = min(99, max(1, round(100 * (lo + hi) / 2 / len(pool))))
     for e in index:
         e.pop("_lrel", None)
         e.pop("_grel", None)
+        e.pop("_ly", None)
 
     (SITE_DATA / "index.json").write_text(json.dumps(index))
     print(f"  wrote {written['schools']:,} school pages, {written['districts']:,} district pages")
@@ -647,9 +662,9 @@ def run_export() -> None:
         "n_districts_modeled": len(districts),
         "n_counties_modeled": len(counties),
         "years": [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025],
-        "corr_raw_level_econ": -0.76,
-        "corr_adjusted_level_econ": -0.001,
-        "falsification_growth_vs_level": 0.007,
+        "corr_raw_level_econ": -0.74,
+        "corr_adjusted_level_econ": -0.003,
+        "falsification_growth_vs_level": -0.012,
     }
     (SITE_DATA / "summary.json").write_text(json.dumps(summary, indent=1))
     print("  summary.json written")

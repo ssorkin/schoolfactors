@@ -1,44 +1,44 @@
 {
   "sensitivity": {
     "econ_only_vs_econ_race": {
-      "spearman": 0.917,
-      "top_quintile_agreement": 0.921,
+      "spearman": 0.926,
+      "top_quintile_agreement": 0.924,
       "n": 9748
     },
     "econ_only_vs_full": {
-      "spearman": 0.822,
-      "top_quintile_agreement": 0.883,
+      "spearman": 0.839,
+      "top_quintile_agreement": 0.888,
       "n": 9748
     },
     "econ_only_vs_cde_admin": {
-      "spearman": 0.979,
-      "top_quintile_agreement": 0.961,
+      "spearman": 0.982,
+      "top_quintile_agreement": 0.962,
       "n": 9673
     },
     "econ_only_vs_full_plus_cde": {
-      "spearman": 0.62,
-      "top_quintile_agreement": 0.833,
+      "spearman": 0.663,
+      "top_quintile_agreement": 0.84,
       "n": 9455
     }
   },
   "factor_coefficients": {
-    "intercept": -0.6979,
-    "share_econ_dis": 0.0678,
-    "share_black": -0.0408,
-    "share_asian": 1.1129,
-    "share_hispanic": 0.3701,
-    "share_white": 0.2198,
-    "share_el": -0.6518,
-    "share_swd": -1.1612,
-    "share_parent_not_hs": -0.2036,
-    "share_parent_college": 0.4008,
-    "share_parent_gradschool": 0.8902,
-    "log_tested": -0.0572,
-    "upc_share": -0.5947,
-    "absent_rate": -0.7787,
-    "stability_rate": 1.319,
-    "teacher_avg_years": 0.0112
+    "intercept": -0.6118,
+    "share_econ_dis": 0.4503,
+    "share_black": 0.0839,
+    "share_asian": 1.1849,
+    "share_hispanic": 0.4539,
+    "share_white": 0.1971,
+    "share_el": -0.7318,
+    "share_swd": -1.1741,
+    "share_parent_not_hs": -0.1509,
+    "share_parent_college": 0.3986,
+    "share_parent_gradschool": 0.9249,
+    "log_tested": -0.0689,
+    "upc_share": -1.0172,
+    "absent_rate": -0.7585,
+    "stability_rate": 1.2419,
+    "teacher_avg_years": 0.0149
   },
-  "pct_distinguishable_level": 90.0,
-  "pct_not_distinguishable_level": 10.0
+  "pct_distinguishable_level": 82.9,
+  "pct_not_distinguishable_level": 17.1
 }
