@@ -236,7 +236,9 @@
   // Group panels come from the themes (not the pick-groups chips): every theme
   // member with data gets its own panel, capped at four per theme — kept in
   // canonical theme order, dropping the smallest groups by total tested n.
-  let themedFacetIds = $derived.by(() => {
+  // Each theme renders as its own grid row (economics first, then disability,
+  // language, race/ethnicity, parent education).
+  let themedFacetSections = $derived.by(() => {
     if (split !== 'group') return [];
     const rows = (id) =>
       subgroups.filter((r) => r.subject === subject && r.group === id && mval(r) != null);
@@ -250,10 +252,12 @@
           .sort((a, b) => size(b) - size(a))
           .slice(0, 4)
       );
-      out.push(...theme.ids.filter((id) => keep.has(id)));
+      const ids = theme.ids.filter((id) => keep.has(id));
+      if (ids.length) out.push({ label: theme.label, ids });
     }
     return out;
   });
+  let themedFacetIds = $derived(themedFacetSections.flatMap((s) => s.ids));
   let facetPanels = $derived.by(() => {
     if (split === 'overall') return [];
     const mkpts = (rows) =>
@@ -273,7 +277,7 @@
           }))
         : themedFacetIds.map((id) => ({
             key: 'grp' + id,
-            label: GROUP_LABELS[id] ?? 'Group ' + id,
+            label: GROUP_SHORT[id] ?? GROUP_LABELS[id] ?? 'Group ' + id,
             base: () =>
               mkpts(subgroups.filter((r) => r.subject === subject && r.group === id)),
             over: (o) =>
@@ -474,52 +478,69 @@
         {/if}
       </div>
     {:else if layout === 'facets' && facetPanels.length}
-      <div class="facets">
-        {#each facetPanels as panel (panel.key)}
-          <div class="facet">
-            <div class="facet-title">{panel.label}</div>
-            <svg viewBox="0 0 {FW} {FH}" role="img" aria-label={panel.label + ' over time'}>
-              {#each [0, 50, 100] as t (t)}
-                <line x1={FM.left} x2={FW - FM.right} y1={fsy(t)} y2={fsy(t)} stroke="#eee9df" />
-                <text x={FM.left - 4} y={fsy(t) + 3} class="ftick" text-anchor="end">{t}</text>
+      {#snippet facetPanel(panel)}
+        <div class="facet">
+          <div class="facet-title">{panel.label}</div>
+          <svg viewBox="0 0 {FW} {FH}" role="img" aria-label={panel.label + ' over time'}>
+            {#each [0, 50, 100] as t (t)}
+              <line x1={FM.left} x2={FW - FM.right} y1={fsy(t)} y2={fsy(t)} stroke="#eee9df" />
+              <text x={FM.left - 4} y={fsy(t) + 3} class="ftick" text-anchor="end">{t}</text>
+            {/each}
+            {#if years.length}
+              <text x={fsx(years[0])} y={FH - 6} class="ftick" text-anchor="middle">{years[0]}</text>
+              <text x={fsx(years.at(-1))} y={FH - 6} class="ftick" text-anchor="middle">{years.at(-1)}</text>
+            {/if}
+            {#each panel.lines as line (line.school)}
+              {#each runs(line.pts) as run, ri (ri)}
+                <polyline
+                  fill="none"
+                  stroke={line.color}
+                  stroke-width="2"
+                  points={run.map((p) => `${fsx(p.year)},${fsy(p.v)}`).join(' ')}
+                />
               {/each}
-              {#if years.length}
-                <text x={fsx(years[0])} y={FH - 6} class="ftick" text-anchor="middle">{years[0]}</text>
-                <text x={fsx(years.at(-1))} y={FH - 6} class="ftick" text-anchor="middle">{years.at(-1)}</text>
-              {/if}
-              {#each panel.lines as line (line.school)}
-                {#each runs(line.pts) as run, ri (ri)}
-                  <polyline
-                    fill="none"
-                    stroke={line.color}
-                    stroke-width="2"
-                    points={run.map((p) => `${fsx(p.year)},${fsy(p.v)}`).join(' ')}
-                  />
-                {/each}
-                {#each line.pts as p (p.year)}
-                  <circle
-                    cx={fsx(p.year)}
-                    cy={fsy(p.v)}
-                    r="2.8"
-                    fill={line.color}
-                    stroke="#fffdf9"
-                    stroke-width="1"
-                    onmouseenter={() =>
-                      (hover = {
-                        series: panel.key + line.school,
-                        label: `${line.school} — ${panel.label}`,
-                        year: p.year,
-                        v: p.v,
-                        n: p.n
-                      })}
-                    onmouseleave={() => (hover = null)}
-                  />
-                {/each}
+              {#each line.pts as p (p.year)}
+                <circle
+                  cx={fsx(p.year)}
+                  cy={fsy(p.v)}
+                  r="2.8"
+                  fill={line.color}
+                  stroke="#fffdf9"
+                  stroke-width="1"
+                  onmouseenter={() =>
+                    (hover = {
+                      series: panel.key + line.school,
+                      label: `${line.school} — ${panel.label}`,
+                      year: p.year,
+                      v: p.v,
+                      n: p.n
+                    })}
+                  onmouseleave={() => (hover = null)}
+                />
               {/each}
-            </svg>
-          </div>
+            {/each}
+          </svg>
+        </div>
+      {/snippet}
+      {#if split === 'group'}
+        {#each themedFacetSections as sec (sec.label)}
+          {@const panels = facetPanels.filter((p) => sec.ids.some((id) => p.key === 'grp' + id))}
+          {#if panels.length}
+            <div class="fsec-title">{sec.label}</div>
+            <div class="facets themed">
+              {#each panels as panel (panel.key)}
+                {@render facetPanel(panel)}
+              {/each}
+            </div>
+          {/if}
         {/each}
-      </div>
+      {:else}
+        <div class="facets">
+          {#each facetPanels as panel (panel.key)}
+            {@render facetPanel(panel)}
+          {/each}
+        </div>
+      {/if}
       <div class="tip" aria-live="polite">
         {#if hover}
           <strong>{hover.label}</strong>, {hover.year}: {hover.v.toFixed(0)}% ·
@@ -793,6 +814,19 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 0.6rem;
+  }
+  /* Themed comparison sections: one grid row per theme on desktop —
+     minmax small enough that four panels share a row, collapsing to two-up
+     on narrow screens. */
+  .facets.themed {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    margin-bottom: 0.55rem;
+  }
+  .fsec-title {
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: #52514e;
+    margin: 0.15rem 0 0.25rem;
   }
   .rows {
     display: flex;
