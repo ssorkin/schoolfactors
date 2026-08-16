@@ -232,6 +232,28 @@
   // panel, color identifies the SCHOOL (this page = slot 1, comparators next),
   // consistent across panels.
   const SCHOOL_COLORS = SERIES_COLORS;
+
+  // Group panels come from the themes (not the pick-groups chips): every theme
+  // member with data gets its own panel, capped at four per theme — kept in
+  // canonical theme order, dropping the smallest groups by total tested n.
+  let themedFacetIds = $derived.by(() => {
+    if (split !== 'group') return [];
+    const rows = (id) =>
+      subgroups.filter((r) => r.subject === subject && r.group === id && mval(r) != null);
+    const size = (id) => rows(id).reduce((s, r) => s + (r.n ?? 0), 0);
+    const out = [];
+    for (const theme of GROUP_THEMES) {
+      const withData = theme.ids.filter((id) => rows(id).length >= 2);
+      const keep = new Set(
+        withData
+          .slice()
+          .sort((a, b) => size(b) - size(a))
+          .slice(0, 4)
+      );
+      out.push(...theme.ids.filter((id) => keep.has(id)));
+    }
+    return out;
+  });
   let facetPanels = $derived.by(() => {
     if (split === 'overall') return [];
     const mkpts = (rows) =>
@@ -249,7 +271,7 @@
             over: (o) =>
               mkpts((o.scores ?? []).filter((r) => r.subject === subject && r.grade === g))
           }))
-        : activeGroups.map((id) => ({
+        : themedFacetIds.map((id) => ({
             key: 'grp' + id,
             label: GROUP_LABELS[id] ?? 'Group ' + id,
             base: () =>
@@ -311,6 +333,9 @@
       chunks.forEach((chunk, ci) => {
         const lines = [];
         const legend = [];
+        // Themed rows render only without comparators (the template switches
+        // to per-group small multiples when overlays are active), so each
+        // row's lines are this page's groups alone.
         chunk.forEach((id, i) => {
           const short = GROUP_SHORT[id] ?? GROUP_LABELS[id] ?? 'Group ' + id;
           legend.push({ id, label: short, color: SERIES_COLORS[i] });
@@ -320,18 +345,6 @@
             color: SERIES_COLORS[i],
             dash: null,
             pts: mkpts(subgroups, id)
-          });
-          overlays.forEach((o, oi) => {
-            const pts = mkpts(o.rows ?? [], id);
-            if (pts.length) {
-              lines.push({
-                key: `${id}-ov${o.cds}`,
-                full: `${o.name} — ${GROUP_LABELS[id] ?? id}`,
-                color: SERIES_COLORS[i],
-                dash: DASHES[oi % DASHES.length],
-                pts
-              });
-            }
           });
         });
         if (lines.length) {
@@ -396,7 +409,7 @@
 
 <div class="chart">
   <div class="plot">
-    {#if layout === 'facets' && split === 'group' && themedRows.length}
+    {#if layout === 'facets' && split === 'group' && !overlays.length && themedRows.length}
       <div class="rows">
         {#each themedRows as row (row.key)}
           <div class="trow">
@@ -613,7 +626,7 @@
     {#if overlays.length}
       <div class="rail-sec">
         <span class="rail-label">Comparing</span>
-        {#if layout === 'facets' && split === 'grade'}
+        {#if layout === 'facets' && split !== 'overall'}
           <span class="ov-item">
             <span class="swatch" style="background: {SERIES_COLORS[0]}"></span>{name}
           </span>
