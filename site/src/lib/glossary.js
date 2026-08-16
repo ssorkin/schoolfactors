@@ -48,10 +48,10 @@ export const GLOSSARY = [
     id: 'level',
     term: 'Level',
     unit: 'student SDs',
-    tip: 'Where a school’s students score vs the state average, at the middle of its data. Negative = below the state.',
+    tip: 'Where a school’s students score vs the state average, weighted toward the most recent years. Negative = below the state.',
     def: [
-      'Where a school’s students score relative to the state average, in student SDs, evaluated at the middle of the school’s data (its typical year and grade).',
-      'Calculation: the intercept of a precision-weighted regression of each school’s standardized scores on year, grade, and subject. Level is strongly correlated with the students a school serves (raw level vs share economically disadvantaged: −0.76), which is why the adjusted version exists.'
+      'Where a school’s students score relative to the state average, in student SDs, weighted toward the most recent years of data: each year’s weight halves for every 1.5 years of age, so the level mostly reflects the last two-to-three test years. A school that was strong a decade ago but ordinary today shows an ordinary level.',
+      'Calculation: the intercept of a precision-weighted regression of each school’s standardized scores on year, grade, and subject, with the recency decay folded into the weights. In a holdout test, this recency-weighted level predicted schools’ next-year standing far better than the all-years average. Level is strongly correlated with the students a school serves (raw level vs share economically disadvantaged: −0.74), which is why the adjusted version exists.'
     ]
   },
   {
@@ -82,7 +82,7 @@ export const GLOSSARY = [
     unit: 'student SDs',
     tip: 'What remains after accounting for the students served (economic disadvantage, race/ethnicity, EL and disability shares, parental education, size) — i.e. vs schools serving similar students. Not a measure of school quality.',
     def: [
-      'An adjusted number compares a school against schools serving similar students rather than against the state: it is what remains of Level or Growth after accounting for the tested population’s economic disadvantage, race/ethnicity, English-learner and students-with-disabilities shares, parental education, and school size.',
+      'An adjusted number compares a school against schools serving similar students rather than against the state: it is what remains of Level (recency-weighted — see Level) or Growth after accounting for the tested population’s economic disadvantage, race/ethnicity, English-learner and students-with-disabilities shares, parental education, and school size.',
       'This residual is not a measure of school quality — it still contains everything the covariates miss (selection, attrition, unmeasured family factors, luck).',
       'Calculation: a precision-weighted regression of the unshrunken school estimates on those covariates; the school’s residual is reported, then shrunken for display. The Adj ELA / Adj Math columns split the adjusted level using each school’s fitted Math−ELA gap.'
     ]
@@ -91,10 +91,10 @@ export const GLOSSARY = [
     id: 'adj-percentile',
     term: 'Adj %ile (adjusted percentile)',
     unit: 'percentile, 1–99',
-    tip: 'Percentile of the adjusted score level among entities of the same kind (schools vs schools, districts vs districts). 50 = typical for the students served. Small differences are noise; shown only when the estimate is reliable.',
+    tip: 'Percentile of the adjusted recent level among entities of the same kind, ranked by the lower bound of each estimate’s 95% band — an unconfident high estimate ranks below a confident slightly-lower one. 50 = typical for the students served.',
     def: [
-      'Where an entity’s adjusted score level falls among entities of the same kind — schools are ranked among schools, districts among districts, counties among counties. A 75 means the adjusted level is higher than about three-quarters of comparable entities; 50 is typical for the students served.',
-      'This is a presentation of the adjusted level (see Adjusted), in the spirit of the Urban Institute’s demographically adjusted rankings: estimates are shrunken first, and no percentile is shown when the estimate’s reliability falls below 0.70. The underlying student-SD values remain on each entity’s page.',
+      'Where an entity’s adjusted recent score level falls among entities of the same kind — schools are ranked among schools, districts among districts, counties among counties. A 75 means the adjusted level is higher than about three-quarters of comparable entities; 50 is typical for the students served.',
+      'This is a presentation of the adjusted level (see Adjusted), in the spirit of the Urban Institute’s demographically adjusted rankings, with two conservative choices. First, entities are ranked by the lower bound of the 95% band around their shrunken estimate, not the estimate itself — an imprecise high estimate (typically a small school) ranks below a precise, slightly lower one. Second, no percentile is shown when the estimate’s reliability falls below 0.70 or when the entity has no test data in the latest year. The underlying student-SD values remain on each entity’s page.',
       'Read it loosely: many entities are statistically indistinguishable, so a 55 and a 62 should be treated as the same. And like every adjusted number, it is not a measure of school quality — it contains everything the adjustment misses.'
     ]
   },
@@ -102,10 +102,10 @@ export const GLOSSARY = [
     id: 'growth-percentile',
     term: 'Growth %ile (cohort-growth percentile)',
     unit: 'percentile, 1–99',
-    tip: 'Percentile of adjusted cohort growth among entities of the same kind. Above 50 = classes gain more per grade than comparable entities. Small differences are noise; shown only when the estimate is reliable.',
+    tip: 'Percentile of adjusted cohort growth among entities of the same kind, ranked by the lower bound of each estimate’s 95% band. Above 50 = classes gain more per grade than comparable entities.',
     def: [
-      'Where an entity’s adjusted cohort growth (see Growth) falls among entities of the same kind. Above 50, classes gain more ground per grade — relative to the state, given the students served — than most comparable entities; below 50, less.',
-      'Growth percentiles answer the closest thing to a "value-added" question this data can support: aggregate cohorts moving through a school, standardized against the state, adjusted for the population served, shrunken, and reliability-gated (below 0.70, no percentile is shown). Unlike teacher value-added models built on linked student records, it makes no claim about causation — and our growth measure is essentially uncorrelated with prior achievement (+0.01), the falsification test single-model rankings have famously failed.',
+      'Where an entity’s adjusted cohort growth (see Growth) falls among entities of the same kind, ranked — like Adj %ile — by the lower bound of the 95% band around the shrunken estimate, and shown only for entities with test data in the latest year. Above 50, classes gain more ground per grade — relative to the state, given the students served — than most comparable entities; below 50, less.',
+      'Growth percentiles answer the closest thing to a "value-added" question this data can support: aggregate cohorts moving through a school, standardized against the state, adjusted for the population served, shrunken, and reliability-gated (below 0.70, no percentile is shown). Unlike teacher value-added models built on linked student records, it makes no claim about causation — and our growth measure is essentially uncorrelated with prior achievement (−0.01), the falsification test single-model rankings have famously failed.',
       'Read it loosely: growth is estimated with more noise than level, so treat mid-range differences as ties.'
     ]
   },
@@ -142,11 +142,11 @@ export const GLOSSARY = [
   },
   {
     id: 'econ-share',
-    term: '% Econ',
+    term: '% FRPM',
     unit: '% of students',
-    tip: 'Share of enrolled students eligible for free or reduced-price meals (FRPM); where FRPM is missing, the share of tested students CDE classifies as economically disadvantaged.',
+    tip: 'Share of enrolled students eligible for free or reduced-price meals (FRPM) — the standard economic-disadvantage measure. Where FRPM is missing, the share of tested students CDE classifies as economically disadvantaged.',
     def: [
-      'The share of all enrolled students eligible for free or reduced-price meals (FRPM census). Where FRPM data is missing, the share of tested students CDE classifies as economically disadvantaged is used instead.',
+      'The share of all enrolled students eligible for free or reduced-price meals (FRPM census) — the standard school-level measure of economic disadvantage. Where FRPM data is missing, the share of tested students CDE classifies as economically disadvantaged is used instead.',
       'Note the two definitions differ slightly: FRPM covers the whole enrollment; the CAASPP flag covers tested students only. The adjustment model uses the tested-population share.'
     ]
   },

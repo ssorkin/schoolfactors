@@ -1,5 +1,7 @@
 <script>
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
+  import { replaceState } from '$app/navigation';
   import Badges from '$lib/Badges.svelte';
   import MapView from '$lib/MapView.svelte';
   import RangeFacet from '$lib/RangeFacet.svelte';
@@ -33,8 +35,80 @@
       .replace(/[^a-z0-9\s-]/g, ' ');
   }
 
+  // ---- Shareable URL state ----
+  // The whole view lives in the fragment (#q=…&s=…&f=…) so any filtered/sorted
+  // table or map can be shared by copying the address bar. Restored once on
+  // load; kept current via replaceState (no history spam, no scroll jumps).
+  // Facet slider ranges are data-dependent, so they are parked in initFacets
+  // until the dataset arrives and bounds are real.
+  const SORT_KEYS = new Set([
+    'name', 'county', 'level',
+    'pass_ela', 'pass_math', 'adj_pct', 'growth_pct', 'ppe', 'econ', 'enrollment'
+  ]);
+  let restored = $state(false);
+  let initFacets = null;
+
+  function restoreHash() {
+    const p = new URLSearchParams(window.location.hash.slice(1));
+    query = p.get('q') ?? '';
+    const k = p.get('k');
+    if (['school', 'district', 'county'].includes(k)) kindFilter = k;
+    const lv = p.get('lv');
+    if (['elementary', 'middle', 'high', 'k-12'].includes(lv)) levelFilter = lv;
+    includeInactive = p.get('i') === '1';
+    const s = p.get('s');
+    if (s && SORT_KEYS.has(s)) {
+      sortKey = s;
+      sortDir = p.get('d') === '-1' ? -1 : 1;
+    }
+    for (const t of (p.get('t') ?? '').split('.')) {
+      if (t in typeSel) typeSel[t] = false;
+    }
+    const f = p.get('f');
+    if (f) {
+      initFacets = {};
+      for (const part of f.split(',')) {
+        const m = part.match(/^(\w+):(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
+        if (m) initFacets[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
+      }
+    }
+    if (p.get('v') === 'map') openMap();
+    restored = true;
+  }
+
+  $effect(() => {
+    if (!browser || !restored) return;
+    const p = new URLSearchParams();
+    if (query) p.set('q', query);
+    if (kindFilter !== 'all') p.set('k', kindFilter);
+    if (levelFilter !== 'all') p.set('lv', levelFilter);
+    if (includeInactive) p.set('i', '1');
+    if (sortKey !== 'name' || sortDir !== 1) {
+      p.set('s', sortKey);
+      if (sortDir === -1) p.set('d', '-1');
+    }
+    if (view === 'map') p.set('v', 'map');
+    const hidden = Object.keys(typeSel).filter((t) => !typeSel[t]);
+    if (hidden.length) p.set('t', hidden.join('.'));
+    const narrowed = [];
+    for (const f of FACETS) {
+      const b = bounds[f.key];
+      const sel = fsel[f.key];
+      if (b && sel && (sel[0] > b[0] || sel[1] < b[1])) {
+        narrowed.push(`${f.key}:${sel[0]}-${sel[1]}`);
+      }
+    }
+    if (narrowed.length) p.set('f', narrowed.join(','));
+    const h = p.toString();
+    const target = window.location.pathname + window.location.search + (h ? '#' + h : '');
+    if (target !== window.location.pathname + window.location.search + window.location.hash) {
+      replaceState(target, {});
+    }
+  });
+
   let loadError = $state(false);
   onMount(async () => {
+    restoreHash();
     try {
       const raw = await (await fetch('/data/index.json')).json();
       items = raw.map((it) => ({
@@ -95,6 +169,9 @@
     return out;
   });
 
+  // Underlying (non-integer) value that breaks ties within a percentile bucket.
+  const TIEBREAK = { adj_pct: 'adj_lcb', growth_pct: 'growth_lcb' };
+
   let sorted = $derived.by(() => {
     const arr = [...filtered];
     const k = sortKey;
@@ -108,7 +185,15 @@
         if (av == null && bv == null) return 0;
         if (av == null) return 1; // nulls last regardless of direction
         if (bv == null) return -1;
-        return d * (av - bv);
+        if (av !== bv) return d * (av - bv);
+        // Percentiles are integers, so whole buckets tie (147 schools shared
+        // "99" once); order ties by the underlying confidence bound instead of
+        // accidental index order.
+        const t = TIEBREAK[k];
+        const at = t && a[t];
+        const bt = t && b[t];
+        if (at == null || bt == null) return 0;
+        return d * (at - bt);
       });
     }
     return arr;
@@ -198,7 +283,7 @@
     { key: 'adj_pct', label: 'Adj %ile' },
     { key: 'growth_pct', label: 'Growth %ile' },
     { key: 'ppe', label: '$/Pupil', step: 250, fmt: (v) => '$' + (+v).toLocaleString() },
-    { key: 'econ', label: '% Econ', scale: 100, fmt: (v) => v + '%' },
+    { key: 'econ', label: '% FRPM', scale: 100, fmt: (v) => v + '%' },
     { key: 'enrollment', label: 'Students', step: 10, fmt: (v) => (+v).toLocaleString() }
   ];
 
@@ -235,6 +320,19 @@
   $effect(() => {
     bounds; // re-run when kind (or data) changes
     resetFacets();
+    // Ranges restored from a shared URL are applied once, clamped to the real
+    // data bounds, after the dataset arrives.
+    if (items && initFacets) {
+      for (const f of FACETS) {
+        const r = initFacets[f.key];
+        const b = bounds[f.key];
+        if (!r || !b) continue;
+        const lo = Math.min(Math.max(r[0], b[0]), b[1]);
+        const hi = Math.max(Math.min(r[1], b[1]), lo);
+        fsel[f.key] = [lo, hi];
+      }
+      initFacets = null;
+    }
   });
 
   const esc = (s) =>
@@ -253,7 +351,7 @@
     if (s.length) rows.push(s.join(' · '));
     const t = [];
     if (it.ppe != null) t.push('$' + it.ppe.toLocaleString() + '/pupil');
-    if (it.econ != null) t.push(Math.round(it.econ * 100) + '% econ');
+    if (it.econ != null) t.push(Math.round(it.econ * 100) + '% FRPM');
     if (it.enrollment != null) t.push(it.enrollment.toLocaleString() + ' students');
     if (t.length) rows.push(t.join(' · '));
     return `<a href="/${it.kind}/${it.cds}"><b>${esc(it.name)}</b></a><br>` + rows.join('<br>');
@@ -298,7 +396,7 @@
     ['adj_pct', 'Adj %ile'],
     ['growth_pct', 'Growth %ile'],
     ['ppe', '$/Pupil'],
-    ['econ', '% Econ'],
+    ['econ', '% FRPM'],
     ['enrollment', 'Students']
   ];
 </script>

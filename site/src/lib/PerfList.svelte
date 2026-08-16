@@ -9,14 +9,29 @@
   let mode = $state('adjusted'); // 'adjusted' | 'raw'
   let metric = $derived(mode === 'adjusted' ? 'level_adj_eb' : 'level_eb');
 
+  // In adjusted mode, each end of the list is ordered by its conservative
+  // confidence bound: top by the lower bound, bottom by the upper bound
+  // (= 2·eb − lcb, the band being symmetric) — so a noisy estimate never
+  // headlines either list on noise alone.
+  const lcb = (s) => (s.adj_lcb != null ? s.adj_lcb : s.level_adj_eb);
+  const ucb = (s) => (s.adj_lcb != null ? 2 * s.level_adj_eb - s.adj_lcb : s.level_adj_eb);
+
   let ranked = $derived(
     items
       .filter((s) => s[metric] != null)
       .slice()
       .sort((a, b) => b[metric] - a[metric])
   );
-  let top = $derived(ranked.slice(0, 5));
-  let bottom = $derived(ranked.slice(-5).reverse());
+  let top = $derived(
+    mode === 'adjusted'
+      ? ranked.slice().sort((a, b) => lcb(b) - lcb(a)).slice(0, 5)
+      : ranked.slice(0, 5)
+  );
+  let bottom = $derived(
+    mode === 'adjusted'
+      ? ranked.slice().sort((a, b) => ucb(a) - ucb(b)).slice(0, 5)
+      : ranked.slice(-5).reverse()
+  );
 
   const fmt = (v) => (v > 0 ? '+' : '') + v.toFixed(2);
 </script>

@@ -101,6 +101,25 @@
     return { word: 'moving with the state', cls: 'flat' };
   }
 
+  // Lookalike card: the most similar schools scoring above and below this one,
+  // so "schools serving similar students" answers "who does better, who worse".
+  // The neighbor list arrives ordered by demographic similarity; take the
+  // closest few in each direction, then display each block by adjusted level.
+  let lookalikeSplit = $derived.by(() => {
+    const list = entity.neighbors?.lookalike ?? [];
+    const own = e.level_adj_eb;
+    if (own == null) return { better: list.slice(0, 5), worse: [], own: null };
+    const better = list
+      .filter((s) => s.level_adj_eb != null && s.level_adj_eb > own)
+      .slice(0, 4)
+      .sort((a, b) => b.level_adj_eb - a.level_adj_eb);
+    const worse = list
+      .filter((s) => s.level_adj_eb != null && s.level_adj_eb <= own)
+      .slice(0, 4)
+      .sort((a, b) => b.level_adj_eb - a.level_adj_eb);
+    return { better, worse, own };
+  });
+
   const groupLabels = {
     econ_dis: 'economically disadvantaged',
     el: 'English learners',
@@ -139,6 +158,7 @@
 <p class="sub">
   {entity.kind === 'school' ? `${entity.district} · ` : ''}{entity.county} County
   {#if e.n_years}· {e.n_years} test years · {e.total_scores?.toLocaleString()} scores{/if}
+  {#if e.last_year}· data through {e.last_year}{/if}
 </p>
 
 <h2>How results are trending</h2>
@@ -183,30 +203,51 @@
       </div>
     {/if}
     {#if entity.neighbors.lookalike?.length}
+      {#snippet lookalikeRow(s)}
+        <li>
+          <input
+            type="checkbox"
+            title="Overlay on the chart above"
+            checked={isOverlaid(s.cds)}
+            onchange={() => toggleOverlay(s)}
+          />
+          <span class="cmp-name">
+            <a href="/school/{s.cds}">{s.name}</a>
+            <span class="cmp-sub">{s.district}</span>
+          </span>
+          <span class="cmp-vals">
+            <span class="cmp-meta">
+              {s.share_econ_dis == null ? '' : Math.round(s.share_econ_dis * 100) + '% econ dis.'}
+            </span>
+            <span class="cmp-adj" class:pos={s.level_adj_eb > 0} class:neg={s.level_adj_eb < 0}>
+              {s.level_adj_eb == null ? '—' : fmt(s.level_adj_eb)}
+            </span>
+          </span>
+        </li>
+      {/snippet}
       <div class="cmp-card">
         <h3>Schools serving similar students</h3>
         <ul>
-          {#each entity.neighbors.lookalike.slice(0, 5) as s (s.cds)}
-            <li>
-              <input
-                type="checkbox"
-                title="Overlay on the chart above"
-                checked={isOverlaid(s.cds)}
-                onchange={() => toggleOverlay(s)}
-              />
+          {#each lookalikeSplit.better as s (s.cds)}
+            {@render lookalikeRow(s)}
+          {/each}
+          {#if lookalikeSplit.own != null}
+            <li class="self">
               <span class="cmp-name">
-                <a href="/school/{s.cds}">{s.name}</a>
-                <span class="cmp-sub">{s.district}</span>
+                {entity.name}
+                <span class="cmp-sub">this {entity.kind}</span>
               </span>
               <span class="cmp-vals">
-                <span class="cmp-meta">
-                  {s.share_econ_dis == null ? '' : Math.round(s.share_econ_dis * 100) + '% econ dis.'}
-                </span>
-                <span class="cmp-adj" class:pos={s.level_adj_eb > 0} class:neg={s.level_adj_eb < 0}>
-                  {s.level_adj_eb == null ? '—' : fmt(s.level_adj_eb)}
-                </span>
+                <span
+                  class="cmp-adj"
+                  class:pos={lookalikeSplit.own > 0}
+                  class:neg={lookalikeSplit.own < 0}>{fmt(lookalikeSplit.own)}</span
+                >
               </span>
             </li>
+          {/if}
+          {#each lookalikeSplit.worse as s (s.cds)}
+            {@render lookalikeRow(s)}
           {/each}
         </ul>
       </div>
@@ -236,8 +277,9 @@
     Check a school (or search for any school statewide) to overlay its trend on the
     chart above — up to four at a time. Lookalikes are matched statewide on the
     demographics of tested students (poverty, language, race/ethnicity, disabilities,
-    parent education, size), same school level. The number on the right is each
-    school's demographically-adjusted level.
+    parent education, size), same school level; the highlighted row is this school,
+    with the most similar schools scoring above and below it. The number on the
+    right is each school's demographically-adjusted level.
   </p>
 {/if}
 
@@ -245,15 +287,20 @@
   <h2>The three modeled numbers</h2>
   <section class="tiles">
     <div class="tile">
-      <div class="num">{fmt(e.level_adj_eb)}</div>
+      <div class="num">
+        {fmt(e.level_adj_eb)}
+        {#if e.level_adj_lcb != null}
+          <span class="ci">≥ {fmt(e.level_adj_lcb)}</span>
+        {/if}
+      </div>
       <div class="label">
-        adjusted level — score level vs {entity.kind === 'school' ? 'schools' : 'districts'}
-        serving similar students (student SDs)
+        adjusted level — recent scores vs {entity.kind === 'school' ? 'schools' : 'districts'}
+        serving similar students (student SDs); rankings use the low end of the 95% band
       </div>
     </div>
     <div class="tile">
       <div class="num">{fmt(e.level_eb)} <span class="ci">± {(1.96 * (e.level_se ?? 0)).toFixed(2)}</span></div>
-      <div class="label">raw level vs state average</div>
+      <div class="label">raw level vs state average, weighted toward the latest years</div>
     </div>
     <div class="tile">
       {#if e.growth_eb != null}
@@ -489,6 +536,13 @@
   }
   .cmp-card li:last-child {
     border-bottom: none;
+  }
+  .cmp-card li.self {
+    background: #faf3e3;
+    border-radius: 6px;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+    font-weight: 650;
   }
   .cmp-sub {
     display: block;
