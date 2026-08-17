@@ -8,9 +8,10 @@ pipeline (acquire → ingest → quality → analysis) in Python, static SvelteK
 - `uv sync` — install; `uv run sf --help` — pipeline CLI (`acquire`, `ingest`, `check`, `analyze`, `export`)
 - `uv run pytest` — tests; `uv run ruff check src tests` — lint
 - Site: `cd site && npm run dev` / `npm run build` (static; data from `sf export`)
-- Deploy (atomic): rsync `site/build/` to dronesclub `/var/www/schoolfactors-releases/<ts>/`,
-  swap symlink `/var/www/schoolfactors-current` via `ln -s` + `mv -T`, prune to last
-  3 releases. NEVER `rsync --delete` into the live root (mid-deploy hydration breaks).
+- Deploy (atomic): `scripts/deploy.sh [--build]` — rsync `site/build/` to dronesclub
+  `/var/www/schoolfactors-releases/<ts>/`, swap symlink `/var/www/schoolfactors-current`
+  via `ln -s` + `mv -T`, prune to last 3 releases. NEVER `rsync --delete` into the
+  live root (mid-deploy hydration breaks).
 
 ## Hard rules (data integrity)
 
