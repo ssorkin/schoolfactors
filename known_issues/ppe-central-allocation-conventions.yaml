@@ -1,0 +1,32 @@
+id: ppe-central-allocation-conventions
+dataset: ppe
+years: [2019, 2020, 2021, 2022, 2023]
+kind: reporting-inconsistency
+title: Central-cost allocation conventions vary by LEA and can shift between years
+description: >
+  ESSA PPE splits each school's per-pupil figure into school-site and allocated
+  central-office dollars, but each district chooses its own allocation method,
+  and some changed methods mid-series. Berkeley Unified is a clear case: its
+  2019-20 through 2021-22 filings allocate $30k-$49k/pupil of "central" costs to
+  Berkeley High (central federal alone reaches $30k/pupil in 2021-22 — several
+  times the school-site total and far beyond any plausible spending), then from
+  2022-23 the same school's central allocation drops to a sane $0.3k-$15k/pupil.
+  The inflated years pass the totals-reporter screen because the LEA's median
+  stays under $100k/pupil. Statewide, roughly 4% of school rows in every file
+  year carry central allocations more than twice their school-site spending —
+  some legitimately (small schools in central-heavy districts), so a blanket
+  screen would discard real data.
+evidence: >
+  data/raw/ppe/essappe1920data through essappe2425data, cds 01611430131177
+  (Berkeley High): central federal + state/local per pupil of $31.5k (2019-20),
+  $42.2k (2020-21), $48.6k (2021-22) versus $12.9k (2022-23), $9.4k (2023-24),
+  $14.7k (2024-25), while school-site spending stays near $10k throughout.
+handling: >
+  Not screened beyond the existing totals-reporter and implausible-value rules —
+  a reliable detector for "allocation convention changed" that does not also
+  discard legitimate central-heavy schools has not been designed yet. The
+  spending history shown on entity pages is CDE's published figures after the
+  documented normalizations, and the site copy notes that year-to-year level
+  shifts can reflect filing conventions rather than actual spending changes.
+  Candidate improvement: flag LEA-years whose median central-to-school-site
+  ratio departs by more than ~3x from that LEA's own cross-year median.
