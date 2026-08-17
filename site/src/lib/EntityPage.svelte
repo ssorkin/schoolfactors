@@ -1,14 +1,343 @@
 <script>
+  import { dataUrl } from '$lib/data.js';
   import CohortChart from '$lib/CohortChart.svelte';
   import BlendChart from '$lib/BlendChart.svelte';
   import SearchBox from '$lib/SearchBox.svelte';
   import PerfList from '$lib/PerfList.svelte';
   import ResultsTables from '$lib/ResultsTables.svelte';
   import TrendChart from '$lib/TrendChart.svelte';
+  import SpendChart from '$lib/SpendChart.svelte';
+  import CsvButton from '$lib/CsvButton.svelte';
+  import PeerHistogram from '$lib/PeerHistogram.svelte';
+  import PeerScatter from '$lib/PeerScatter.svelte';
 
   let { entity, subItems = null, subKind = 'school', subLabel = '' } = $props();
 
   let e = $derived(entity.effects ?? {});
+
+  // ---- Head metadata + plain-language summary ----
+  const SITE = 'https://schoolfactors.org';
+  const ENR_YEARS = Array.from({ length: 12 }, (_, i) => 2015 + i);
+  const KINDS_PLURAL = { school: 'schools', district: 'districts', county: 'counties' };
+
+  const ord = (n) => {
+    const v = n % 100;
+    const suf = v >= 11 && v <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+    return n + suf;
+  };
+
+  // Careful, non-judgemental phrasing: comparisons are against similar
+  // populations, never bare "better/worse school" claims.
+  function similarPhrase(p, kindS, kindP) {
+    const plural = `California ${kindP} serving similar student populations`;
+    const single = `the typical California ${kindS} serving a similar student population`;
+    if (p >= 90) return `higher than nearly all ${plural}`;
+    if (p >= 70) return `higher than most ${plural}`;
+    if (p >= 55) return `a bit higher than ${single}`;
+    if (p >= 45) return `about the same as ${single}`;
+    if (p >= 30) return `a bit lower than ${single}`;
+    if (p >= 10) return `lower than most ${plural}`;
+    return `lower than nearly all ${plural}`;
+  }
+  const fmtGrowth = (g, se, rel) => {
+    const half = 1.96 * Math.sqrt(rel ?? 1) * (se ?? 0);
+    return `${g > 0 ? '+' : ''}${g.toFixed(2)} ± ${half.toFixed(2)} SDs per grade`;
+  };
+
+  // Band-language illustration of the trajectory verdict: the most recent
+  // well-observed cohort's Met+ share at its first and latest grade, with the
+  // state's same-grade shares. The verdict itself is measured in mean-score
+  // SDs (percentages jump when students cross a cut line); this is the
+  // plain-language evidence in the CAASPP tiers families know.
+  let cohortExample = $derived.by(() => {
+    const rows = (entity.cohort_scores ?? []).filter((r) => r.pct_met != null && r.n);
+    const by = new Map();
+    for (const r of rows) {
+      if (!by.has(r.grad_year)) by.set(r.grad_year, []);
+      by.get(r.grad_year).push(r);
+    }
+    let best = null;
+    for (const [gy, rs] of by) {
+      const grades = [...new Set(rs.map((r) => r.grade))];
+      if (grades.length < 3) continue;
+      const lastYear = Math.max(...rs.map((r) => r.year));
+      const score = lastYear * 10 + grades.length;
+      if (!best || score > best.score) best = { gy, rs, score };
+    }
+    if (!best) return null;
+    const grades = [...new Set(best.rs.map((r) => r.grade))].sort((a, b) => a - b);
+    const agg = (grade) => {
+      const g = best.rs.filter((r) => r.grade === grade);
+      let n = 0;
+      let met = 0;
+      let sn = 0;
+      let smet = 0;
+      for (const r of g) {
+        met += r.pct_met * r.n;
+        n += r.n;
+        if (r.state_pct_met != null) {
+          smet += r.state_pct_met * r.n;
+          sn += r.n;
+        }
+      }
+      return n ? { met: met / n, smet: sn ? smet / sn : null, year: g[0].year } : null;
+    };
+    const a = agg(grades[0]);
+    const b = agg(grades[grades.length - 1]);
+    if (!a || !b) return null;
+    return { gy: best.gy, g0: grades[0], g1: grades[grades.length - 1], a, b };
+  });
+
+  import { GROUP_LABELS } from '$lib/groups.js';
+  // Group deltas below ±5pp are treated as noise, not listed.
+  const GROUP_NOTEWORTHY_PP = 5;
+
+  let summary = $derived.by(() => {
+    const kindS = entity.kind === 'county' ? 'county' : entity.kind;
+    const kindP = KINDS_PLURAL[entity.kind] ?? 'schools';
+    const parts = [];
+    if (entity.adj_pct != null) {
+      parts.push(
+        `Students here score ${similarPhrase(entity.adj_pct, kindS, kindP)} ` +
+          `(${ord(entity.adj_pct)} percentile).`
+      );
+    }
+    if (entity.growth_cat != null && e.move_eb != null) {
+      const high = (entity.adj_pct ?? 0) >= 70;
+      const val = fmtGrowth(e.move_eb, e.move_se, e.move_reliability);
+      parts.push(
+        entity.growth_cat === 'gaining'
+          ? `As classes move through, they gain on the state (${val})` +
+              (high ? ` — uncommon for a ${kindS} already scoring high.` : '.')
+          : entity.growth_cat === 'slipping'
+            ? `As classes move through, they lose ground vs the state (${val}) — ` +
+              `worth a look at the cohort chart below.`
+            : `As classes move through, they hold their standing vs the state` +
+              (high ? ' — cohorts arrive high and stay high.' : '.')
+      );
+      const ce = cohortExample;
+      if (ce) {
+        const st = (v) => (v == null ? '' : ` (state ${Math.round(v)}%)`);
+        parts.push(
+          `Class of ${ce.gy}, for example: ${Math.round(ce.a.met)}% met standards in ` +
+            `grade ${ce.g0}${st(ce.a.smet)} and ${Math.round(ce.b.met)}% in ` +
+            `grade ${ce.g1}${st(ce.b.smet)}.`
+        );
+      }
+      // The cohort view (per grade) and the yearly view (the scatter) are
+      // nearly independent and can point in opposite directions; when they
+      // do, reconcile them explicitly instead of reading as a contradiction.
+      const tr = e.trend_eb;
+      if (entity.trend_abs != null && tr != null) {
+        if (entity.growth_cat === 'slipping' && tr >= 0.02) {
+          parts.push(
+            `Both views are true at once: each entering class scores higher than the ` +
+              `one before it, so overall results rise year over year (see "How results ` +
+              `are trending") — even as each class loses some ground against ` +
+              `grade-level standards while moving up (the scatter's vertical axis).`
+          );
+        } else if (entity.growth_cat === 'gaining' && tr <= -0.02) {
+          parts.push(
+            `Both views are true at once: classes gain ground against grade-level ` +
+              `standards as they move up (the scatter's vertical axis) — even though ` +
+              `each entering class starts lower than the one before it, so overall ` +
+              `results fall year over year (see "How results are trending").`
+          );
+        }
+      }
+    }
+    if (entity.pass_ela != null || entity.pass_math != null) {
+      const bits = [];
+      if (entity.pass_ela != null) bits.push(`${entity.pass_ela}% of tests met the standard in English`);
+      if (entity.pass_math != null)
+        bits.push(entity.pass_ela != null ? `${entity.pass_math}% in math` : `${entity.pass_math}% of tests met the standard in math`);
+      parts.push(`In ${entity.pass_year}, ${bits.join(' and ')}.`);
+    }
+    // Sentence-friendly group names: the shared labels are column-style
+    // ("With disabilities"), and casing must respect proper nouns.
+    const SENTENCE_GROUP = {
+      31: 'economically disadvantaged students',
+      160: 'English learners',
+      128: 'students with disabilities',
+      74: 'Black students',
+      76: 'Asian students',
+      78: 'Hispanic or Latino students',
+      80: 'White students',
+      111: 'students not economically disadvantaged',
+      93: 'students whose parents finished college',
+      94: 'students whose parents completed graduate school'
+    };
+    const gname = (g) => SENTENCE_GROUP[g] ?? GROUP_LABELS[g] ?? 'group ' + g;
+    const fmtGroups = (list) => list.map((x) => `${gname(x.g)} (${x.d > 0 ? '+' : '−'}${Math.abs(Math.round(x.d))} pp)`).join(', ');
+    const above = (entity.group_vs_state ?? [])
+      .filter((x) => x.d >= GROUP_NOTEWORTHY_PP)
+      .sort((a, b) => b.d - a.d);
+    const below = (entity.group_vs_state ?? [])
+      .filter((x) => x.d <= -GROUP_NOTEWORTHY_PP)
+      .sort((a, b) => a.d - b.d);
+    if (above.length) {
+      parts.push(`Groups scoring above their statewide rates: ${fmtGroups(above)}.`);
+    }
+    if (below.length) {
+      parts.push(`Groups scoring below their statewide rates: ${fmtGroups(below)}.`);
+    }
+    // The group comparison is unconditional (each group vs the same group
+    // statewide); the similar-{kind}s comparison conditions on the full
+    // demographic profile. In strongly advantaged or disadvantaged
+    // communities the two often point in opposite directions — reconcile
+    // explicitly rather than reading as a contradiction.
+    if (entity.adj_pct != null) {
+      let fired = false;
+      if (entity.adj_pct <= 40 && above.length >= 3 && below.length === 0) {
+        parts.push(
+          `These two comparisons ask different questions: each group here outscores ` +
+            `the same group statewide — common in more advantaged communities, where ` +
+            `every group's own families tend to be more advantaged than that group ` +
+            `statewide — while the similar-${kindP} comparison sets the bar at ` +
+            `${kindP} serving equally advantaged populations, and scores here fall ` +
+            `short of that bar.`
+        );
+        fired = true;
+      } else if (entity.adj_pct >= 60 && below.length >= 3 && above.length === 0) {
+        parts.push(
+          `These two comparisons ask different questions: each group here trails the ` +
+            `same group statewide — common in less advantaged communities — while ` +
+            `against ${kindP} serving similar populations, scores here exceed the ` +
+            `typical bar.`
+        );
+        fired = true;
+      }
+      // Make the similar-entities bar concrete: pooled rates from the band of
+      // entities the model expects to score alike, including the Exceeded
+      // level — a gap can live entirely in the top band.
+      const vs = entity.vs_similar;
+      if (fired && vs?.rows?.length) {
+        const bits = [];
+        const g1r = vs.rows.find((r) => r.g === 1);
+        if (g1r && g1r.exc != null && g1r.p_exc != null && Math.abs(g1r.exc - g1r.p_exc) >= 2) {
+          bits.push(
+            `${Math.round(g1r.exc)}% of tests exceed standards here vs ${Math.round(g1r.p_exc)}% there`
+          );
+        }
+        // The example group must match the direction being explained: the
+        // biggest shortfall when placement is low, the biggest surplus when
+        // high — not merely the biggest absolute difference.
+        const dir = entity.adj_pct <= 40 ? -1 : 1;
+        const adv = vs.rows
+          .filter(
+            (r) =>
+              [111, 93, 94, 31].includes(r.g) &&
+              r.met != null &&
+              r.p_met != null &&
+              (r.met - r.p_met) * dir >= 2
+          )
+          .sort((a, b) => (b.met - b.p_met) * dir - (a.met - a.p_met) * dir)[0];
+        if (adv) {
+          bits.push(
+            `${gname(adv.g)} meet standards at ${Math.round(adv.met)}% vs ${Math.round(adv.p_met)}%`
+          );
+        }
+        if (bits.length) {
+          parts.push(
+            `Concretely, against the ${vs.n} ${kindP} expected to score alike: ` +
+              `${bits.join(', and ')}.`
+          );
+        }
+      }
+    }
+    const pts = (entity.enr ?? [])
+      .map((v, i) => ({ v, y: ENR_YEARS[i] }))
+      .filter((q) => q.v != null);
+    if (pts.length >= 2) {
+      const a = pts[0];
+      const b = pts[pts.length - 1];
+      const chg = b.v / a.v - 1;
+      parts.push(
+        Math.abs(chg) < 0.03
+          ? `Enrollment has held roughly steady since ${a.y} (${b.v.toLocaleString()} students).`
+          : `Enrollment has ${chg < 0 ? 'declined' : 'grown'} ` +
+              `${Math.abs(Math.round(chg * 100))}% since ${a.y}, to ${b.v.toLocaleString()} students.`
+      );
+    }
+    return parts;
+  });
+
+  // ---- Intake-change detection ----
+  // Compare the tested population's group shares in the first two data years
+  // vs the last two (count-weighted). Any major group shifting >= 10pp gets a
+  // prominent warning: time comparisons partly reflect who enrolls.
+  const BLEND_KEYS = ['econ_dis', 'el', 'swd', 'hispanic', 'white', 'black', 'asian'];
+  let intakeShifts = $derived.by(() => {
+    const rows = entity.blend ?? [];
+    const years = [...new Set(rows.map((r) => r.year))].sort((a, b) => a - b);
+    if (years.length < 4) return [];
+    const early = new Set(years.slice(0, 2));
+    const late = new Set(years.slice(-2));
+    const agg = (set, key) => {
+      let num = 0;
+      let den = 0;
+      for (const r of rows) {
+        if (!set.has(r.year) || r['share_' + key] == null || !r.n) continue;
+        num += r['share_' + key] * r.n;
+        den += r.n;
+      }
+      return den >= 60 ? num / den : null;
+    };
+    const out = [];
+    for (const k of BLEND_KEYS) {
+      const a = agg(early, k);
+      const b = agg(late, k);
+      if (a == null || b == null || Math.abs(b - a) < 0.1) continue;
+      out.push({ k, a, b, d: b - a });
+    }
+    out.sort((x, y) => Math.abs(y.d) - Math.abs(x.d));
+    return out.slice(0, 3).map((s) => ({ ...s, y0: years[0], y1: years[years.length - 1] }));
+  });
+
+  let scatterMode = $derived(
+    entity.peer_key && e.level_adj_eb != null
+      ? entity.growth_abs != null
+        ? 'growth'
+        : entity.trend_abs != null
+          ? 'trend'
+          : null
+      : null
+  );
+
+  // Schools highlighted on the peer scatter: the active comparison overlays
+  // plus the "nearby schools" card list, deduped (an overlay that is also
+  // nearby shows once, as a comparison mark).
+  let scatterHighlights = $derived.by(() => {
+    if (entity.kind !== 'school') return [];
+    const out = [];
+    const seen = new Set([entity.cds]);
+    for (const o of overlays) {
+      if (seen.has(o.cds)) continue;
+      seen.add(o.cds);
+      out.push({
+        cds: o.cds,
+        name: o.name,
+        x: o.x,
+        y: scatterMode === 'growth' ? o.gy : o.ty,
+        kind: 'overlay'
+      });
+    }
+    for (const s of (entity.neighbors?.nearby ?? []).slice(0, 5)) {
+      if (seen.has(s.cds)) continue;
+      seen.add(s.cds);
+      out.push({ cds: s.cds, name: s.name, kind: 'nearby' });
+    }
+    return out;
+  });
+
+  let pageTitle = $derived(`${entity.name}: Scores, Growth & Spending | SchoolFactors`);
+  let pageDesc = $derived(
+    summary.length
+      ? summary.join(' ')
+      : `CAASPP scores, cohort growth, demographics-adjusted comparisons, enrollment, ` +
+          `and spending for ${entity.name} (${entity.county} County, California).`
+  );
+  let pageUrl = $derived(`${SITE}/${entity.kind}/${entity.cds}`);
 
   import { browser } from '$app/environment';
   import { replaceState } from '$app/navigation';
@@ -27,7 +356,7 @@
     try {
       if (cds === entity.cds) return;
       if (overlays.some((o) => o.cds === cds) || overlays.length >= MAX_OVERLAYS) return;
-      const resp = await fetch(`/data/schools/${cds}.json`);
+      const resp = await fetch(dataUrl(`/data/schools/${cds}.json`));
       if (!resp.ok) return;
       const j = await resp.json();
       overlays = [
@@ -36,7 +365,11 @@
           cds,
           name: name ?? j.name,
           rows: j.subgroup_results ?? [],
-          scores: j.cohort_scores ?? []
+          scores: j.cohort_scores ?? [],
+          // Position on the peer scatter, when the compared school has one.
+          x: j.effects?.level_adj_eb ?? null,
+          gy: j.growth_abs ?? null,
+          ty: j.trend_abs ?? null
         }
       ];
     } catch {
@@ -140,6 +473,21 @@
   };
 </script>
 
+<svelte:head>
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDesc} />
+  <link rel="canonical" href={pageUrl} />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SchoolFactors" />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={pageDesc} />
+  <meta property="og:url" content={pageUrl} />
+  <meta property="og:image" content="{SITE}/og/{entity.cds}.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+</svelte:head>
+
 <SearchBox />
 
 <nav class="crumbs">
@@ -169,6 +517,73 @@
   {#if e.n_years}· {e.n_years} test years · {e.total_scores?.toLocaleString()} scores{/if}
   {#if e.last_year}· data through {e.last_year}{/if}
 </p>
+
+{#if summary.length || (entity.peer_hist && e.level_adj_eb != null)}
+  <div class="topgrid">
+    {#if summary.length}
+      <ul class="summary">
+        {#each summary as s (s)}
+          <li>{s}</li>
+        {/each}
+        <li class="gl"><a href="/glossary">What these terms mean.</a></li>
+      </ul>
+    {/if}
+    {#if scatterMode === 'growth'}
+      <PeerScatter
+        peerKey={entity.peer_key}
+        yMode="growth"
+        own={{ cds: entity.cds, x: e.level_adj_eb, y: entity.growth_abs, ll: entity.ll }}
+        ownLabel="This {entity.kind}"
+        label={entity.peer_hist?.label ?? 'similar schools'}
+        kind={entity.kind}
+        stateY={entity.state_growth}
+        highlights={scatterHighlights}
+        refs={[
+          { label: 'District avg', x: entity.district_ref, y: entity.district_ref_growth_abs, shape: 'square' },
+          { label: 'County avg', x: entity.county_ref, y: entity.county_ref_growth_abs, shape: 'triangle' }
+        ]}
+      />
+    {:else if scatterMode === 'trend'}
+      <PeerScatter
+        peerKey={entity.peer_key}
+        yMode="trend"
+        own={{ cds: entity.cds, x: e.level_adj_eb, y: entity.trend_abs, ll: entity.ll }}
+        ownLabel="This {entity.kind}"
+        label={entity.peer_hist?.label ?? 'similar schools'}
+        kind={entity.kind}
+        stateY={entity.state_trend}
+        highlights={scatterHighlights}
+        refs={[
+          { label: 'District avg', x: entity.district_ref, y: entity.district_ref_trend_abs, shape: 'square' },
+          { label: 'County avg', x: entity.county_ref, y: entity.county_ref_trend_abs, shape: 'triangle' }
+        ]}
+      />
+    {:else if entity.peer_hist && e.level_adj_eb != null}
+      <PeerHistogram
+        hist={entity.peer_hist}
+        own={e.level_adj_eb}
+        kindLabel="this {entity.kind}"
+        refs={[
+          { label: 'district', v: entity.district_ref },
+          { label: 'county', v: entity.county_ref }
+        ]}
+      />
+    {/if}
+  </div>
+{/if}
+
+{#if intakeShifts.length}
+  <div class="intake-warn" role="note">
+    <strong>Student intake has changed.</strong>
+    Between {intakeShifts[0].y0} and {intakeShifts[0].y1}, the tested population
+    shifted:
+    {#each intakeShifts as s, i (s.k)}{i > 0 ? '; ' : ''}{groupLabels[s.k]}
+      {Math.round(s.a * 100)}% → {Math.round(s.b * 100)}%{/each}.
+    Changes over time on this page — trend, cohort tracks, the Met+ lines — partly
+    reflect <em>who enrolls</em>, not only how this {entity.kind} serves its
+    students.
+  </div>
+{/if}
 
 <h2>How results are trending</h2>
 {#key restoredFor === entity.cds ? entity.cds : 'pending'}
@@ -378,6 +793,16 @@
 <h2>Who takes the tests here</h2>
 <BlendChart blend={entity.blend ?? []} />
 
+{#if (entity.enr ?? []).some((v) => v != null) || (entity.ppe_hist ?? []).some((v) => v != null)}
+  <h2>Enrollment and spending</h2>
+  <SpendChart
+    enr={entity.enr}
+    enrYears={ENR_YEARS}
+    ppe={entity.ppe_hist}
+    ppeYears={entity.ppe_years ?? []}
+  />
+{/if}
+
 {#if subItems?.length}
   <h2>{subLabel}</h2>
   <PerfList items={subItems} kind={subKind} childPath={'/' + subKind} />
@@ -402,11 +827,26 @@
         {/each}
       </tbody>
     </table>
+    <p class="dl">
+      <CsvButton
+        filename="{entity.name} {subKind}s.csv"
+        build={() => ({
+          headers: ['Name', 'CDS', 'Adjusted level', 'Raw level', 'Adjusted growth', 'Scores'],
+          rows: subItems.map((s) => [
+            s.name, s.cds, s.level_adj_eb, s.level_eb, s.growth_adj_eb, s.total_scores
+          ])
+        })}
+      />
+    </p>
   </details>
 {/if}
 
 <h2>The underlying numbers</h2>
-<ResultsTables scores={entity.cohort_scores ?? []} subgroups={entity.subgroup_results ?? []} />
+<ResultsTables
+  scores={entity.cohort_scores ?? []}
+  subgroups={entity.subgroup_results ?? []}
+  name={entity.name}
+/>
 
 <p class="caveat">
   These are relationships between {entity.kind} averages on one set of tests — not
@@ -426,6 +866,55 @@
   .sub {
     color: #6f6a61;
     margin-top: 0;
+  }
+  .topgrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 460px);
+    gap: 0.8rem;
+    align-items: start;
+    max-width: 66rem;
+    margin: 0.4rem 0 0.6rem;
+  }
+  @media (max-width: 880px) {
+    .topgrid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .summary {
+    font-size: 1.02rem;
+    background: #fffdf9;
+    border: 1px solid #e8e1d5;
+    border-left: 3px solid #b0552f;
+    border-radius: 8px;
+    margin: 0;
+    padding: 0.7rem 1rem 0.7rem 2.1rem;
+  }
+  .summary li {
+    margin: 0.2rem 0;
+  }
+  .summary li.gl {
+    list-style: none;
+    margin-top: 0.45rem;
+  }
+  .summary a {
+    font-size: 0.88rem;
+    color: #898781;
+  }
+  .intake-warn {
+    background: #fdf1df;
+    border: 1px solid #e7bf8a;
+    border-left: 4px solid #d97b29;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    max-width: 66rem;
+    margin: 0 0 0.8rem;
+    font-size: 0.96rem;
+  }
+  .intake-warn strong {
+    color: #9c5410;
+  }
+  .dl {
+    margin: 0.5rem 0 0;
   }
   :global(main) h2 {
     margin: 1.8rem 0 0.6rem;

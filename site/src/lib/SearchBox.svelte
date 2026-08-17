@@ -11,6 +11,7 @@
 </script>
 
 <script>
+  import { dataUrl } from '$lib/data.js';
   import { goto } from '$app/navigation';
 
   let {
@@ -24,7 +25,7 @@
 
   async function ensureIndex() {
     if (!indexCache) {
-      const raw = await (await fetch('/data/index.json')).json();
+      const raw = await (await fetch(dataUrl('/data/index.json'))).json();
       // Precompute normalized haystacks once for fast multi-token matching.
       indexCache = raw.map((it) => {
         const name = norm(it.name);

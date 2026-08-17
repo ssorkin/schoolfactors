@@ -1,10 +1,14 @@
 <script>
+  import { dataUrl } from '$lib/data.js';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { replaceState } from '$app/navigation';
   import Badges from '$lib/Badges.svelte';
+  import CsvButton from '$lib/CsvButton.svelte';
+  import FacetFilter from '$lib/FacetFilter.svelte';
   import MapView from '$lib/MapView.svelte';
   import RangeFacet from '$lib/RangeFacet.svelte';
+  import { norm, parseQuery } from '$lib/facets.js';
   import { COLTIP } from '$lib/glossary.js';
   import { TYPE_COLOR, TYPE_LABEL, entityType } from '$lib/maptypes.js';
 
@@ -27,14 +31,6 @@
     UG: 'other'
   };
 
-  function norm(s) {
-    return (s ?? '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9\s-]/g, ' ');
-  }
-
   // ---- Shareable URL state ----
   // The whole view lives in the fragment (#q=…&s=…&f=…) so any filtered/sorted
   // table or map can be shared by copying the address bar. Restored once on
@@ -43,7 +39,7 @@
   // until the dataset arrives and bounds are real.
   const SORT_KEYS = new Set([
     'name', 'county', 'level',
-    'pass_ela', 'pass_math', 'adj_pct', 'growth_pct', 'ppe', 'econ', 'enrollment'
+    'pass_ela', 'pass_math', 'adj_pct', 'growth_eb', 'ppe', 'econ', 'enrollment'
   ]);
   let restored = $state(false);
   let initFacets = null;
@@ -110,7 +106,7 @@
   onMount(async () => {
     restoreHash();
     try {
-      const raw = await (await fetch('/data/index.json')).json();
+      const raw = await (await fetch(dataUrl('/data/index.json'))).json();
       items = raw.map((it) => ({
         ...it,
         level: it.eil ? (EIL_LABEL[it.eil] ?? 'other') : it.kind !== 'school' ? '' : 'other',
@@ -122,110 +118,9 @@
     }
   });
 
-  // Facet-aware query parsing: `level:middle county:los angeles ivanhoe` etc.
-  // Words after a facet keyword attach to that facet until the next facet.
-  const FACET_KEYS = ['level', 'kind', 'county', 'district', 'type', 'is'];
-  let parsed = $derived.by(() => {
-    const facets = {};
-    const free = [];
-    let cur = null;
-    for (const p of query.split(/\s+/).filter(Boolean)) {
-      const m = p.match(/^(level|kind|county|district|type|is):(.*)$/i);
-      if (m) {
-        cur = m[1].toLowerCase() === 'type' ? 'level' : m[1].toLowerCase();
-        if (m[2]) facets[cur] = norm(m[2]).trim();
-        else facets[cur] = '';
-      } else if (cur !== null) {
-        facets[cur] = (facets[cur] + ' ' + norm(p)).trim();
-      } else {
-        free.push(norm(p).trim());
-      }
-    }
-    return { facets, free: free.filter(Boolean) };
-  });
-
-  // ---- Facet typeahead ----
-  // Suggest facet keys while a bare word is being typed ("dis" → "district:"),
-  // and values once a facet is active ("district:sono" → "sonoma valley
-  // unified"). Facet values may contain spaces: every word after "key:"
-  // belongs to that facet until the next key, so the suggestion fragment is
-  // simply everything after the LAST facet key in the box.
-  const FACET_KEY_RE = /(^|\s)(level|kind|county|district|type|is):/gi;
-  let sugOpen = $state(false);
-  let sugIdx = $state(0);
-
-  let facetPools = $derived.by(() => {
-    const county = new Set();
-    const district = new Set();
-    const is = new Set();
-    for (const it of items ?? []) {
-      if (it.county) county.add(it.county);
-      if (it.kind === 'school' && it.district) district.add(it.district);
-      else if (it.kind === 'district') district.add(it.name);
-      for (const f of it.flags ?? []) is.add(f);
-    }
-    const mk = (vals) => [...vals].sort().map((v) => ({ raw: v, n: norm(v).trim() }));
-    return {
-      county: mk(county),
-      district: mk(district),
-      is: mk(is),
-      level: mk(['elementary', 'middle', 'high', 'k-12', 'preschool', 'adult', 'other']),
-      kind: mk(['school', 'district', 'county'])
-    };
-  });
-
-  let suggestions = $derived.by(() => {
-    if (!items) return [];
-    const q = query;
-    FACET_KEY_RE.lastIndex = 0;
-    let last = null;
-    let m;
-    while ((m = FACET_KEY_RE.exec(q))) last = m;
-    if (last) {
-      const key = last[2].toLowerCase() === 'type' ? 'level' : last[2].toLowerCase();
-      const head = q.slice(0, last.index + last[1].length) + key + ':';
-      const frag = norm(q.slice(last.index + last[0].length)).trim();
-      const pool = facetPools[key] ?? [];
-      if (pool.some((v) => v.n === frag)) return []; // value fully typed
-      return pool
-        .filter((v) => v.n.includes(frag))
-        .slice(0, 8)
-        .map((v) => ({ label: v.n, next: head + v.n + ' ' }));
-    }
-    const t = q.match(/(^|\s)([a-z]{2,})$/i);
-    if (t) {
-      const frag = t[2].toLowerCase();
-      return Object.keys(facetPools)
-        .filter((k) => k.startsWith(frag) && k !== frag)
-        .map((k) => ({
-          label: k + ':',
-          hint: 'filter by ' + k,
-          next: q.slice(0, t.index + t[1].length) + k + ':'
-        }));
-    }
-    return [];
-  });
-
-  function pickSuggestion(s) {
-    query = s.next;
-    sugIdx = 0;
-  }
-
-  function onFilterKey(e) {
-    if (!sugOpen || !suggestions.length) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      sugIdx = (sugIdx + 1) % suggestions.length;
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      sugIdx = (sugIdx - 1 + suggestions.length) % suggestions.length;
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      pickSuggestion(suggestions[Math.min(sugIdx, suggestions.length - 1)]);
-    } else if (e.key === 'Escape') {
-      sugOpen = false;
-    }
-  }
+  // Facet-aware query parsing + typeahead live in $lib/facets.js and
+  // $lib/FacetFilter.svelte, shared with the student-groups page.
+  let parsed = $derived(parseQuery(query));
 
   let filtered = $derived.by(() => {
     if (!items) return [];
@@ -253,7 +148,13 @@
   });
 
   // Underlying (non-integer) value that breaks ties within a percentile bucket.
-  const TIEBREAK = { adj_pct: 'adj_lcb', growth_pct: 'growth_lcb' };
+  const TIEBREAK = { adj_pct: 'adj_lcb' };
+
+  const CAT_DISPLAY = {
+    gaining: '▲ gaining',
+    holding: '· holding',
+    slipping: '▼ slipping'
+  };
 
   let sorted = $derived.by(() => {
     const arr = [...filtered];
@@ -344,9 +245,10 @@
   }
 
   // Tooltip text lives in $lib/glossary.js — one source for headers and /glossary.
+  // Two-line headers ([line1, line2]) keep the numeric columns narrow.
   const PASS_COLS = [
-    ['pass_ela', 'ELA met+'],
-    ['pass_math', 'Math met+']
+    ['pass_ela', 'ELA', 'met+'],
+    ['pass_math', 'Math', 'met+']
   ];
 
   // ---- Map view ----
@@ -367,8 +269,7 @@
   const FACETS = [
     { key: 'pass_ela', label: 'ELA met+', fmt: (v) => v + '%' },
     { key: 'pass_math', label: 'Math met+', fmt: (v) => v + '%' },
-    { key: 'adj_pct', label: 'Adj %ile' },
-    { key: 'growth_pct', label: 'Growth %ile' },
+    { key: 'adj_pct', label: 'Similar Schools %ile' },
     { key: 'ppe', label: '$/Pupil', step: 250, fmt: (v) => '$' + (+v).toLocaleString() },
     { key: 'econ', label: '% FRPM', scale: 100, fmt: (v) => v + '%' },
     { key: 'enrollment', label: 'Students', step: 10, fmt: (v) => (+v).toLocaleString() }
@@ -433,8 +334,8 @@
     const s = [];
     if (it.pass_ela != null) s.push(`ELA ${it.pass_ela}%`);
     if (it.pass_math != null) s.push(`Math ${it.pass_math}%`);
-    if (it.adj_pct != null) s.push(`Adj ${it.adj_pct}`);
-    if (it.growth_pct != null) s.push(`Growth ${it.growth_pct}`);
+    if (it.adj_pct != null) s.push(`Similar-schools %ile ${it.adj_pct}`);
+    if (it.growth_cat != null) s.push(`Cohorts ${it.growth_cat}`);
     if (s.length) rows.push(s.join(' · '));
     const t = [];
     if (it.ppe != null) t.push('$' + it.ppe.toLocaleString() + '/pupil');
@@ -480,66 +381,68 @@
     return out;
   });
   const NUM_COLS = [
-    ['adj_pct', 'Adj %ile'],
-    ['growth_pct', 'Growth %ile'],
-    ['ppe', '$/Pupil'],
-    ['econ', '% FRPM'],
-    ['enrollment', 'Students']
+    ['adj_pct', 'Similar Schools', '%ile'],
+    ['growth_eb', 'Cohort', 'trajectory'],
+    ['ppe', '$/Pupil', ''],
+    ['econ', '% FRPM', ''],
+    ['enrollment', 'Students', '']
   ];
+
+  // CSV of the current view: same filter/sort as the table on screen.
+  function csvView() {
+    return {
+      headers: [
+        'Name', 'Kind', 'Level', 'District', 'County', 'ELA met+ %', 'Math met+ %',
+        'Similar Schools %ile', 'Cohort trajectory', 'Cohort growth (SD/grade)',
+        '$ per pupil', '% FRPM', 'Enrollment', 'CDS'
+      ],
+      rows: sorted.map((it) => [
+        it.name, it.kind, it.level, it.district, it.county, it.pass_ela, it.pass_math,
+        it.adj_pct, it.growth_cat, it.growth_eb, it.ppe,
+        it.econ == null ? null : Math.round(it.econ * 100), it.enrollment, it.cds
+      ])
+    };
+  }
 </script>
 
-<svelte:head><title>SchoolFactors — every California school, measured honestly</title></svelte:head>
+<svelte:head>
+  <title>SchoolFactors — California schools, compared in context</title>
+  <meta
+    name="description"
+    content="Every California public school, district, and county: CAASPP scores, cohort growth, demographics-adjusted comparisons, enrollment, and spending. Open source and open data."
+  />
+  <link rel="canonical" href="https://schoolfactors.org/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SchoolFactors" />
+  <meta property="og:title" content="SchoolFactors — California schools, compared in context" />
+  <meta
+    property="og:description"
+    content="Raw test scores say more about who attends a school than how well it serves its students. See achievement, cohort growth, and demographics-adjusted comparisons for every California school."
+  />
+  <meta property="og:url" content="https://schoolfactors.org/" />
+  <meta property="og:image" content="https://schoolfactors.org/og/default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+</svelte:head>
 
 <div class="intro">
-  <h1>Every California publicly funded K-12 school.</h1>
+  <h1>California schools, compared in context.</h1>
   <p>
-    {#if items}
-      Detailed performance data from {items.length.toLocaleString()} schools, districts
-      and counties.
-    {:else}
-      Loading the dataset…
-    {/if}
-    Both the raw data and adjustments for demographics at your fingertips.
-    <a href="https://github.com/ssorkin/schoolfactors">100% open source</a>, with the
-    <a href="/methodology">methodology fully documented</a>.
+    Raw test scores say a lot more about who attends the school than how well the
+    school serves its students. SchoolFactors shows achievement, cohort growth,
+    <a href="/methodology">demographics-adjusted comparisons</a> and spending.
+    Every data point and calculation is
+    <a href="https://github.com/ssorkin/schoolfactors">open source</a>.
   </p>
 </div>
 
 <div class="controls">
-  <div class="filterwrap">
-    <input
-      class="filter"
-      placeholder={'Filter… try "district:los angeles unified", "county:sonoma level:high", or "is:magnet"'}
-      bind:value={query}
-      aria-label="Filter table"
-      aria-expanded={sugOpen && suggestions.length > 0}
-      oninput={() => {
-        sugOpen = true;
-        sugIdx = 0;
-      }}
-      onfocus={() => (sugOpen = true)}
-      onblur={() => (sugOpen = false)}
-      onkeydown={onFilterKey}
-    />
-    {#if sugOpen && suggestions.length}
-      <ul class="sugs" role="listbox" aria-label="Filter suggestions">
-        {#each suggestions as s, i (s.label)}
-          <li role="option" aria-selected={i === sugIdx}>
-            <button
-              class:sel={i === sugIdx}
-              tabindex="-1"
-              onmousedown={(e) => {
-                e.preventDefault();
-                pickSuggestion(s);
-              }}
-            >
-              {s.label}{#if s.hint}<span class="sughint">{s.hint}</span>{/if}
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  </div>
+  <FacetFilter
+    bind:query
+    items={items ?? []}
+    placeholder={'Filter… try "district:los angeles unified", "county:sonoma level:high", or "is:magnet"'}
+  />
   <div class="chips" role="group" aria-label="Kind">
     {#each [['all', 'All'], ['school', 'Schools'], ['district', 'Districts'], ['county', 'Counties']] as [k, label] (k)}
       <button class:on={kindFilter === k} onclick={() => (kindFilter = k)}>{label}</button>
@@ -615,8 +518,15 @@
   {/if}
 </div>
 
-<div class="tablewrap" style:display={view === 'table' ? '' : 'none'} {onscroll}>
-  <table>
+<div class="tablecard" style:display={view === 'table' ? '' : 'none'}>
+  {#if items}
+    <div class="tabletools">
+      <span>{sorted.length.toLocaleString()} rows</span>
+      <CsvButton filename="schoolfactors-results.csv" build={csvView} />
+    </div>
+  {/if}
+  <div class="tablewrap" {onscroll}>
+    <table>
     <thead>
       <tr>
         <th class="name sortable" onclick={() => setSort('name')}>
@@ -628,15 +538,17 @@
         <th class="sortable" onclick={() => setSort('level')}>
           Level {sortKey === 'level' ? (sortDir > 0 ? '↑' : '↓') : ''}
         </th>
-        {#each PASS_COLS as [k, label] (k)}
+        {#each PASS_COLS as [k, l1, l2] (k)}
           <th class="tnum sortable" title={COLTIP[k]} onclick={() => setSort(k, -1)}>
-            <span class="deft">{label}</span> {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
+            <span class="deft">{l1}{#if l2}<br />{l2}{/if}</span>
+            {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
           </th>
         {/each}
-        <th title={COLTIP.spark}><span class="deft">Met+ by year</span></th>
-        {#each NUM_COLS as [k, label] (k)}
+        <th title={COLTIP.spark}><span class="deft">Met+<br />by year</span></th>
+        {#each NUM_COLS as [k, l1, l2] (k)}
           <th class="tnum sortable" title={COLTIP[k]} onclick={() => setSort(k, -1)}>
-            <span class="deft">{label}</span> {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
+            <span class="deft">{l1}{#if l2}<br />{l2}{/if}</span>
+            {sortKey === k ? (sortDir > 0 ? '↑' : '↓') : ''}
           </th>
         {/each}
       </tr>
@@ -670,7 +582,14 @@
               {/if}
             </td>
             <td class="tnum" class:pos={it.adj_pct >= 75} class:neg={it.adj_pct <= 25}>{it.adj_pct ?? '—'}</td>
-            <td class="tnum" class:pos={it.growth_pct >= 75} class:neg={it.growth_pct <= 25}>{it.growth_pct ?? '—'}</td>
+            <td
+              class="tnum cat"
+              class:pos={it.growth_cat === 'gaining'}
+              class:neg={it.growth_cat === 'slipping'}
+              title={it.growth_eb != null
+                ? `${it.growth_eb > 0 ? '+' : ''}${it.growth_eb.toFixed(2)} SDs per grade vs the state`
+                : ''}>{CAT_DISPLAY[it.growth_cat] ?? '—'}</td
+            >
             <td class="tnum">{it.ppe == null ? '—' : '$' + it.ppe.toLocaleString()}</td>
             <td class="tnum">{pct(it.econ)}</td>
             <td class="tnum students">
@@ -695,9 +614,10 @@
       {/if}
     </tbody>
   </table>
-  {#if items && shown < sorted.length}
-    <p class="more">Scroll for more — {(sorted.length - shown).toLocaleString()} rows below</p>
-  {/if}
+    {#if items && shown < sorted.length}
+      <p class="more">Scroll for more — {(sorted.length - shown).toLocaleString()} rows below</p>
+    {/if}
+  </div>
 </div>
 
 <p class="foot">
@@ -822,58 +742,6 @@
     color: #898781;
     margin: 0.6rem 0 0;
   }
-  .filterwrap {
-    position: relative;
-    flex: 1 1 380px;
-  }
-  .filter {
-    width: 100%;
-    padding: 0.55rem 0.8rem;
-    font-size: 0.97rem;
-    border: 1px solid #d8d0c0;
-    border-radius: 8px;
-    background: #fffdf9;
-  }
-  .sugs {
-    position: absolute;
-    top: calc(100% + 3px);
-    left: 0;
-    right: 0;
-    z-index: 20;
-    margin: 0;
-    padding: 0.25rem;
-    list-style: none;
-    background: #fffdf9;
-    border: 1px solid #d8d0c0;
-    border-radius: 8px;
-    box-shadow: 0 6px 18px rgba(43, 39, 34, 0.12);
-    max-height: 280px;
-    overflow-y: auto;
-  }
-  .sugs button {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.8rem;
-    width: 100%;
-    text-align: left;
-    border: none;
-    background: none;
-    font: inherit;
-    font-size: 0.92rem;
-    padding: 0.35rem 0.6rem;
-    border-radius: 6px;
-    cursor: pointer;
-    color: #2b2722;
-  }
-  .sugs button.sel,
-  .sugs button:hover {
-    background: #f0e8d9;
-  }
-  .sughint {
-    color: #898781;
-    font-size: 0.8rem;
-  }
   .chips {
     display: flex;
     gap: 0.25rem;
@@ -908,10 +776,25 @@
   .inactive input {
     accent-color: #2a78d6;
   }
-  .tablewrap {
+  .tablecard {
     border: 1px solid #e8e1d5;
     border-radius: 10px;
     background: #fffdf9;
+    overflow: hidden;
+  }
+  .tabletools {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 0.9rem;
+    padding: 0.3rem 0.8rem;
+    background: #f6f1e7;
+    border-bottom: 1px solid #e8e1d5;
+    font-size: 0.82rem;
+    color: #898781;
+    font-variant-numeric: tabular-nums;
+  }
+  .tablewrap {
     max-height: 72vh;
     overflow: auto;
   }
@@ -927,10 +810,12 @@
     background: #f6f1e7;
     z-index: 2;
     text-align: left;
-    padding: 0.45rem 0.5rem;
+    vertical-align: bottom;
+    padding: 0.35rem 0.5rem;
     border-bottom: 1px solid #e8e1d5;
     white-space: nowrap;
     color: #52514e;
+    line-height: 1.25;
   }
   th.sortable {
     cursor: pointer;

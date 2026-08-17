@@ -4,7 +4,9 @@
    * (choice of metric) and percent met-or-exceeded by student group × year.
    * Suppressed cells (n < 11 at source) simply don't exist and render as —.
    */
-  let { scores = [], subgroups = [] } = $props();
+  import CsvButton from '$lib/CsvButton.svelte';
+
+  let { scores = [], subgroups = [], name = 'results' } = $props();
 
   let subject = $state('ela');
   let metric = $state('mean');
@@ -39,6 +41,34 @@
     for (const r of srows) m.set(r.group + '-' + r.year, r);
     return m;
   });
+
+  const RAW = {
+    mean: (r) => r.mean,
+    z: (r) => r.z,
+    pct_met: (r) => r.pct_met,
+    n: (r) => r.n
+  };
+  function gradeCsv() {
+    return {
+      headers: ['Grade', ...years],
+      rows: grades.map((g) => [
+        g,
+        ...years.map((y) => {
+          const r = cell.get(g + '-' + y);
+          return r ? RAW[metric](r) : null;
+        })
+      ])
+    };
+  }
+  function groupCsv() {
+    return {
+      headers: ['Student group', ...syears],
+      rows: sgroups.map((g) => [
+        GROUP_LABELS[g],
+        ...syears.map((y) => scell.get(g + '-' + y)?.pct_met ?? null)
+      ])
+    };
+  }
 </script>
 
 {#if scores.length}
@@ -76,6 +106,9 @@
         </tbody>
       </table>
     </div>
+    <p class="dl">
+      <CsvButton filename="{name} {subject} by grade.csv" build={gradeCsv} />
+    </p>
 
     {#if sgroups.length}
       <h3>By student group — % met or exceeded standard (all grades combined)</h3>
@@ -99,6 +132,9 @@
           </tbody>
         </table>
       </div>
+      <p class="dl">
+        <CsvButton filename="{name} {subject} by student group.csv" build={groupCsv} />
+      </p>
       <p class="note">
         Groups overlap (a student appears in several rows) and cells with fewer than
         11 students are suppressed at the source, so groups never sum to the total.
@@ -171,5 +207,8 @@
     font-size: 0.82rem;
     margin: 0.6rem 0 0;
     max-width: 46rem;
+  }
+  .dl {
+    margin: 0.4rem 0 0;
   }
 </style>

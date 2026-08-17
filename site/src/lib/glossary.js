@@ -89,7 +89,7 @@ export const GLOSSARY = [
   },
   {
     id: 'adj-percentile',
-    term: 'Adj %ile (adjusted percentile)',
+    term: 'Similar Schools %ile (adjusted percentile)',
     unit: 'percentile, 1–99',
     tip: 'Percentile of the adjusted recent level among entities of the same kind, ranked by the lower bound of each estimate’s 95% band — an unconfident high estimate ranks below a confident slightly-lower one. 50 = typical for the students served.',
     def: [
@@ -99,14 +99,14 @@ export const GLOSSARY = [
     ]
   },
   {
-    id: 'growth-percentile',
-    term: 'Growth %ile (cohort-growth percentile)',
-    unit: 'percentile, 1–99',
-    tip: 'Percentile of adjusted cohort growth among entities of the same kind, ranked by the lower bound of each estimate’s 95% band. Above 50 = classes gain more per grade than comparable entities.',
+    id: 'cohort-trajectory',
+    term: 'Cohort trajectory (gaining / holding / slipping)',
+    unit: 'category',
+    tip: 'Whether classes gain on the state, hold their standing, or lose ground as they move up grades. "Holding" at a high level is a fine outcome — this is a trajectory, not a rank.',
     def: [
-      'Where an entity’s adjusted cohort growth (see Growth) falls among entities of the same kind, ranked — like Adj %ile — by the lower bound of the 95% band around the shrunken estimate, and shown only for entities with test data in the latest year. Above 50, classes gain more ground per grade — relative to the state, given the students served — than most comparable entities; below 50, less.',
-      'Growth percentiles answer the closest thing to a "value-added" question this data can support: aggregate cohorts moving through a school, standardized against the state, adjusted for the population served, shrunken, and reliability-gated (below 0.70, no percentile is shown). Unlike teacher value-added models built on linked student records, it makes no claim about causation — and our growth measure is essentially uncorrelated with prior achievement (−0.01), the falsification test single-model rankings have famously failed.',
-      'Read it loosely: growth is estimated with more noise than level, so treat mid-range differences as ties.'
+      'Whether an entity’s cohorts — classes moving through together — gain on the state, hold their standing, or lose ground as they move up grades. "Holding" means the class’s distribution against grade-level standards stays stable as it advances: the share meeting CAASPP standards moves with the state’s. "Gaining" or "slipping" is declared only when the 95% band around the shrunken within-cohort slope — the growth and trend components a class actually experiences, combined — clears zero AND the estimate exceeds ±0.02 student SDs per grade; everything else is "holding". A dash means the estimate didn’t pass the reliability gate (0.70) or the entity lacks current-year data.',
+      'Why a category and not a percentile: the spread of true growth across schools is small (about 0.07 SDs per grade), so ranking it turns near-zero differences into misleading-looking grades — a school whose cohorts arrive high and stay high would rank mid-pack on "growth" despite doing exactly what one hopes. Holding is a fine outcome; slipping is the warning sign worth investigating in the cohort chart; gaining at an already-high level is uncommon and notable. Statewide, roughly a third of schools land in each category, and the category is uncorrelated with score level — high-scoring schools gain, hold, and slip in the same proportions as everyone else.',
+      'This is judged against the state (raw growth). The demographically adjusted growth value still appears in the model tiles on entity pages; the peer scatter’s vertical axis is a different measure — absolute improvement per year, with a diamond marking California overall. Growth is essentially uncorrelated with prior achievement (−0.01), the falsification test single-number rankings have famously failed. As everywhere on this site: correlational, not causal.'
     ]
   },
   {
@@ -199,7 +199,7 @@ export const COLTIP = {
   pass_math: 'Math — ' + TIP['met-plus'],
   spark: TIP['met-plus-by-year'],
   adj_pct: TIP['adj-percentile'],
-  growth_pct: TIP['growth-percentile'],
+  growth_eb: TIP['cohort-trajectory'],
   ppe: TIP['ppe'],
   econ: TIP['econ-share'],
   enrollment: TIP['enrollment']
