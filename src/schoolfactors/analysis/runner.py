@@ -28,7 +28,7 @@ def run_analysis() -> None:
     effects = fit_school_models(panel)
     print(f"  {len(effects):,} schools with enough data (≥6 obs, ≥3 years)")
 
-    for param in ("level", "growth", "trend"):
+    for param in ("level", "growth", "trend", "move"):
         effects, mu, tau2 = eb_shrink(effects, param)
         rel = effects[f"{param}_reliability"]
         ok = (rel >= 0.7).sum()
@@ -163,7 +163,7 @@ def run_analysis() -> None:
     dpanel = build_panel(DISTRICT_TYPES)
     deffects = fit_school_models(dpanel)
     print(f"  {len(deffects):,} districts with enough data")
-    for param in ("level", "growth", "trend"):
+    for param in ("level", "growth", "trend", "move"):
         deffects, _, _ = eb_shrink(deffects, param)
     deffects = deffects.join(build_covariates(DISTRICT_TYPES), on="cds", how="left")
     for param in ("level", "growth"):
@@ -177,7 +177,7 @@ def run_analysis() -> None:
     cpanel = build_panel(COUNTY_TYPES)
     ceffects = fit_school_models(cpanel)
     print(f"  {len(ceffects):,} counties with enough data")
-    for param in ("level", "growth", "trend"):
+    for param in ("level", "growth", "trend", "move"):
         ceffects, _, _ = eb_shrink(ceffects, param)
     ceffects = ceffects.join(build_covariates(COUNTY_TYPES), on="cds", how="left")
     county_covs = ["share_econ_dis", "share_el", "share_swd", "share_hispanic", "share_white"]

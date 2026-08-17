@@ -34,6 +34,13 @@ MIN_OBS = 6
 MIN_YEARS = 3
 PARAMS = ["level", "growth", "trend"]
 LEVEL_HALF_LIFE_YEARS = 1.5
+# Cohort movement leans toward recent cohorts. Chosen by holdout — predicting
+# each school's realized 2025 within-cohort step (n-weighted mean delta-z of
+# cohorts observed in both 2024 and 2025) from data through 2024, weighted
+# RMSE across 7,348 schools: no decay 0.1138, HL=8y 0.1113, 6y 0.1107,
+# 4y 0.1096, 3y 0.1089, 2y 0.1084, 1.5y 0.1088. The bowl is shallow from
+# 1.5-3y; 2y is the minimum.
+MOVE_HALF_LIFE_YEARS = 2.0
 
 
 def _solve_wls(y, w, yr, gr, subj):
@@ -84,7 +91,9 @@ def fit_school_models(panel: pl.DataFrame) -> pl.DataFrame:
         full = _solve_wls(y, w, yr, gr, subj)
         w_recent = w * np.power(0.5, (yr.max() - yr) / LEVEL_HALF_LIFE_YEARS)
         recent = _solve_wls(y, w_recent, yr, gr, subj)
-        if full is None or recent is None:
+        w_mid = w * np.power(0.5, (yr.max() - yr) / MOVE_HALF_LIFE_YEARS)
+        mid = _solve_wls(y, w_mid, yr, gr, subj)
+        if full is None or recent is None or mid is None:
             continue
 
         row: dict = {
@@ -104,6 +113,19 @@ def fit_school_models(panel: pl.DataFrame) -> pl.DataFrame:
                 if _COEF_NAMES[col] in wanted:
                     row[_COEF_NAMES[col]] = float(beta[j])
                     row[f"{_COEF_NAMES[col]}_var"] = float(cov[j, j])
+        # Within-cohort movement: a class moving up a grade also moves forward
+        # a year, so the slope a cohort actually experiences is growth + trend.
+        # The sum is better identified than either component (they are
+        # negatively correlated along cohort diagonals), so the covariance
+        # term matters. Taken from the mildly recency-weighted fit: recent
+        # cohorts matter marginally more, without giving up the window a
+        # slope needs.
+        keep, beta, cov, _ = mid
+        if 1 in keep and 2 in keep:
+            i = keep.index(1)
+            j = keep.index(2)
+            row["move"] = float(beta[i] + beta[j])
+            row["move_var"] = float(cov[i, i] + cov[j, j] + 2 * cov[i, j])
         out.append(row)
     return pl.DataFrame(out)
 

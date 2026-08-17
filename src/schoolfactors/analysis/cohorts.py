@@ -211,7 +211,7 @@ def cohort_steps(
 
     flag_exprs = []
     expected_dz = pl.lit(0.0)
-    for _, (name, covar) in BLEND_GROUPS.items():
+    for name, covar in BLEND_GROUPS.values():
         s0, s1 = pl.col(f"share_{name}"), pl.col(f"share_{name}_next")
         d = s1 - s0
         se = (

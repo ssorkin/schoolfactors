@@ -30,6 +30,9 @@ EFFECT_COLS = [
     "growth_se",
     "trend_eb",
     "trend_se",
+    "move_eb",
+    "move_se",
+    "move_reliability",
     "level_adj_eb",
     "level_adj_lcb",
     "growth_adj_eb",
@@ -77,6 +80,37 @@ ENR_YEARS = list(range(2015, 2027))
 
 # Student groups that get a "Best for" table (data/groups/{id}.json).
 BESTFOR_GROUPS = [128, 31, 160, 8, 74, 76, 77, 78, 80, 144, 52, 240, 90]
+
+# Groups compared against their statewide rate in the entity-page summary.
+SUMMARY_GROUPS = [31, 160, 128, 74, 76, 78, 80]
+
+# Groups benchmarked against SIMILAR entities (same kind, model-predicted level
+# within a band) — the comparison that explains extreme adjusted placements.
+# Includes All Students (Met+ AND Exceeded: a shortfall can live entirely in
+# the top band) and the advantage-marked groups whose statewide averages are
+# the wrong bar in advantaged communities.
+VS_SIMILAR_GROUPS = [1, 31, 111, 93, 94]
+
+
+def _latest_rates(rows: list[dict]) -> dict | None:
+    """Latest-year combined Met+/Exceeded for one group's rows (count-weighted)."""
+    by_year: dict[int, list] = {}
+    for r in rows:
+        if r["pct_met_and_above"] is None:
+            continue
+        by_year.setdefault(r["test_year"], []).append(
+            (r["pct_met_and_above"], r["pct_exceeded"], r["n"])
+        )
+    if not by_year:
+        return None
+    vals = by_year[max(by_year)]
+    n = sum(v[2] for v in vals)
+    if not n:
+        return None
+    met = sum(v[0] * v[2] for v in vals) / n
+    excs = [(v[1], v[2]) for v in vals if v[1] is not None]
+    exc = sum(a * b for a, b in excs) / sum(b for _, b in excs) if excs else None
+    return {"met": met, "exc": exc, "n": n}
 
 
 def _group_stats(rows: list[dict]) -> dict:
@@ -147,6 +181,37 @@ def run_export() -> None:
 
     sigma = estimate_sigma(school_rows(SCHOOL_TYPES))
     state = state_means()
+
+    # Statewide Met+ per student group and year (grade-13 rollup, both subjects,
+    # count-weighted): the page summary compares each entity's groups against
+    # the same group statewide — a raw comparison, labeled as such.
+    con_state = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    state_group_rate: dict[tuple[int, int], float] = {}
+    for gid, yr, num, den in con_state.execute(f"""
+        SELECT student_group_id, test_year,
+               sum(pct_met_and_above * students_with_scores),
+               sum(students_with_scores)
+        FROM caaspp_sb_raw
+        WHERE cds = '00000000000000' AND grade = 13 AND test_id IN (1, 2)
+          AND student_group_id IN ({", ".join(map(str, SUMMARY_GROUPS))})
+          AND pct_met_and_above IS NOT NULL AND test_year <> 2021
+        GROUP BY 1, 2
+    """).fetchall():
+        if den:
+            state_group_rate[(gid, yr)] = num / den
+    # State Met+ by year x grade x subject: the band-language reference for the
+    # cohort examples on entity pages ("58% met standards in grade 3, state 47%").
+    state_met = {
+        (r[0], r[1], r[2]): r[3]
+        for r in con_state.execute("""
+            SELECT test_year, grade, test_id, pct_met_and_above
+            FROM caaspp_sb_raw
+            WHERE cds = '00000000000000' AND student_group_id = 1
+              AND grade BETWEEN 3 AND 11 AND test_id IN (1, 2)
+              AND pct_met_and_above IS NOT NULL
+        """).fetchall()
+    }
+    con_state.close()
 
     from schoolfactors.analysis.neighbors import build_neighbors
 
@@ -224,19 +289,17 @@ def run_export() -> None:
           AND school_code IS NOT NULL AND school_code <> '0000000'
           AND TRY_CAST(enrollment_k_12 AS DOUBLE) > 0
     """).fetchall()
-    # ESSA per-pupil expenditure, latest file (lexicographic max works for
-    # essappeXXYYdata names). Total = school + allocated central, federal +
-    # state/local.
-    ppe_rows = con_dir.execute("""
-        SELECT cds, lea_cds_code,
+    # ESSA per-pupil expenditure, every published year (essappeXXYYdata →
+    # spring 20YY). Total = school + allocated central, federal + state/local.
+    ppe_rows_all = con_dir.execute("""
+        SELECT file, cds, lea_cds_code,
                COALESCE(TRY_CAST(school_expenditures_federal AS DOUBLE), 0)
              + COALESCE(TRY_CAST(school_expenditures_state_local AS DOUBLE), 0)
              + COALESCE(TRY_CAST(central_expenditures_federal AS DOUBLE), 0)
              + COALESCE(TRY_CAST(central_expenditures_state_local AS DOUBLE), 0) AS pp,
                TRY_CAST(student_membership AS DOUBLE) AS mem
         FROM ppe_raw
-        WHERE file = (SELECT max(file) FROM ppe_raw)
-          AND TRY_CAST(school_expenditures_state_local AS DOUBLE) IS NOT NULL
+        WHERE TRY_CAST(school_expenditures_state_local AS DOUBLE) IS NOT NULL
           AND length(cds) = 14
     """).fetchall()
     # Coordinates for the map view. CDE directory lat/long, bounded to
@@ -320,54 +383,66 @@ def run_export() -> None:
 
     # Normalize PPE totals-reporters (known issue ppe-totals-reporting): ~5% of
     # LEAs filed total dollars in the per-pupil columns. The convention is
-    # consistent within an LEA, so an LEA whose median reported value exceeds
-    # $100k/pupil is treated as a totals-reporter and its rows are divided by
-    # membership. Symmetrically (known issue ppe-implausibly-low-filings), an
-    # LEA whose median is under $5k/pupil — below the LCFF base grant alone —
-    # filed broken data (e.g. Mt. Diablo Unified 2024-25 omitted state/local
-    # dollars entirely) and every one of its rows is unusable, including any
-    # that individually pass the floor. Post-normalization values outside
-    # [$5k, $500k] are dropped as unusable: below the LCFF base grant is
-    # impossible, but tiny SpEd/court/community-day programs legitimately run
-    # $150k-$400k per pupil, so the ceiling only cuts the physically absurd.
-    ppe_by_lea: dict[str, list[float]] = {}
-    for _, lea, pp, _ in ppe_rows:
-        if pp > 0:
-            ppe_by_lea.setdefault(lea, []).append(pp)
-    ppe_totals_leas = {
-        lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] > 100_000
-    }
-    ppe_broken_leas = {
-        lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] < 5_000
-    }
-    ppe_map: dict[str, int] = {}
-    ppe_pool: dict[str, list] = {}
-    for scds, lea, pp, mem in ppe_rows:
-        if pp <= 0 or lea in ppe_broken_leas:
-            continue
-        if lea in ppe_totals_leas:
-            if not mem:
+    # consistent within an LEA (per year), so an LEA whose median reported value
+    # exceeds $100k/pupil is treated as a totals-reporter and its rows are
+    # divided by membership. Symmetrically (known issue
+    # ppe-implausibly-low-filings), an LEA whose median is under $5k/pupil —
+    # below the LCFF base grant alone — filed broken data (e.g. Mt. Diablo
+    # Unified 2024-25 omitted state/local dollars entirely) and every one of its
+    # rows is unusable, including any that individually pass the floor.
+    # Post-normalization values outside [$5k, $500k] are dropped as unusable:
+    # below the LCFF base grant is impossible, but tiny SpEd/court/community-day
+    # programs legitimately run $150k-$400k per pupil, so the ceiling only cuts
+    # the physically absurd. Each published year is normalized independently
+    # (a filing convention can change between years), producing a per-entity
+    # spending history plus the latest-year value used in the table.
+    ppe_hist: dict[str, dict[int, int]] = {}
+    for file_ in sorted({r[0] for r in ppe_rows_all}):
+        year = 2000 + int(file_[9:11])  # essappe1819data → spring 2019
+        rows_y = [r for r in ppe_rows_all if r[0] == file_]
+        ppe_by_lea: dict[str, list[float]] = {}
+        for _, _, lea, pp, _ in rows_y:
+            if pp > 0:
+                ppe_by_lea.setdefault(lea, []).append(pp)
+        ppe_totals_leas = {
+            lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] > 100_000
+        }
+        ppe_broken_leas = {
+            lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] < 5_000
+        }
+        ppe_pool: dict[str, list] = {}
+        for _, scds, lea, pp, mem in rows_y:
+            if pp <= 0 or lea in ppe_broken_leas:
                 continue
-            pp = pp / mem
-        if not 5_000 <= pp <= 500_000:
-            continue
-        ppe_map[scds] = round(pp)
-        # District/county figures: reconstruct dollars (pp × membership), sum,
-        # re-divide — never average per-pupil ratios. Charter schools fold into
-        # their CDS-prefix district, matching the CAASPP Charter='All' rollups.
-        if mem:
-            for key in (scds[:7] + "0000000", scds[:2] + "000000000000"):
-                agg = ppe_pool.setdefault(key, [0.0, 0.0])
-                agg[0] += pp * mem
-                agg[1] += mem
-    # Coverage gate: after dropping unusable rows, a district/county aggregate
-    # may describe only a sliver of the entity (Mt. Diablo Unified's own
-    # schools are all dropped, leaving just co-located charters). Publish the
-    # rollup only when usable reports cover >= 70% of census enrollment.
-    for key, (dollars, students) in ppe_pool.items():
-        census = census_map.get(key)
-        if students > 0 and (census is None or students >= 0.7 * census):
-            ppe_map[key] = round(dollars / students)
+            if lea in ppe_totals_leas:
+                if not mem:
+                    continue
+                pp = pp / mem
+            if not 5_000 <= pp <= 500_000:
+                continue
+            ppe_hist.setdefault(scds, {})[year] = round(pp)
+            # District/county figures: reconstruct dollars (pp × membership),
+            # sum, re-divide — never average per-pupil ratios. Charter schools
+            # fold into their CDS-prefix district, matching CAASPP rollups.
+            if mem:
+                for key in (scds[:7] + "0000000", scds[:2] + "000000000000"):
+                    agg = ppe_pool.setdefault(key, [0.0, 0.0])
+                    agg[0] += pp * mem
+                    agg[1] += mem
+        # Coverage gate: after dropping unusable rows, a district/county
+        # aggregate may describe only a sliver of the entity (Mt. Diablo
+        # Unified's own schools are all dropped, leaving just co-located
+        # charters). Publish the rollup only when usable reports cover >= 70%
+        # of that year's census enrollment.
+        for key, (dollars, students) in ppe_pool.items():
+            census = enr_hist.get(key, {}).get(year)
+            if students > 0 and (census is None or students >= 0.7 * census):
+                ppe_hist.setdefault(key, {})[year] = round(dollars / students)
+    PPE_YEARS = sorted({y for d in ppe_hist.values() for y in d})
+    latest_ppe_year = max(PPE_YEARS) if PPE_YEARS else None
+    ppe_map: dict[str, int] = {
+        k: d[latest_ppe_year] for k, d in ppe_hist.items() if latest_ppe_year in d
+    }
     school_name_lookup = {
         r["cds"]: (r["school_name"], r["district_name"])
         for r in names.filter(pl.col("type_id").is_in([7, 9, 10])).to_dicts()
@@ -380,6 +455,7 @@ def run_export() -> None:
         return {**e, "name": nm[0], "district": nm[1]}
 
     written = {"counties": 0, "schools": 0, "districts": 0}
+    vs_pool: dict[str, list] = {}
     index: list[dict] = []
     district_pages: set[str] = set()
     county_pages: set[str] = set()
@@ -427,10 +503,61 @@ def run_export() -> None:
                 display_name = nrow["district_name"]
             else:
                 display_name = nrow["school_name"]
+            # Group stats: All Students feeds the index row and the page
+            # summary; curated groups feed the Student-groups tables.
+            sub_rows = _rows(subgroups_by, cds)
+            g1 = _group_stats([r for r in sub_rows if r["student_group_id"] == 1])
+            # Stash predicted level + group rates for the vs-similar benchmark
+            # (pooled in a post-pass once every entity of the kind is known).
+            _row_full = eff_by_cds.get(cds, {})
+            _pred_level = _row_full.get("level")
+            _pred_resid = _row_full.get("level_adj")
+            if _pred_level is not None and _pred_resid is not None:
+                vs_pool.setdefault(kind, []).append(
+                    {
+                        "cds": cds,
+                        "pred": _pred_level - _pred_resid,
+                        "rates": {
+                            g: _latest_rates(
+                                [r for r in sub_rows if r["student_group_id"] == g]
+                            )
+                            for g in VS_SIMILAR_GROUPS
+                        },
+                    }
+                )
+            # Each group's latest combined Met+ vs the same group statewide,
+            # current-year data only, gated on >= 30 scores (source suppression
+            # already hides n < 11; 30 keeps single-classroom noise out of the
+            # summary sentence).
+            gvs = []
+            for gid in SUMMARY_GROUPS:
+                gs = _group_stats([r for r in sub_rows if r["student_group_id"] == gid])
+                ref = state_group_rate.get((gid, gs["last_year"]))
+                if (
+                    gs["combined_latest"] is None
+                    or ref is None
+                    or (gs["n_latest"] or 0) < 30
+                    or gs["last_year"] != g1["last_year"]
+                ):
+                    continue
+                gvs.append({"g": gid, "d": round(gs["combined_latest"] - ref, 1)})
             payload = {
                 "cds": cds,
                 "kind": kind[:-1] if kind != "counties" else "county",
                 "name": display_name,
+                "pass_ela": g1["pass_ela"],
+                "pass_math": g1["pass_math"],
+                "pass_year": g1["last_year"],
+                "enrollment": census_map.get(cds),
+                "enr": (
+                    [enr_hist[cds].get(y) for y in ENR_YEARS] if cds in enr_hist else None
+                ),
+                "ppe": ppe_map.get(cds),
+                "ppe_years": PPE_YEARS,
+                "ppe_hist": (
+                    [ppe_hist[cds].get(y) for y in PPE_YEARS] if cds in ppe_hist else None
+                ),
+                "group_vs_state": gvs,
                 "district": nrow["district_name"],
                 "district_cds": cds[:7] + "0000000",
                 "county": nrow["county_name"],
@@ -448,6 +575,9 @@ def run_export() -> None:
                         "state_mean": r["state_mean"],
                         "pct_met": r["pct_met_and_above"],
                         "pct_exc": r["pct_exceeded"],
+                        "state_pct_met": state_met.get(
+                            (r["test_year"], r["grade"], r["test_id"])
+                        ),
                     }
                     for r in sc.sort(["grad_year", "grade", "test_id"]).to_dicts()
                 ],
@@ -460,7 +590,7 @@ def run_export() -> None:
                         "pct_exc": r["pct_exceeded"],
                         "n": r["n"],
                     }
-                    for r in _rows(subgroups_by, cds)
+                    for r in sub_rows
                 ],
                 "cohort_slopes": [
                     {k: r[k] for k in ("grad_year", "slope", "slope_se", "n_points")}
@@ -533,10 +663,6 @@ def run_export() -> None:
             raw_ela, raw_math = _split(eff.get("level_eb"))
             adj_ela, adj_math = _split(eff.get("level_adj_eb"))
 
-            # Group stats: All Students drives the index row; curated groups feed
-            # the Best-for tables.
-            sub_rows = _rows(subgroups_by, cds)
-            g1 = _group_stats([r for r in sub_rows if r["student_group_id"] == 1])
             spark = g1["spark"]
             last_year = g1["last_year"]
 
@@ -596,9 +722,16 @@ def run_export() -> None:
                     "last_year": last_year,
                     "growth_adj_eb": eff.get("growth_adj_eb"),
                     "growth_lcb": eff.get("growth_adj_lcb"),
-                    # Stripped before writing — used only for percentile gating.
+                    # Within-cohort movement (growth + trend): the slope a
+                    # class actually experiences vs the state as it moves up.
+                    "growth_eb": eff.get("move_eb"),
+                    "trend_eb": eff.get("trend_eb"),
+                    # Stripped before writing — used only for percentile/peer gating.
                     "_lrel": eff.get("level_reliability"),
                     "_grel": eff.get("growth_reliability"),
+                    "_gse": eff.get("move_se"),
+                    "_mrel": eff.get("move_reliability"),
+                    "_trel": full_eff.get("trend_reliability"),
                     "_ly": eff.get("last_year"),
                     # Full-population FRPM share (all enrolled students), falling
                     # back to the tested-population share where FRPM is missing.
@@ -674,11 +807,13 @@ def run_export() -> None:
     # recency-weighted, so for a school whose data stopped years ago it
     # describes a school that may no longer exist in that form. The underlying
     # student-SD values stay in the payloads; this is display only.
+    latest_by_kind: dict[str, int | None] = {}
     for kind_ in ("school", "district", "county"):
         latest = max(
             (e["_ly"] for e in index if e["kind"] == kind_ and e.get("_ly")),
             default=None,
         )
+        latest_by_kind[kind_] = latest
         for src, rel_key, out in (
             ("adj_lcb", "_lrel", "adj_pct"),
             ("growth_lcb", "_grel", "growth_pct"),
@@ -699,9 +834,305 @@ def run_export() -> None:
                     lo = bisect.bisect_left(pool, e[src])
                     hi = bisect.bisect_right(pool, e[src])
                     e[out] = min(99, max(1, round(100 * (lo + hi) / 2 / len(pool))))
+
+    # Cohort trajectory verdict — the display form of growth. A percentile of
+    # growth amplifies near-zero differences (tau is only 0.066 SD/grade) into
+    # grades, and reads "holding at a high level" as mediocrity. Instead:
+    # gaining/holding/slipping vs the STATE (raw growth), called only when the
+    # 95% posterior band clears zero AND the point estimate exceeds a 0.02
+    # SD/grade practical floor; gated like the percentiles (reliability >= 0.70,
+    # current-year data). Posterior sd = sqrt(reliability) * se — shrinkage
+    # already removed noise, so the raw se would double-count it.
+    for e in index:
+        eb = e.get("growth_eb")
+        se = e.get("_gse")
+        rel = e.get("_mrel") or 0
+        if (
+            eb is None
+            or se is None
+            or rel < 0.7
+            or e.get("_ly") != latest_by_kind.get(e["kind"])
+        ):
+            e["growth_cat"] = None
+            continue
+        half = 1.96 * (rel**0.5) * se
+        if eb - half > 0 and eb >= 0.02:
+            e["growth_cat"] = "gaining"
+        elif eb + half < 0 and eb <= -0.02:
+            e["growth_cat"] = "slipping"
+        else:
+            e["growth_cat"] = "holding"
+
+    # Absolute yearly improvement for the peer scatter. Cohort growth cannot be
+    # made absolute — scores are standardized within year x grade, so the
+    # state's own within-cohort motion is zero by construction. Trend can:
+    # standardize the state's means against a FIXED (pooled-across-years)
+    # benchmark per grade x subject and fit a year slope; adding that to each
+    # entity's state-relative trend yields improvement per year in absolute
+    # terms, and the state itself gets a dot at (0, state_slope).
+    import numpy as np
+
+    st = state.join(sigma, on=["test_year", "grade", "test_id"], how="inner")
+    st = st.with_columns(
+        (
+            (pl.col("state_mean") - pl.col("state_mean").mean().over(["grade", "test_id"]))
+            / pl.col("sigma")
+        ).alias("z_fixed")
+    )
+    state_slope = float(
+        np.polyfit(st["test_year"].to_numpy(), st["z_fixed"].to_numpy(), 1)[0]
+    )
+    print(f"  state absolute trend: {state_slope:+.4f} SDs/year")
+
+    # Absolute cohort movement: scores normalized against the fixed
+    # on-grade-level ("Standard Met") threshold rather than the state mean, so
+    # a cohort's slope across grades is meaningful in absolute terms and the
+    # state itself has one — the average California cohort's drift vs
+    # standards. Per-entity value = state-relative growth + this state slope.
+    cuts = sigma.group_by(["grade", "test_id"]).agg(pl.col("cut").median().alias("cut_med"))
+    stc = (
+        state.join(sigma, on=["test_year", "grade", "test_id"], how="inner")
+        .join(cuts, on=["grade", "test_id"], how="inner")
+        .with_columns(
+            ((pl.col("state_mean") - pl.col("cut_med")) / pl.col("sigma")).alias("z_std"),
+            (pl.col("test_year") + 12 - pl.col("grade")).alias("grad_year"),
+        )
+        .with_columns(
+            (pl.col("grade") - pl.col("grade").mean().over(["grad_year", "test_id"])).alias("gd"),
+            (pl.col("z_std") - pl.col("z_std").mean().over(["grad_year", "test_id"])).alias("zd"),
+        )
+    )
+    state_cohort_slope = float(
+        (stc["gd"] * stc["zd"]).sum() / (stc["gd"] ** 2).sum()
+    )
+    print(f"  state cohort movement vs standards: {state_cohort_slope:+.4f} SDs/grade")
+
+    # Trend passes the same gates as the percentiles (reliability >= 0.70,
+    # current-year data). It backs the y-axis of the peer scatter.
+    def trend_ok(e: dict) -> bool:
+        return (
+            e.get("trend_eb") is not None
+            and (e.get("_trel") or 0) >= 0.7
+            and e.get("_ly") == latest_by_kind.get(e["kind"])
+        )
+
+    # Peer histograms for the page summary card: adjusted level among entities
+    # of the same kind — for schools, additionally the same level and type
+    # (selective/magnet/charter/alternative/standard, mirroring the map legend
+    # in site maptypes.js) — in student SDs. Fixed common bins keep every
+    # histogram comparable; outliers clamp into the end bins.
+    HIST_LO, HIST_W, HIST_N = -1.6, 0.1, 32
+    ALT_FLAGS = {"alt-choice", "continuation", "community-day", "community", "court",
+                 "special-ed"}
+    EIL_WORD = {"ELEM": "elementary", "INTMIDJR": "middle", "HS": "high",
+                "ELEMHIGH": "K-12"}
+
+    def school_type(flags: list | None) -> str:
+        fl = flags or []
+        if "selective" in fl:
+            return "selective"
+        if "magnet" in fl:
+            return "magnet"
+        if "charter" in fl:
+            return "charter"
+        if ALT_FLAGS & set(fl):
+            return "alternative"
+        return "standard"
+
+    def peer_key(e: dict) -> tuple:
+        if e["kind"] == "school":
+            return ("school", EIL_WORD.get(e.get("eil"), "other"), school_type(e.get("flags")))
+        return (e["kind"],)
+
+    def peer_label(key: tuple) -> str:
+        if key[0] == "school":
+            lvl, typ = key[1], key[2]
+            lvl_part = f"{lvl} schools" if lvl != "other" else "schools"
+            return lvl_part if typ == "standard" else f"{typ} {lvl_part}"
+        return "districts" if key[0] == "district" else "counties"
+
+    peer_bins: dict[tuple, list[int]] = {}
+    for e in index:
+        v = e.get("level_adj_eb")
+        if v is None:
+            continue
+        b = min(HIST_N - 1, max(0, int((v - HIST_LO) / HIST_W)))
+        peer_bins.setdefault(peer_key(e), [0] * HIST_N)[b] += 1
+    adj_by_cds = {e["cds"]: e.get("level_adj_eb") for e in index}
+    trend_by_cds = {e["cds"]: e.get("trend_eb") for e in index}
+    growth_by_cds = {e["cds"]: e.get("growth_eb") for e in index}
+
+    # Peer scatter files (data/peers/{key}.json): every peer whose level gate
+    # passed and that has at least one gated y-measure, as [cds, name,
+    # adjusted level, absolute cohort movement/yr | null,
+    # absolute improvement/yr | null, [lat, lon] | null]. Cohort movement
+    # (vs the fixed Standard Met threshold) carries the trajectory-verdict
+    # gates; yearly improvement carries trend_ok. Coordinates let the page
+    # narrow the cloud to nearby schools client-side. Shared per peer group,
+    # so the clouds are cached across pages instead of inlined into 11k
+    # prerendered documents.
+    def peer_file_key(e: dict) -> str:
+        k = peer_key(e)
+        return "-".join(k) if k[0] == "school" else k[0]
+
+    peers_dir = SITE_DATA / "peers"
+    peers_dir.mkdir(exist_ok=True)
+    peer_rows: dict[str, list] = {}
+    for e in index:
+        t_ok = trend_ok(e)
+        g_ok = e.get("growth_cat") is not None and e.get("growth_eb") is not None
+        if e.get("adj_pct") is None or not (t_ok or g_ok):
+            continue
+        peer_rows.setdefault(peer_file_key(e), []).append(
+            [
+                e["cds"],
+                e["name"],
+                e["level_adj_eb"],
+                round(e["growth_eb"] + state_cohort_slope, 4) if g_ok else None,
+                round(e["trend_eb"] + state_slope, 4) if t_ok else None,
+                e.get("ll"),
+            ]
+        )
+    for k, prows in peer_rows.items():
+        (peers_dir / f"{k}.json").write_text(json.dumps(prows))
+    print(f"  peer scatter files: {len(peer_rows)} groups "
+          f"({sum(len(v) for v in peer_rows.values()):,} points)")
+
+    # vs-similar benchmark: each entity's groups pooled against its band of
+    # similar entities (same kind, model-predicted level within ±0.15 SD;
+    # widened to the nearest 15 when sparse). Statewide group averages are the
+    # wrong bar in strongly (dis)advantaged communities — this is the
+    # comparison that actually explains an extreme adjusted placement, and it
+    # includes Exceeded because a shortfall can live entirely in the top band.
+    vs_by_cds: dict[str, dict] = {}
+    for pool in vs_pool.values():
+        pool.sort(key=lambda r: r["pred"])
+        preds = np.array([r["pred"] for r in pool])
+        cums = {}
+        for g in VS_SIMILAR_GROUPS:
+            metn = np.zeros(len(pool))
+            nn = np.zeros(len(pool))
+            excn = np.zeros(len(pool))
+            en = np.zeros(len(pool))
+            for k, r in enumerate(pool):
+                pr = r["rates"].get(g)
+                if pr:
+                    metn[k] = pr["met"] * pr["n"]
+                    nn[k] = pr["n"]
+                    if pr["exc"] is not None:
+                        excn[k] = pr["exc"] * pr["n"]
+                        en[k] = pr["n"]
+            cums[g] = tuple(
+                np.concatenate(([0.0], np.cumsum(a))) for a in (metn, nn, excn, en)
+            )
+        for i, r in enumerate(pool):
+            lo = int(np.searchsorted(preds, r["pred"] - 0.15, "left"))
+            hi = int(np.searchsorted(preds, r["pred"] + 0.15, "right"))
+            n_band = hi - lo - 1
+            use_window = n_band >= 15
+            if not use_window:
+                order = [int(k) for k in np.argsort(np.abs(preds - r["pred"])) if k != i][:15]
+            rows_out = []
+            for g in VS_SIMILAR_GROUPS:
+                own = r["rates"].get(g)
+                if not own or own["n"] < 30:
+                    continue
+                if use_window:
+                    cm, cn, ce, cen = cums[g]
+                    ms = cm[hi] - cm[lo] - own["met"] * own["n"]
+                    mn = cn[hi] - cn[lo] - own["n"]
+                    es = ce[hi] - ce[lo]
+                    en_ = cen[hi] - cen[lo]
+                    if own["exc"] is not None:
+                        es -= own["exc"] * own["n"]
+                        en_ -= own["n"]
+                else:
+                    ms = mn = es = en_ = 0.0
+                    for k in order:
+                        pr = pool[k]["rates"].get(g)
+                        if not pr:
+                            continue
+                        ms += pr["met"] * pr["n"]
+                        mn += pr["n"]
+                        if pr["exc"] is not None:
+                            es += pr["exc"] * pr["n"]
+                            en_ += pr["n"]
+                if mn < 300:
+                    continue
+                rows_out.append(
+                    {
+                        "g": g,
+                        "met": round(own["met"], 1),
+                        "p_met": round(ms / mn, 1),
+                        "exc": round(own["exc"], 1) if own["exc"] is not None else None,
+                        "p_exc": round(es / en_, 1) if en_ else None,
+                    }
+                )
+            if rows_out:
+                vs_by_cds[r["cds"]] = {
+                    "n": n_band if use_window else len(order),
+                    "rows": rows_out,
+                }
+
+    # Percentiles and peer histograms are computed cross-entity above, so they
+    # land in the page payloads here: the entity-page summary card reads them.
+    kind_dir = {"school": "schools", "district": "districts", "county": "counties"}
+    for e in index:
+        updates = {
+            k: e[k]
+            for k in ("adj_pct", "growth_pct", "growth_cat")
+            if e.get(k) is not None
+        }
+        key = peer_key(e)
+        if e.get("level_adj_eb") is not None and key in peer_bins:
+            bins = peer_bins[key]
+            updates["peer_hist"] = {
+                "lo": HIST_LO,
+                "w": HIST_W,
+                "bins": bins,
+                "label": peer_label(key),
+                "n": sum(bins),
+            }
+            if e["kind"] == "school":
+                refs = (("district_ref", e["district_cds"]), ("county_ref", e["county_cds"]))
+            elif e["kind"] == "district":
+                refs = (("county_ref", e["county_cds"]),)
+            else:
+                refs = ()
+            for rk, rc in refs:
+                rv = adj_by_cds.get(rc)
+                if rv is not None:
+                    updates[rk] = rv
+                    rt = trend_by_cds.get(rc)
+                    if rt is not None:
+                        updates[rk + "_trend_abs"] = round(rt + state_slope, 4)
+                    rg = growth_by_cds.get(rc)
+                    if rg is not None:
+                        updates[rk + "_growth_abs"] = round(rg + state_cohort_slope, 4)
+            updates["peer_key"] = peer_file_key(e)
+            updates["state_trend"] = round(state_slope, 4)
+            updates["state_growth"] = round(state_cohort_slope, 4)
+            if e.get("ll"):
+                updates["ll"] = e["ll"]
+            if trend_ok(e):
+                updates["trend_abs"] = round(e["trend_eb"] + state_slope, 4)
+            if e.get("growth_cat") is not None and e.get("growth_eb") is not None:
+                updates["growth_abs"] = round(e["growth_eb"] + state_cohort_slope, 4)
+        if e["cds"] in vs_by_cds:
+            updates["vs_similar"] = vs_by_cds[e["cds"]]
+        if not updates:
+            continue
+        path = SITE_DATA / kind_dir[e["kind"]] / f"{e['cds']}.json"
+        d = json.loads(path.read_text())
+        d.update(updates)
+        path.write_text(json.dumps(d))
+
     for e in index:
         e.pop("_lrel", None)
         e.pop("_grel", None)
+        e.pop("_gse", None)
+        e.pop("_mrel", None)
+        e.pop("_trel", None)
         e.pop("_ly", None)
 
     (SITE_DATA / "index.json").write_text(json.dumps(index))
@@ -719,3 +1150,8 @@ def run_export() -> None:
     }
     (SITE_DATA / "summary.json").write_text(json.dumps(summary, indent=1))
     print("  summary.json written")
+
+    from schoolfactors.analysis.og_images import generate_og_images
+
+    n_og = generate_og_images(index, REPO_ROOT / "site" / "static" / "og")
+    print(f"  og share images: {n_og:,} written")

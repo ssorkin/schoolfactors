@@ -84,9 +84,18 @@ def estimate_sigma(rows: pl.DataFrame) -> pl.DataFrame:
             continue
         z = norm.ppf(g["pct_met_and_above"].to_numpy() / 100)
         m = g["mean_scale_score"].to_numpy()
-        slope = np.polyfit(m, z, 1)[0]
+        slope, intercept = np.polyfit(m, z, 1)
         out.append(
-            {"test_year": year, "grade": grade, "test_id": test, "sigma": float(1 / slope)}
+            {
+                "test_year": year,
+                "grade": grade,
+                "test_id": test,
+                "sigma": float(1 / slope),
+                # Implied "Standard Met" cut: the mean at which Phi^-1(met+) = 0.
+                # Published cuts are fixed across years; the per-year implied
+                # values scatter around them by estimation noise.
+                "cut": float(-intercept / slope),
+            }
         )
     return pl.DataFrame(out)
 
