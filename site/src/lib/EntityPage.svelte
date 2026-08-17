@@ -338,6 +338,7 @@
           `and spending for ${entity.name} (${entity.county} County, California).`
   );
   let pageUrl = $derived(`${SITE}/${entity.kind}/${entity.cds}`);
+  let shared = $state(false);
 
   import { browser } from '$app/environment';
   import { replaceState } from '$app/navigation';
@@ -516,6 +517,36 @@
   {entity.kind === 'school' ? `${entity.district} · ` : ''}{entity.county} County
   {#if e.n_years}· {e.n_years} test years · {e.total_scores?.toLocaleString()} scores{/if}
   {#if e.last_year}· data through {e.last_year}{/if}
+</p>
+
+<p class="utils">
+  <button
+    class="util"
+    onclick={async () => {
+      const data = { title: pageTitle, url: pageUrl };
+      if (navigator.share) {
+        try {
+          await navigator.share(data);
+        } catch {
+          /* user dismissed the share sheet */
+        }
+      } else {
+        await navigator.clipboard.writeText(pageUrl);
+        shared = true;
+        setTimeout(() => (shared = false), 2000);
+      }
+    }}>{shared ? 'Link copied' : 'Share'}</button>
+  ·
+  <a
+    class="util"
+    href="https://github.com/ssorkin/schoolfactors/issues/new?title={encodeURIComponent(
+      `Data issue: ${entity.name} (${entity.cds})`
+    )}&body={encodeURIComponent(
+      `Page: ${pageUrl}\n\nWhat looks wrong (please include which number and what you expected):\n\n`
+    )}"
+    target="_blank"
+    rel="noopener">Report a data issue</a
+  >
 </p>
 
 {#if summary.length || (entity.peer_hist && e.level_adj_eb != null)}
@@ -709,7 +740,7 @@
 {/if}
 
 {#if e.level_eb != null}
-  <h2>The three modeled numbers</h2>
+  <h2>Performance, growth and trend</h2>
   <section class="tiles">
     <div class="tile">
       <div class="num">
@@ -719,7 +750,7 @@
         {/if}
       </div>
       <div class="label">
-        adjusted level — recent scores vs {entity.kind === 'school' ? 'schools' : 'districts'}
+        adjusted level — recent scores vs {KINDS_PLURAL[entity.kind] ?? 'schools'}
         serving similar students (student SDs); rankings use the low end of the 95% band
       </div>
     </div>
@@ -912,6 +943,24 @@
   }
   .intake-warn strong {
     color: #9c5410;
+  }
+  .utils {
+    margin: -0.3rem 0 0.6rem;
+    font-size: 0.85rem;
+    color: #898781;
+  }
+  .utils .util {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: #1c5cab;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .utils .util:hover {
+    color: #b0552f;
   }
   .dl {
     margin: 0.5rem 0 0;

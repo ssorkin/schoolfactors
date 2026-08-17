@@ -85,11 +85,16 @@
   });
   let marked = $derived(new Set(marks.map((m) => m.cds)));
 
+  let kindPlural = $derived(kind === 'county' ? 'counties' : kind + 's');
+
   // Nearby cloud with rural adaptation: within RADIUS_MI, nearest-500 cap;
   // fewer than MIN_PEERS nearby → nearest MIN_PEERS regardless of distance.
   // Highlighted schools leave the faint cloud (they draw as marks instead).
+  // Before the client-side fetch resolves (and in prerendered HTML, which
+  // crawlers see), mode is 'loading' — captions must not claim counts.
   let nearby = $derived.by(() => {
-    const all = (peers ?? []).filter(
+    if (peers == null) return { rows: [], mode: 'loading' };
+    const all = peers.filter(
       (p) => p[0] !== own?.cds && yOf(p) != null && !marked.has(p[0])
     );
     if (!own?.ll) return { rows: all.slice(0, MAX_PEERS), mode: 'statewide' };
@@ -220,7 +225,7 @@
           <text x={M.l - 7} y={Y(t) + 3.5} class="tick" text-anchor="end">{t > 0 ? '+' + t : t}</text>
         {/each}
         <text x={(M.l + W - M.r) / 2} y={H - 8} class="axis" text-anchor="middle">
-          Scores vs. similar {kind}s (student SDs) →
+          Scores vs. similar {kindPlural} (student SDs) →
         </text>
         <text
           x={14}
@@ -292,7 +297,7 @@
         Each faint dot is one of the {label} whose estimates pass the
         reliability gate.
       {/if}
-      Farther right = scores above what's typical for {kind}s serving similar
+      Farther right = scores above what's typical for {kindPlural} serving similar
       students.
       {#if yMode === 'growth'}
         Higher = each class gains against grade-level standards as it moves up;
