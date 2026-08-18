@@ -542,6 +542,9 @@
   {#if e.n_years}· {e.n_years} test years · {e.total_scores?.toLocaleString()} scores{/if}
   {#if e.last_year}· data through {e.last_year}{/if}
 </p>
+{#if entity.address}
+  <p class="addr">{entity.address}</p>
+{/if}
 
 <p class="utils">
   <button
@@ -952,6 +955,11 @@
   .sub {
     color: #6f6a61;
     margin-top: 0;
+  }
+  .addr {
+    color: #898781;
+    font-size: 0.85rem;
+    margin: -0.4rem 0 0.6rem;
   }
   .topgrid {
     display: grid;

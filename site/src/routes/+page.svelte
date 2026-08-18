@@ -361,11 +361,8 @@
 
   // Facet conjunction over the search/level-filtered list; an untouched facet
   // constrains nothing, a narrowed one also hides entities missing that value.
-  // `skipKey` exempts one facet — used to compute that facet's own slider
-  // limits from everything else.
-  function passesFacets(it, skipKey = null) {
+  function passesFacets(it) {
     for (const f of FACETS) {
-      if (f.key === skipKey) continue;
       const b = bounds[f.key];
       const sel = fsel[f.key];
       if (!b || !sel || (sel[0] <= b[0] && sel[1] >= b[1])) continue;
@@ -396,11 +393,12 @@
     return out;
   });
 
-  // Slider limits track the data actually shown: each facet's limits are the
-  // extents over points passing every OTHER filter (its own excluded, so a
-  // narrowed slider can always be re-widened). Selections live in kind-wide
-  // `bounds` units and are kept when limits tighten; RangeFacet clamps the
-  // display. Falls back to the kind bounds when nothing passes.
+  // Slider limits track the mappable data: extents over points passing the
+  // search/kind/level filters and the legend's school-type toggles — but NOT
+  // the other sliders, whose narrowing would make limits shift underfoot.
+  // Selections live in kind-wide `bounds` units and are kept when limits
+  // tighten; RangeFacet clamps the display. Falls back to the kind bounds
+  // when nothing passes.
   let shownBounds = $derived.by(() => {
     const out = {};
     for (const f of FACETS) {
@@ -408,7 +406,6 @@
       let mx = -Infinity;
       for (const it of mapEligible) {
         if (mapKind === 'school' && !typeSel[entityType(it)]) continue;
-        if (!passesFacets(it, f.key)) continue;
         let v = it[f.key];
         if (v == null) continue;
         if (f.scale) v = v * f.scale;
@@ -566,7 +563,8 @@
     <p class="mapnote">
       Filters combine, and clicking a legend entry shows/hides that school type. Narrowing
       a filter also hides entities missing that value; entities without coordinates can't
-      be mapped. Slider limits follow the data the other filters leave shown.
+      be mapped. Slider limits span the entities matching the search and the school
+      types shown.
     </p>
   </aside>
   {#if mapOpened}

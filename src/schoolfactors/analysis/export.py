@@ -248,6 +248,19 @@ def run_export() -> None:
         ).fetchall()
     )
 
+    # Physical address (school pages). The directory's street/city are the
+    # campus location, which for remotely-authorized charters can sit in a
+    # different county than the CDS says — showing it makes that legible.
+    addr_map = {}
+    for cds_, street, city_, zip_ in con_dir.execute("""
+        SELECT cds, any_value(street), any_value(city), any_value(zip)
+        FROM directory_raw
+        WHERE street IS NOT NULL AND city IS NOT NULL
+        GROUP BY cds
+    """).fetchall():
+        zip5 = (zip_ or "")[:5]
+        addr_map[cds_] = f"{street}, {city_}, CA {zip5}".strip() if zip5 else f"{street}, {city_}"
+
     # Admission/type flags. CDE knows magnet/charter/EdOps; it has NO field for
     # exam-based admission (verified: Whitney (Gretchen) High and Oxford Academy
     # are Magnet=N/EdOps=Traditional), so selective schools come from the
@@ -680,6 +693,7 @@ def run_export() -> None:
                 ],
             }
             if kind == "schools":
+                payload["address"] = addr_map.get(cds)
                 nb = neighbors.get(cds, {})
                 payload["neighbors"] = {
                     "nearby": [
