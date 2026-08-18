@@ -209,9 +209,14 @@
       }
       // Make the similar-entities bar concrete: pooled rates from the band of
       // entities the model expects to score alike, including the Exceeded
-      // level — a gap can live entirely in the top band.
+      // level — a gap can live entirely in the top band. Shown whenever the
+      // group-vs-statewide view diverges from the placement, and always at
+      // extreme percentiles: a 98 (or a 3) should arrive with its evidence,
+      // since statewide group deltas are confounded by within-group
+      // composition (corr with econ share: -0.58) and can't substantiate it.
       const vs = entity.vs_similar;
-      if (fired && vs?.rows?.length) {
+      const extreme = entity.adj_pct >= 90 || entity.adj_pct <= 10;
+      if ((fired || extreme) && vs?.rows?.length) {
         const bits = [];
         const g1r = vs.rows.find((r) => r.g === 1);
         if (g1r && g1r.exc != null && g1r.p_exc != null && Math.abs(g1r.exc - g1r.p_exc) >= 2) {
@@ -775,6 +780,10 @@
     programs, whose student selection differs even when demographics match. The
     highlighted row is this school, with the most similar schools scoring above and
     below it. The number on the right is each school's demographically-adjusted level.
+    The Similar Schools percentile is <em>not</em> computed from this list — it comes
+    from the statewide adjustment model, ranking this school among thousands. A school
+    with an unusual demographic profile for its type may have only a few close matches
+    here while still ranking against the full statewide pool.
   </p>
 {/if}
 

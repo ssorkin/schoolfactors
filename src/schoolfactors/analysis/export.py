@@ -88,8 +88,13 @@ SUMMARY_GROUPS = [31, 160, 128, 74, 76, 78, 80]
 # partition used by the peer scatter AND the lookalike matching — demographics
 # cannot distinguish a continuation school from a traditional school serving
 # identical students, so cross-type comparisons are invalid.
-ALT_FLAGS = {"alt-choice", "continuation", "community-day", "community", "court",
-             "special-ed"}
+# "Hard" alternative programs select on student circumstance (credit
+# recovery, court placement) — median similar-schools percentile 34 in their
+# own pool. EdOps ALTSOC ("alternative school of choice", e.g. LAUSD pilot
+# schools) is the opposite: upward self-selection like magnets (median
+# percentile 80, 64% top-quartile), so it forms its own "choice" class and
+# stays in the general percentile pool.
+ALT_FLAGS_HARD = {"continuation", "community-day", "community", "court", "special-ed"}
 
 
 def school_type(flags: list | None) -> str:
@@ -100,8 +105,10 @@ def school_type(flags: list | None) -> str:
         return "magnet"
     if "charter" in fl:
         return "charter"
-    if ALT_FLAGS & set(fl):
+    if ALT_FLAGS_HARD & set(fl):
         return "alternative"
+    if "alt-choice" in fl:
+        return "choice"
     return "standard"
 
 # Groups benchmarked against SIMILAR entities (same kind, model-predicted level
@@ -1005,7 +1012,11 @@ def run_export() -> None:
         if key[0] == "school":
             lvl, typ = key[1], key[2]
             lvl_part = f"{lvl} schools" if lvl != "other" else "schools"
-            return lvl_part if typ == "standard" else f"{typ} {lvl_part}"
+            if typ == "standard":
+                return lvl_part
+            if typ == "choice":
+                return f"{lvl_part} of choice"
+            return f"{typ} {lvl_part}"
         return "districts" if key[0] == "district" else "counties"
 
     peer_bins: dict[tuple, list[int]] = {}
