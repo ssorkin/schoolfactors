@@ -88,6 +88,28 @@ export const GLOSSARY = [
     ]
   },
   {
+    id: 'expected-level',
+    term: 'Expected level (given students served)',
+    unit: 'student SDs',
+    tip: 'What the statewide model predicts a school at this demographic profile would score — the bar its performance is measured against. Computed from CAASPP tested-population shares.',
+    def: [
+      'What the demographic adjustment model predicts a school with this profile would score, in student SDs versus the state: the fitted value from regressing every school’s level on its tested population’s economic disadvantage, race/ethnicity, English-learner and disability shares, parental education, and size.',
+      'It is the bar the school’s actual level is measured against — "performance vs expectation" is actual minus expected, and the Similar Schools percentile ranks that difference. A school serving many high-need students has a low expected level; clearing it by a wide margin is what a high percentile means.',
+      'Source: covariates from CAASPP research-file student-group counts; the model is documented in the open analysis writeup.'
+    ]
+  },
+  {
+    id: 'expected-alike-band',
+    term: 'Expected-alike band',
+    unit: '',
+    tip: 'All schools the model expects to score about the same (predicted level within ±0.15 SDs). Comparing a school’s pass rates against this pool shows its percentile in plain numbers.',
+    def: [
+      'The pool of schools the model expects to score about the same — predicted level within ±0.15 student SDs of this school’s (widened to the nearest 15 schools where that band is sparse). Unlike statewide group averages, this comparison holds the whole demographic profile fixed.',
+      'Entity and compare pages show each school’s Met+ and Exceeded rates against its own band’s pooled rates. The Exceeded level matters: two schools can match on percent-meeting-standards while differing sharply in how many students exceed them.',
+      'Source: CAASPP research files (latest year, both subjects, count-weighted), pooled across the band.'
+    ]
+  },
+  {
     id: 'adj-percentile',
     term: 'Similar Schools %ile (adjusted percentile)',
     unit: 'percentile, 1–99',

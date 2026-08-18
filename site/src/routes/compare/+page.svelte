@@ -12,6 +12,7 @@
   import SearchBox from '$lib/SearchBox.svelte';
   import CsvButton from '$lib/CsvButton.svelte';
   import { dataUrl } from '$lib/data.js';
+  import { GROUP_LABELS, GROUP_THEMES, SERIES_COLORS } from '$lib/groups.js';
 
   const MAX = 6;
   let schools = $state([]);
@@ -61,20 +62,28 @@
 
   const ROWS = [
     { label: 'District', f: (s) => s.district ?? '—' },
-    { label: 'Students (census)', f: (s) => s.enrollment?.toLocaleString() ?? '—' },
+    { label: 'Students (census)', gid: 'enrollment', tip: 'Census-day enrollment from CDE, latest school year.', f: (s) => s.enrollment?.toLocaleString() ?? '—' },
     {
       label: 'Econ. disadvantaged (tested)',
+      gid: 'econ-share',
+      tip:
+        'Share of tested students CDE flags as economically disadvantaged (FRPM-eligible, ' +
+        'parents without a high-school diploma, or foster/homeless). From CAASPP research files.',
       f: (s) =>
         s.effects?.share_econ_dis == null
           ? '—'
           : Math.round(s.effects.share_econ_dis * 100) + '%'
     },
-    { label: '$ per pupil', f: (s) => (s.ppe == null ? '—' : '$' + s.ppe.toLocaleString()) },
-    { label: 'ELA met+ (latest)', f: (s) => (s.pass_ela == null ? '—' : s.pass_ela + '%') },
-    { label: 'Math met+ (latest)', f: (s) => (s.pass_math == null ? '—' : s.pass_math + '%') },
-    { label: 'Raw level (SDs vs state)', f: (s) => fmt2(s.effects?.level_eb) },
+    { label: '$ per pupil', gid: 'ppe', tip: 'Total ESSA per-pupil spending — school site plus allocated central costs, latest year, from CDE. Largely need-driven: higher is neither praise nor criticism.', f: (s) => (s.ppe == null ? '—' : '$' + s.ppe.toLocaleString()) },
+    { label: 'ELA met+ (latest)', gid: 'met-plus', tip: 'Share of tests meeting or exceeding the standard, latest year. From CAASPP.', f: (s) => (s.pass_ela == null ? '—' : s.pass_ela + '%') },
+    { label: 'Math met+ (latest)', gid: 'met-plus', tip: 'Share of tests meeting or exceeding the standard, latest year. From CAASPP.', f: (s) => (s.pass_math == null ? '—' : s.pass_math + '%') },
+    { label: 'Raw level (SDs vs state)', gid: 'level', tip: 'Where students score vs the state average, in student-level standard deviations, weighted toward recent years. From CAASPP mean scale scores.', f: (s) => fmt2(s.effects?.level_eb) },
     {
       label: 'Expected level, given students served',
+      gid: 'expected-level',
+      tip:
+        'What the statewide model predicts a school with this demographic profile would ' +
+        'score — the bar its performance is measured against.',
       f: (s) =>
         s.effects?.level_eb == null || s.effects?.level_adj_eb == null
           ? '—'
@@ -82,19 +91,31 @@
     },
     {
       label: 'Performance vs expectation',
+      gid: 'adjusted',
+      tip:
+        'Actual minus expected — what remains after accounting for the students served. ' +
+        'Not a measure of school quality.',
       f: (s) => fmt2(s.effects?.level_adj_eb),
       cls: (s) =>
         s.effects?.level_adj_eb > 0 ? 'pos' : s.effects?.level_adj_eb < 0 ? 'neg' : ''
     },
-    { label: 'Similar Schools %ile', f: (s) => s.adj_pct ?? '—' },
+    { label: 'Similar Schools %ile', gid: 'adj-percentile', tip: 'Where performance-vs-expectation ranks among comparable California schools, using the cautious end of each estimate\'s uncertainty band.', f: (s) => s.adj_pct ?? '—' },
     {
       label: 'Cohort trajectory',
+      gid: 'cohort-trajectory',
+      tip:
+        'Whether classes gain on the state, hold their standing, or lose ground as they ' +
+        'move up the grades. From CAASPP cohort tracking.',
       f: (s) => CAT[s.growth_cat] ?? '—',
       cls: (s) =>
         s.growth_cat === 'gaining' ? 'pos' : s.growth_cat === 'slipping' ? 'neg' : ''
     },
     {
       label: 'Met+ vs its own expected-alike band',
+      gid: 'expected-alike-band',
+      tip:
+        'This school\'s pass rate against the pooled rate of all schools the model ' +
+        'expects to score alike — its percentile in plain numbers.',
       f: (s) =>
         band(s, 'met') != null && band(s, 'p_met') != null
           ? `${Math.round(band(s, 'met'))}% vs ${Math.round(band(s, 'p_met'))}%`
@@ -102,6 +123,10 @@
     },
     {
       label: 'Exceeded vs its band',
+      gid: 'expected-alike-band',
+      tip:
+        'Same comparison at the top band (standard exceeded) — two schools can match on ' +
+        'meeting standards while differing sharply in how many students exceed them.',
       f: (s) =>
         band(s, 'exc') != null && band(s, 'p_exc') != null
           ? `${Math.round(band(s, 'exc'))}% vs ${Math.round(band(s, 'p_exc'))}%`
@@ -109,8 +134,9 @@
     }
   ];
 
-  // ---- Small multiples: Met+ by year per school, SHARED 0-100 scale so
-  // levels and slopes compare across panels; lines break at the COVID gap.
+  // ---- Small multiples: one panel per student group, all compared schools
+  // overlaid in fixed colors (color follows the school across every panel),
+  // SHARED 0-100 scale; lines break at the COVID gap.
   const CW = 280;
   const CH = 150;
   const CM = { l: 30, r: 10, t: 10, b: 22 };
@@ -119,14 +145,20 @@
   const CX = (y) => CM.l + ((y - Y0) / (Y1 - Y0)) * (CW - CM.l - CM.r);
   const CY = (v) => CM.t + ((100 - v) / 100) * (CH - CM.t - CM.b);
 
-  function metSeries(s, subject) {
-    const pts = [];
+  const PANEL_THEMES = [{ label: 'Overall', ids: [1] }, ...GROUP_THEMES];
+
+  function groupSeries(s, gid) {
+    const by = {};
     for (const r of s.subgroup_results ?? []) {
-      if (r.group === 1 && r.subject === subject && r.pct_met != null) {
-        pts.push({ year: r.year, v: r.pct_met });
+      if (r.group === gid && r.pct_met != null && r.n) {
+        by[r.year] ??= [0, 0];
+        by[r.year][0] += r.pct_met * r.n;
+        by[r.year][1] += r.n;
       }
     }
-    pts.sort((a, b) => a.year - b.year);
+    const pts = Object.keys(by)
+      .map((y) => ({ year: +y, v: by[y][0] / by[y][1] }))
+      .sort((a, b) => a.year - b.year);
     const runs = [[]];
     for (const p of pts) {
       const cur = runs[runs.length - 1];
@@ -135,6 +167,19 @@
     }
     return { pts, runs: runs.filter((r) => r.length > 1) };
   }
+
+  let panelThemes = $derived.by(() => {
+    const out = [];
+    for (const t of PANEL_THEMES) {
+      const panels = [];
+      for (const gid of t.ids) {
+        const per = schools.map((s, i) => ({ s, i, ser: groupSeries(s, gid) }));
+        if (per.some((x) => x.ser.pts.length >= 2)) panels.push({ gid, per });
+      }
+      if (panels.length) out.push({ label: t.label, panels });
+    }
+    return out;
+  });
 </script>
 
 <svelte:head>
@@ -194,7 +239,18 @@
         <tbody>
           {#each ROWS as r (r.label)}
             <tr>
-              <td class="metric">{r.label}</td>
+              <td class="metric">
+                {r.label}
+                {#if r.gid}
+                  <a
+                    class="info"
+                    href="/glossary#{r.gid}"
+                    title={r.tip}
+                    aria-label="What {r.label} means and where the data comes from"
+                    >ⓘ</a
+                  >
+                {/if}
+              </td>
               {#each schools as s (s.cds)}
                 <td class="val {r.cls ? r.cls(s) : ''}">{r.f(s)}</td>
               {/each}
@@ -204,48 +260,54 @@
       </table>
     </div>
   </div>
-  <h2>Met+ by year</h2>
+  <h2>Met+ by year, by student group</h2>
   <p class="chartlegend">
-    <span class="sw ela"></span> ELA · <span class="sw math"></span> Math — % meeting
-    or exceeding the standard, all panels on the same 0–100% scale. 2020–21 gap:
-    no comparable testing.
+    {#each schools as s, i (s.cds)}
+      <span class="sw" style:background={SERIES_COLORS[i]}></span>
+      {s.name}{i < schools.length - 1 ? ' · ' : ''}
+    {/each}
+    — % meeting or exceeding the standard, ELA and math combined, all panels on the
+    same 0–100% scale. Gaps: no comparable testing (2020–21) or fewer than 11
+    students in the group.
   </p>
-  <div class="panels">
-    {#each schools as s (s.cds)}
-      {@const ela = metSeries(s, 'ela')}
-      {@const math = metSeries(s, 'math')}
-      <figure class="panel">
-        <figcaption><a href="/school/{s.cds}">{s.name}</a></figcaption>
-        {#if ela.pts.length || math.pts.length}
-          <svg viewBox="0 0 {CW} {CH}" role="img" aria-label="Met+ by year for {s.name}">
-            {#each [0, 50, 100] as t (t)}
-              <line x1={CM.l} x2={CW - CM.r} y1={CY(t)} y2={CY(t)} class="grid" />
-              <text x={CM.l - 5} y={CY(t) + 3.5} class="tick" text-anchor="end">{t}</text>
+  {#each panelThemes as t (t.label)}
+    <h3>{t.label}</h3>
+    <div class="panels">
+      {#each t.panels as p (p.gid)}
+        <figure class="panel">
+          <figcaption>{GROUP_LABELS[p.gid] ?? 'Group ' + p.gid}</figcaption>
+          <svg
+            viewBox="0 0 {CW} {CH}"
+            role="img"
+            aria-label="Met+ by year for {GROUP_LABELS[p.gid]}, all compared schools"
+          >
+            {#each [0, 50, 100] as tk (tk)}
+              <line x1={CM.l} x2={CW - CM.r} y1={CY(tk)} y2={CY(tk)} class="grid" />
+              <text x={CM.l - 5} y={CY(tk) + 3.5} class="tick" text-anchor="end">{tk}</text>
             {/each}
             {#each [2015, 2019, 2022, 2025] as y (y)}
               <text x={CX(y)} y={CH - 6} class="tick" text-anchor="middle">{y}</text>
             {/each}
-            {#each [['ela', ela], ['math', math]] as [cls, ser] (cls)}
-              {#each ser.runs as run, ri (ri)}
+            {#each p.per as x (x.s.cds)}
+              {#each x.ser.runs as run, ri (ri)}
                 <polyline
                   fill="none"
-                  class="line {cls}"
-                  points={run.map((p) => `${CX(p.year).toFixed(1)},${CY(p.v).toFixed(1)}`).join(' ')}
+                  stroke={SERIES_COLORS[x.i]}
+                  stroke-width="2"
+                  points={run.map((q) => `${CX(q.year).toFixed(1)},${CY(q.v).toFixed(1)}`).join(' ')}
                 />
               {/each}
-              {#each ser.pts as p (cls + p.year)}
-                <circle cx={CX(p.year)} cy={CY(p.v)} r="2.2" class="dot {cls}">
-                  <title>{p.year} {cls.toUpperCase()}: {p.v.toFixed(0)}% met+</title>
+              {#each x.ser.pts as q (x.s.cds + q.year)}
+                <circle cx={CX(q.year)} cy={CY(q.v)} r="2.2" fill={SERIES_COLORS[x.i]}>
+                  <title>{x.s.name} — {q.year}: {q.v.toFixed(0)}% met+</title>
                 </circle>
               {/each}
             {/each}
           </svg>
-        {:else}
-          <p class="note">No published results.</p>
-        {/if}
-      </figure>
-    {/each}
-  </div>
+        </figure>
+      {/each}
+    </div>
+  {/each}
 
   <p class="note">
     "Expected level" is the demographic adjustment model's prediction from the
@@ -378,11 +440,22 @@
     vertical-align: middle;
     border-radius: 2px;
   }
-  .sw.ela {
-    background: #2a78d6;
+  .sw {
+    margin-right: 0.25rem;
   }
-  .sw.math {
-    background: #d97b29;
+  h3 {
+    margin: 1rem 0 0.4rem;
+    font-size: 1rem;
+    color: #52514e;
+  }
+  .info {
+    text-decoration: none;
+    color: #1c5cab;
+    font-size: 0.85em;
+    margin-left: 0.25rem;
+  }
+  .info:hover {
+    color: #b0552f;
   }
   .panels {
     display: grid;
@@ -422,23 +495,5 @@
   .tick {
     font-size: 10px;
     fill: #898781;
-  }
-  .line {
-    stroke-width: 2;
-  }
-  .line.ela,
-  .dot.ela {
-    stroke: #2a78d6;
-    fill: none;
-  }
-  .dot.ela {
-    fill: #2a78d6;
-    stroke: none;
-  }
-  .line.math {
-    stroke: #d97b29;
-  }
-  .dot.math {
-    fill: #d97b29;
   }
 </style>
