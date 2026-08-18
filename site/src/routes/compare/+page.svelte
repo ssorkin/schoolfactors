@@ -29,18 +29,25 @@
     }
   }
 
-  onMount(() => {
+  // The URL-writing effect must stay silent until the ?s= list has been
+  // fully restored — otherwise its first run (schools still empty, fetches
+  // in flight) rewrites the permalink to a bare /compare. Sequential awaits
+  // also keep column order matching the shared URL.
+  let restored = $state(false);
+  onMount(async () => {
     const q = new URLSearchParams(window.location.search);
-    for (const c of (q.get('s') ?? '')
+    const want = (q.get('s') ?? '')
       .split('.')
       .filter((c) => /^\d{14}$/.test(c))
-      .slice(0, MAX)) {
-      add(c);
+      .slice(0, MAX);
+    for (const c of want) {
+      await add(c);
     }
+    restored = true;
   });
 
   $effect(() => {
-    if (!browser) return;
+    if (!browser || !restored) return;
     const qs = schools.length ? '?s=' + schools.map((s) => s.cds).join('.') : '';
     const target = window.location.pathname + qs;
     if (target !== window.location.pathname + window.location.search) {
