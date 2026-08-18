@@ -8,6 +8,7 @@
     <a class="brand" href="/">School<span>Factors</span></a>
     <nav>
       <a href="/student-groups">Student Groups</a>
+      <a href="/compare">Compare</a>
       <a href="/insights">Insights</a>
       <a href="/methodology">Methodology</a>
       <a href="/glossary">Glossary</a>

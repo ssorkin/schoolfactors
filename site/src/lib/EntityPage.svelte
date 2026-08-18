@@ -768,6 +768,11 @@
             {o.name} <span aria-hidden="true">×</span>
           </button>
         {/each}
+        <a
+          class="ov-table"
+          href="/compare?s={[entity.cds, ...overlays.map((o) => o.cds)].join('.')}"
+          >Open comparison table →</a
+        >
       </div>
     {/if}
   </div>
@@ -1187,5 +1192,10 @@
   .ov-chip:hover {
     border-color: #d03b3b;
     color: #d03b3b;
+  }
+  .ov-table {
+    align-self: center;
+    font-size: 0.85rem;
+    font-weight: 600;
   }
 </style>

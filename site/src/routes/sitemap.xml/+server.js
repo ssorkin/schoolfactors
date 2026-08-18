@@ -13,6 +13,7 @@ const SITE = 'https://schoolfactors.org';
 const STATIC_PAGES = [
   { path: '/', priority: '1.0' },
   { path: '/student-groups', priority: '0.8' },
+  { path: '/compare', priority: '0.7' },
   { path: '/insights', priority: '0.8' },
   { path: '/methodology', priority: '0.8' },
   { path: '/glossary', priority: '0.6' },

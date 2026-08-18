@@ -221,7 +221,10 @@ spending (ESSA PPE, SACS) factor analyses; district-level subgroup analyses
 an interaction-aware attribution model fit to the published group means (school
 effect + additive attribute effects + estimated interactions, precision-weighted,
 suppression treated as missing-given-n), replacing the additive-in-shares surface
-if it changes rankings beyond the current sensitivity band.
+if it changes rankings beyond the current sensitivity band; LAUSD GATE annual
+school reports (ssr.lausd.net) to flag or disaggregate exam-admission magnet
+populations inside comprehensive schools (see
+known_issues/magnet-within-school-selection).
 
 ## References
 

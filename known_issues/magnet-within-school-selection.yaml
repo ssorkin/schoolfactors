@@ -1,0 +1,25 @@
+id: magnet-within-school-selection
+dataset: caaspp
+years: [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
+kind: structural-limitation
+title: Exam-admission magnets inside comprehensive schools cannot be separated
+description: >
+  CDE reports a comprehensive school and its co-located magnet program(s) as a
+  single CDS, so school-level results blend a neighborhood population with a
+  selectively admitted one. North Hollywood Senior High (19647331936350) is the
+  canonical case: its Highly Gifted Magnet admits by gifted identification
+  citywide, inflating both the school's raw level and every student group's
+  rates (the magnet's students appear inside each group row), while the
+  demographic adjustment cannot observe the academic selection. The school
+  types as "magnet", but flagging it "selective" would misclassify its
+  majority neighborhood enrollment. This is a boundary of school-level data,
+  not a correctable error.
+evidence: >
+  NHHS raw level +0.49 vs model expectation +0.05 with group-vs-statewide
+  deltas of +19 to +24pp across every group — a pattern consistent with
+  selective in-flows the covariates cannot see.
+handling: >
+  Documented, not patched. Candidate improvement (roadmap): ingest LAUSD's
+  GATE annual school reports (ssr.lausd.net, GATE_AnnualSchoolReport), which
+  count gifted-identified students per school and could support disaggregating
+  or at least flagging magnet-within-school populations for LAUSD entities.
