@@ -84,6 +84,26 @@ BESTFOR_GROUPS = [128, 31, 160, 8, 74, 76, 77, 78, 80, 144, 52, 240, 90]
 # Groups compared against their statewide rate in the entity-page summary.
 SUMMARY_GROUPS = [31, 160, 128, 74, 76, 78, 80]
 
+# School type classes (mirroring the site's map legend in maptypes.js): the
+# partition used by the peer scatter AND the lookalike matching — demographics
+# cannot distinguish a continuation school from a traditional school serving
+# identical students, so cross-type comparisons are invalid.
+ALT_FLAGS = {"alt-choice", "continuation", "community-day", "community", "court",
+             "special-ed"}
+
+
+def school_type(flags: list | None) -> str:
+    fl = flags or []
+    if "selective" in fl:
+        return "selective"
+    if "magnet" in fl:
+        return "magnet"
+    if "charter" in fl:
+        return "charter"
+    if ALT_FLAGS & set(fl):
+        return "alternative"
+    return "standard"
+
 # Groups benchmarked against SIMILAR entities (same kind, model-predicted level
 # within a band) — the comparison that explains extreme adjusted placements.
 # Includes All Students (Met+ AND Exceeded: a shortfall can live entirely in
@@ -213,11 +233,6 @@ def run_export() -> None:
     }
     con_state.close()
 
-    from schoolfactors.analysis.neighbors import build_neighbors
-
-    print("  computing nearby/lookalike neighbors …")
-    neighbors = build_neighbors(schools)
-
     # School level (elementary/middle/high) from the directory, for table facets.
     con_dir = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     eil_map = dict(
@@ -262,6 +277,12 @@ def run_export() -> None:
             flags_map.setdefault(entry["cds"], [])
             if "selective" not in flags_map[entry["cds"]]:
                 flags_map[entry["cds"]].insert(0, "selective")
+    school_type_map = {c: school_type(fl) for c, fl in flags_map.items()}
+
+    from schoolfactors.analysis.neighbors import build_neighbors
+
+    print("  computing nearby/lookalike neighbors …")
+    neighbors = build_neighbors(schools, school_type_map)
     # Current census-day enrollment (latest CDE cdenroll year). School rows carry
     # their own charter flag; district/county totals need the ALL rollup.
     # County rows in the new-format census files carry no cds (only countycode);
@@ -834,6 +855,22 @@ def run_export() -> None:
     # recency-weighted, so for a school whose data stopped years ago it
     # describes a school that may no longer exist in that form. The underlying
     # student-SD values stay in the payloads; this is display only.
+    #
+    # School percentile pools additionally split alternative and selective
+    # schools from the general pool: alternative programs (continuation,
+    # community day, court, special-ed) land in the bottom decile 68% of the
+    # time on student selection rather than performance — occupying the
+    # basement of a shared ranking and getting meaningless ranks themselves —
+    # and exam-admission schools mirror that at the top. Magnet and charter
+    # schools stay in the general pool: they serve general-education
+    # populations and the covariates carry their composition; it is
+    # admission/assignment selection that breaks comparability.
+    def pool_class(e: dict) -> str:
+        if e["kind"] != "school":
+            return ""
+        t = school_type_map.get(e["cds"], "standard")
+        return t if t in ("alternative", "selective") else "general"
+
     latest_by_kind: dict[str, int | None] = {}
     for kind_ in ("school", "district", "county"):
         latest = max(
@@ -841,26 +878,33 @@ def run_export() -> None:
             default=None,
         )
         latest_by_kind[kind_] = latest
-        for src, rel_key, out in (
-            ("adj_lcb", "_lrel", "adj_pct"),
-            ("growth_lcb", "_grel", "growth_pct"),
-        ):
-            def eligible(e, kind_=kind_, src=src, rel_key=rel_key, latest=latest):
-                return (
-                    e["kind"] == kind_
-                    and e.get(src) is not None
-                    and (e.get(rel_key) or 0) >= 0.7
-                    and e.get("_ly") == latest
-                )
+        classes = sorted({pool_class(e) for e in index if e["kind"] == kind_})
+        for cls in classes:
+            for src, rel_key, out in (
+                ("adj_lcb", "_lrel", "adj_pct"),
+                ("growth_lcb", "_grel", "growth_pct"),
+            ):
+                def eligible(
+                    e, kind_=kind_, cls=cls, src=src, rel_key=rel_key, latest=latest
+                ):
+                    return (
+                        e["kind"] == kind_
+                        and pool_class(e) == cls
+                        and e.get(src) is not None
+                        and (e.get(rel_key) or 0) >= 0.7
+                        and e.get("_ly") == latest
+                    )
 
-            pool = sorted(e[src] for e in index if eligible(e))
-            if len(pool) < 20:
-                continue
-            for e in index:
-                if eligible(e):
-                    lo = bisect.bisect_left(pool, e[src])
-                    hi = bisect.bisect_right(pool, e[src])
-                    e[out] = min(99, max(1, round(100 * (lo + hi) / 2 / len(pool))))
+                pool = sorted(e[src] for e in index if eligible(e))
+                if len(pool) < 20:
+                    continue
+                for e in index:
+                    if eligible(e):
+                        lo = bisect.bisect_left(pool, e[src])
+                        hi = bisect.bisect_right(pool, e[src])
+                        e[out] = min(
+                            99, max(1, round(100 * (lo + hi) / 2 / len(pool)))
+                        )
 
     # Cohort trajectory verdict — the display form of growth. A percentile of
     # growth amplifies near-zero differences (tau is only 0.066 SD/grade) into
@@ -949,22 +993,8 @@ def run_export() -> None:
     # in site maptypes.js) — in student SDs. Fixed common bins keep every
     # histogram comparable; outliers clamp into the end bins.
     HIST_LO, HIST_W, HIST_N = -1.6, 0.1, 32
-    ALT_FLAGS = {"alt-choice", "continuation", "community-day", "community", "court",
-                 "special-ed"}
     EIL_WORD = {"ELEM": "elementary", "INTMIDJR": "middle", "HS": "high",
                 "ELEMHIGH": "K-12"}
-
-    def school_type(flags: list | None) -> str:
-        fl = flags or []
-        if "selective" in fl:
-            return "selective"
-        if "magnet" in fl:
-            return "magnet"
-        if "charter" in fl:
-            return "charter"
-        if ALT_FLAGS & set(fl):
-            return "alternative"
-        return "standard"
 
     def peer_key(e: dict) -> tuple:
         if e["kind"] == "school":

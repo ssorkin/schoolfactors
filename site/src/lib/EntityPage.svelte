@@ -465,7 +465,10 @@
   // The neighbor list arrives ordered by demographic similarity; take the
   // closest few in each direction, then display each block by adjusted level.
   let lookalikeSplit = $derived.by(() => {
-    const list = entity.neighbors?.lookalike ?? [];
+    // Distance cap: sparse peer groups (magnets, alternative programs) can
+    // stretch their 12 nearest matches far in demographic space — beyond 2
+    // z-units a "lookalike" is a match of necessity, not similarity.
+    const list = (entity.neighbors?.lookalike ?? []).filter((s) => (s.dist ?? 0) <= 2);
     const own = e.level_adj_eb;
     if (own == null) return { better: list.slice(0, 5), worse: [], own: null };
     const better = list
@@ -767,9 +770,11 @@
     Check a school (or search for any school statewide) to overlay its trend on the
     chart above — up to four at a time. Lookalikes are matched statewide on the
     demographics of tested students (poverty, language, race/ethnicity, disabilities,
-    parent education, size), same school level; the highlighted row is this school,
-    with the most similar schools scoring above and below it. The number on the
-    right is each school's demographically-adjusted level.
+    parent education, size), restricted to the same school level and type — a
+    traditional school is never compared with continuation or other alternative
+    programs, whose student selection differs even when demographics match. The
+    highlighted row is this school, with the most similar schools scoring above and
+    below it. The number on the right is each school's demographically-adjusted level.
   </p>
 {/if}
 

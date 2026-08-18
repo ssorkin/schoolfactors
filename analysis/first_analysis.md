@@ -65,7 +65,15 @@ sampling SE would double-count noise the shrinkage already removed), so an
 imprecise high estimate ranks below a precise, slightly lower one. Percentiles are
 withheld below 0.70 reliability and from entities with no test data in the latest
 year — a recency-weighted level for a school whose data stopped years ago describes
-a school that may no longer exist in that form.
+a school that may no longer exist in that form. School pools separate alternative
+programs (continuation, community day, court, special-ed) and exam-admission
+selective schools from the general pool: demographics cannot carry admission and
+assignment selection, so a shared ranking put 68% of alternative schools in the
+bottom decile on selection rather than performance. Ranked among their own kind,
+continuation schools' median percentile is 34; pools under 20 schools show no
+percentile. Lookalike comparison sets partition the same way, capped at 2
+standardized units of demographic distance — a sparse peer group shows fewer
+matches rather than false ones.
 
 **Demographic adjustment (Urban Institute-style).** We regress the OLS level and
 growth estimates, precision-weighted, on covariates computed from the CAASPP files

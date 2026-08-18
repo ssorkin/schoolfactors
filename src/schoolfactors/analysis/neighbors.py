@@ -3,8 +3,12 @@
 Nearby = geographic neighbors at the same school level (elementary with elementary),
 from the CDE directory's lat/long. Lookalike = nearest neighbors in standardized
 demographic space (economic disadvantage, race/ethnicity, EL, SWD, parent education,
-size) at the same school level, statewide — the natural comparison set for "schools
-serving similar students".
+size) at the same school level AND type, statewide — the natural comparison set for
+"schools serving similar students". The type partition (traditional/magnet/charter/
+selective/alternative, mirroring the peer scatter) matters because demographics
+cannot distinguish a high-poverty traditional school from a continuation school
+serving demographically identical students, while selection into alternative
+programs makes that comparison invalid in both directions.
 """
 
 from __future__ import annotations
@@ -48,14 +52,23 @@ def _directory() -> pl.DataFrame:
     return df
 
 
-def build_neighbors(effects: pl.DataFrame) -> dict[str, dict]:
-    """Return {cds: {nearby: [...], lookalike: [...]}} for modeled schools."""
+def build_neighbors(effects: pl.DataFrame, type_map: dict[str, str]) -> dict[str, dict]:
+    """Return {cds: {nearby: [...], lookalike: [...]}} for modeled schools.
+
+    type_map: cds → school type class (standard/magnet/charter/selective/
+    alternative); missing entries default to standard.
+    """
     cols = ["cds", "level_adj_eb", "share_econ_dis"] + [
         c
         for c in LOOKALIKE_FEATURES
         if c in effects.columns and c != "share_econ_dis"
     ]
     base = effects.select(cols).join(_directory(), on="cds", how="left")
+    base = base.with_columns(
+        pl.col("cds")
+        .map_elements(lambda c: type_map.get(c, "standard"), return_dtype=pl.String)
+        .alias("stype")
+    )
 
     out: dict[str, dict] = {c: {"nearby": [], "lookalike": []} for c in base["cds"].to_list()}
     info = {
@@ -97,7 +110,11 @@ def build_neighbors(effects: pl.DataFrame) -> dict[str, dict]:
                             entry(cds_arr[j], {"miles": round(float(d), 1)})
                         )
 
-        # --- lookalike (demographic) ---
+    # Lookalikes partition by school level AND type: continuation schools match
+    # continuation schools, magnets match magnets.
+    for (eil, _stype), grp in base.group_by(["eilcode", "stype"], maintain_order=True):
+        if eil is None:
+            continue
         feat_cols = [c for c in LOOKALIKE_FEATURES if c in grp.columns]
         demo = grp.filter(
             pl.all_horizontal([pl.col(c).is_not_null() for c in feat_cols])
