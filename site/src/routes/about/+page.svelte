@@ -40,6 +40,8 @@
   <a href="https://github.com/ssorkin/schoolfactors">GitHub</a> — corrections,
   issues, and pull requests are welcome. If you spot a number that looks wrong,
   please say so; finding and documenting data problems is half the project.
+  Email works too:
+  <a href="mailto:contact@schoolfactors.org">contact@schoolfactors.org</a>.
 </p>
 
 <style>

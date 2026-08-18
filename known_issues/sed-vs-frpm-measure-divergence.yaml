@@ -1,0 +1,36 @@
+id: sed-vs-frpm-measure-divergence
+dataset: caaspp
+years: [2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
+kind: definition-divergence
+title: CAASPP's SED flag and FRPM eligibility disagree by ±5pp at ~30% of high schools
+description: >
+  CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED)
+  definition — FRPM-eligible, or neither parent a high-school graduate, or
+  migrant/foster/homeless — nominally a superset of FRPM. In practice the two
+  measures sit at parity on average and disagree in both directions: across
+  1,205 high schools with >= 100 grade-11 students in 2025, grade-11 SED share
+  minus school-wide FRPM share has median +0.3pp, but 14% of schools show SED
+  at least 5pp BELOW FRPM (a superset measuring under its subset) and 16% at
+  least 5pp above. Candidate mechanisms: grade-composition differences (FRPM
+  spans the school; SED here is grade 11 only), and divergent collection
+  regimes — CEP/universal-meals districts count FRPM via direct certification
+  and alternative income forms while the SED flag comes through CALPADS, and
+  income-form collection weakens in upper high-school grades. John Marshall
+  Senior High (19647331935568) illustrates the tail: grade-11 tested SED fell
+  77% -> 67% over the decade while school-wide FRPM held ~72%, with test
+  participation 92-97% and uniform across groups (so participation skew is
+  ruled out).
+evidence: >
+  caaspp_sb_raw grade-11 students_enrolled by group vs frpm_raw school shares,
+  2025; Marshall participation by group 2016-2025 (students_tested /
+  students_enrolled). See also the 2015 subgroup-enrollment issue — 2015
+  group-level enrollment is unusable for this comparison.
+handling: >
+  Not corrected — both measures are published as defined. Site handling: the
+  glossary documents the SED / FRPM / unduplicated-count distinctions; the
+  intake-shift warning on entity pages cross-checks tested-SED shifts against
+  FRPM census history over the same span and says explicitly when school-wide
+  FRPM moved much less (i.e., the shift reflects who is tested or how students
+  are classified, not who enrolls). The adjustment model's covariates use
+  tested-population shares consistently, so model comparisons are
+  like-for-like even where the two measures diverge.

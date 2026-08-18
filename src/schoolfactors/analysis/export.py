@@ -289,6 +289,29 @@ def run_export() -> None:
           AND school_code IS NOT NULL AND school_code <> '0000000'
           AND TRY_CAST(enrollment_k_12 AS DOUBLE) > 0
     """).fetchall()
+    # FRPM census by year (spring-labeled), rolled up to district/county like
+    # the other rollups. The intake-shift warning cross-checks the tested
+    # population's SED shift against this: when school-wide FRPM barely moved,
+    # a tested-share shift mostly reflects who tests, not who enrolls.
+    frpm_hist_pool: dict[str, dict[int, list]] = {}
+    for scds, ay_, c, e in con_dir.execute("""
+        SELECT cds, academic_year,
+               TRY_CAST(frpm_count_k_12 AS DOUBLE), TRY_CAST(enrollment_k_12 AS DOUBLE)
+        FROM frpm_raw
+        WHERE school_code IS NOT NULL AND school_code <> '0000000'
+          AND TRY_CAST(enrollment_k_12 AS DOUBLE) > 0 AND length(academic_year) = 9
+    """).fetchall():
+        if c is None or e is None:
+            continue
+        year = int(ay_[:4]) + 1
+        for key in (scds, scds[:7] + "0000000", scds[:2] + "000000000000"):
+            agg = frpm_hist_pool.setdefault(key, {}).setdefault(year, [0.0, 0.0])
+            agg[0] += c
+            agg[1] += e
+    frpm_hist_map = {
+        k: {y: round(c / e, 3) for y, (c, e) in by_year.items() if e > 0}
+        for k, by_year in frpm_hist_pool.items()
+    }
     # ESSA per-pupil expenditure, every published year (essappeXXYYdata →
     # spring 20YY). Total = school + allocated central, federal + state/local.
     ppe_rows_all = con_dir.execute("""
@@ -557,6 +580,7 @@ def run_export() -> None:
                 "ppe_hist": (
                     [ppe_hist[cds].get(y) for y in PPE_YEARS] if cds in ppe_hist else None
                 ),
+                "frpm_hist": frpm_hist_map.get(cds),
                 "group_vs_state": gvs,
                 "district": nrow["district_name"],
                 "district_cds": cds[:7] + "0000000",
@@ -733,9 +757,12 @@ def run_export() -> None:
                     "_mrel": eff.get("move_reliability"),
                     "_trel": full_eff.get("trend_reliability"),
                     "_ly": eff.get("last_year"),
-                    # Full-population FRPM share (all enrolled students), falling
-                    # back to the tested-population share where FRPM is missing.
-                    "econ": frpm_pop_share.get(cds, eff.get("share_econ_dis")),
+                    # Full-population FRPM share (all enrolled students). No
+                    # fallback to the tested-SED share: the two definitions
+                    # disagree by ±5pp at ~30% of high schools (see known issue
+                    # sed-vs-frpm-measure-divergence), so a "% FRPM" column must
+                    # not silently mix them — missing stays missing.
+                    "econ": frpm_pop_share.get(cds),
                     "ppe": ppe_map.get(cds),
                     "enrollment": census_map.get(cds),
                     "total_scores": eff.get("total_scores"),

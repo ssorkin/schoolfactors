@@ -144,10 +144,11 @@ export const GLOSSARY = [
     id: 'econ-share',
     term: '% FRPM',
     unit: '% of students',
-    tip: 'Share of enrolled students eligible for free or reduced-price meals (FRPM) — the standard economic-disadvantage measure. Where FRPM is missing, the share of tested students CDE classifies as economically disadvantaged.',
+    tip: 'Share of enrolled students eligible for free or reduced-price meals (FRPM) — the standard economic-disadvantage measure. A dash means CDE published no FRPM data for this entity.',
     def: [
-      'The share of all enrolled students eligible for free or reduced-price meals (FRPM census) — the standard school-level measure of economic disadvantage. Where FRPM data is missing, the share of tested students CDE classifies as economically disadvantaged is used instead.',
-      'Note the two definitions differ slightly: FRPM covers the whole enrollment; the CAASPP flag covers tested students only. The adjustment model uses the tested-population share.'
+      'The share of all enrolled students eligible for free or reduced-price meals (FRPM census) — the standard school-level measure of economic disadvantage. A dash means CDE published no FRPM data for this entity; we never substitute the differently-defined tested-population share into this column.',
+      'Note the two definitions differ slightly: FRPM covers the whole enrollment; the CAASPP flag covers tested students only. The adjustment model uses the tested-population share.',
+      'CAASPP’s "economically disadvantaged" group is CDE’s socioeconomically-disadvantaged definition — FRPM-eligible, or neither parent a high-school graduate, or migrant/foster/homeless — so it typically runs a few points above FRPM alone, and it can move with test participation and classification, not only enrollment. It is also not the LCFF "unduplicated pupil count", which additionally folds in English learners.'
     ]
   },
   {

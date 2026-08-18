@@ -294,6 +294,22 @@
     return out.slice(0, 3).map((s) => ({ ...s, y0: years[0], y1: years[years.length - 1] }));
   });
 
+  // Cross-check a tested-population econ shift against the FRPM census over
+  // the same span: the tested share (CDE's socioeconomically-disadvantaged
+  // flag among test takers) can move with participation and classification,
+  // not only enrollment. When school-wide FRPM barely moved, say so.
+  let econIntake = $derived(intakeShifts.find((s) => s.k === 'econ_dis') ?? null);
+  let frpmShift = $derived.by(() => {
+    const fh = entity.frpm_hist;
+    if (!fh || !econIntake) return null;
+    const years = Object.keys(fh)
+      .map(Number)
+      .filter((y) => y >= econIntake.y0 && y <= econIntake.y1 + 1)
+      .sort((a, b) => a - b);
+    if (years.length < 2) return null;
+    return { a: fh[years[0]], b: fh[years[years.length - 1]] };
+  });
+
   let scatterMode = $derived(
     entity.peer_key && e.level_adj_eb != null
       ? entity.growth_abs != null
@@ -539,13 +555,22 @@
   ·
   <a
     class="util"
+    href="mailto:contact@schoolfactors.org?subject={encodeURIComponent(
+      `Data issue: ${entity.name} (${entity.cds})`
+    )}&body={encodeURIComponent(
+      `Page: ${pageUrl}\n\nWhat looks wrong (please include which number and what you expected):\n\n`
+    )}">Report a data issue</a
+  >
+  ·
+  <a
+    class="util"
     href="https://github.com/ssorkin/schoolfactors/issues/new?title={encodeURIComponent(
       `Data issue: ${entity.name} (${entity.cds})`
     )}&body={encodeURIComponent(
       `Page: ${pageUrl}\n\nWhat looks wrong (please include which number and what you expected):\n\n`
     )}"
     target="_blank"
-    rel="noopener">Report a data issue</a
+    rel="noopener">GitHub issue</a
   >
 </p>
 
@@ -605,14 +630,23 @@
 
 {#if intakeShifts.length}
   <div class="intake-warn" role="note">
-    <strong>Student intake has changed.</strong>
-    Between {intakeShifts[0].y0} and {intakeShifts[0].y1}, the tested population
-    shifted:
+    <strong>The tested population has shifted.</strong>
+    Between {intakeShifts[0].y0} and {intakeShifts[0].y1}:
     {#each intakeShifts as s, i (s.k)}{i > 0 ? '; ' : ''}{groupLabels[s.k]}
       {Math.round(s.a * 100)}% → {Math.round(s.b * 100)}%{/each}.
+    {#if econIntake && frpmShift}
+      {#if Math.abs(frpmShift.b - frpmShift.a) < Math.abs(econIntake.d) / 2}
+        {entity.kind === 'school' ? 'School' : entity.kind === 'district' ? 'District' : 'County'}-wide FRPM eligibility moved much less over the same span
+        ({Math.round(frpmShift.a * 100)}% → {Math.round(frpmShift.b * 100)}%), so
+        much of this shift reflects who takes the tests, not who enrolls.
+      {:else}
+        {entity.kind === 'school' ? 'School' : entity.kind === 'district' ? 'District' : 'County'}-wide FRPM eligibility moved similarly
+        ({Math.round(frpmShift.a * 100)}% → {Math.round(frpmShift.b * 100)}%).
+      {/if}
+    {/if}
     Changes over time on this page — trend, cohort tracks, the Met+ lines — partly
-    reflect <em>who enrolls</em>, not only how this {entity.kind} serves its
-    students.
+    reflect <em>who enrolls and who is tested</em>, not only how this
+    {entity.kind} serves its students.
   </div>
 {/if}
 
