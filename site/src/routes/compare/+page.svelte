@@ -310,15 +310,24 @@
     </div>
   </div>
   <h2>Met+ by year, by student group</h2>
-  <p class="chartlegend">
-    {#each schools as s, i (s.cds)}
-      <span class="sw" style:background={SERIES_COLORS[i]}></span>
-      {s.name}{i < schools.length - 1 ? ' · ' : ''}
-    {/each}
-    — % meeting or exceeding the standard, ELA and math combined, all panels on the
-    same 0–100% scale. Gaps: no comparable testing (2020–21) or fewer than 11
-    students in the group.
-  </p>
+  <div class="chartsgrid">
+    <aside class="chartrail">
+      <div class="railbox">
+        <h4>Schools</h4>
+        {#each schools as s, i (s.cds)}
+          <div class="railitem">
+            <span class="sw" style:background={SERIES_COLORS[i]}></span>
+            <a href="/school/{s.cds}">{s.name}</a>
+          </div>
+        {/each}
+        <p class="railnote">
+          % meeting or exceeding the standard, ELA and math combined. All panels
+          share the same 0–100% scale. Gaps: no comparable testing (2020–21) or
+          fewer than 11 students in the group.
+        </p>
+      </div>
+    </aside>
+    <div class="chartcol">
   {#each panelThemes as t (t.label)}
     <h3>{t.label}</h3>
     <div class="panels">
@@ -357,6 +366,8 @@
       {/each}
     </div>
   {/each}
+    </div>
+  </div>
 
   <p class="note">
     Levels are in student standard deviations (SDs): at +1 SD a school's average
@@ -498,6 +509,69 @@
     margin: 1rem 0 0.4rem;
     font-size: 1rem;
     color: #52514e;
+  }
+  .chartcol h3:first-child {
+    margin-top: 0;
+  }
+  .chartsgrid {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: 1.2rem;
+    align-items: start;
+  }
+  .chartrail {
+    position: sticky;
+    top: 1rem;
+  }
+  .railbox {
+    background: #fffdf9;
+    border: 1px solid #e8e1d5;
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+  }
+  .railbox h4 {
+    margin: 0 0 0.4rem;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #898781;
+  }
+  .railitem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.35rem 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .railitem .sw {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    flex: none;
+    margin: 0;
+  }
+  .railitem a {
+    text-decoration: none;
+    color: #211d18;
+  }
+  .railitem a:hover {
+    color: #b0552f;
+  }
+  .railnote {
+    font-size: 0.76rem;
+    color: #898781;
+    margin: 0.7rem 0 0;
+  }
+  @media (max-width: 880px) {
+    .chartsgrid {
+      display: block;
+    }
+    .chartrail {
+      position: static;
+      margin-bottom: 0.8rem;
+    }
   }
   .info {
     border: none;
