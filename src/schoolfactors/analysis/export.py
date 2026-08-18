@@ -863,20 +863,22 @@ def run_export() -> None:
     # describes a school that may no longer exist in that form. The underlying
     # student-SD values stay in the payloads; this is display only.
     #
-    # School percentile pools additionally split alternative and selective
-    # schools from the general pool: alternative programs (continuation,
-    # community day, court, special-ed) land in the bottom decile 68% of the
-    # time on student selection rather than performance — occupying the
-    # basement of a shared ranking and getting meaningless ranks themselves —
-    # and exam-admission schools mirror that at the top. Magnet and charter
-    # schools stay in the general pool: they serve general-education
-    # populations and the covariates carry their composition; it is
-    # admission/assignment selection that breaks comparability.
+    # School percentile pools additionally split alternative programs
+    # (continuation, community day, court, special-ed) from the general pool:
+    # they land in the bottom decile 68% of the time on student selection
+    # rather than performance — occupying the basement of a shared ranking and
+    # getting meaningless ranks themselves. Selective (exam-admission) schools
+    # stay in the general pool, badged: their percentile is expected to sit at
+    # the top on admissions alone, so a selective school NOT near the top is
+    # itself informative — and with only a handful of curated entries, a
+    # separate pool would fall below the 20-school minimum and show nothing.
+    # Magnet and charter schools also stay: they serve general-education
+    # populations and the covariates carry their composition.
     def pool_class(e: dict) -> str:
         if e["kind"] != "school":
             return ""
         t = school_type_map.get(e["cds"], "standard")
-        return t if t in ("alternative", "selective") else "general"
+        return "alternative" if t == "alternative" else "general"
 
     latest_by_kind: dict[str, int | None] = {}
     for kind_ in ("school", "district", "county"):
