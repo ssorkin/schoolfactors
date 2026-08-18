@@ -108,6 +108,33 @@
           : '—'
     }
   ];
+
+  // ---- Small multiples: Met+ by year per school, SHARED 0-100 scale so
+  // levels and slopes compare across panels; lines break at the COVID gap.
+  const CW = 280;
+  const CH = 150;
+  const CM = { l: 30, r: 10, t: 10, b: 22 };
+  const Y0 = 2015;
+  const Y1 = 2025;
+  const CX = (y) => CM.l + ((y - Y0) / (Y1 - Y0)) * (CW - CM.l - CM.r);
+  const CY = (v) => CM.t + ((100 - v) / 100) * (CH - CM.t - CM.b);
+
+  function metSeries(s, subject) {
+    const pts = [];
+    for (const r of s.subgroup_results ?? []) {
+      if (r.group === 1 && r.subject === subject && r.pct_met != null) {
+        pts.push({ year: r.year, v: r.pct_met });
+      }
+    }
+    pts.sort((a, b) => a.year - b.year);
+    const runs = [[]];
+    for (const p of pts) {
+      const cur = runs[runs.length - 1];
+      if (cur.length && p.year - cur[cur.length - 1].year > 1) runs.push([p]);
+      else cur.push(p);
+    }
+    return { pts, runs: runs.filter((r) => r.length > 1) };
+  }
 </script>
 
 <svelte:head>
@@ -177,6 +204,49 @@
       </table>
     </div>
   </div>
+  <h2>Met+ by year</h2>
+  <p class="chartlegend">
+    <span class="sw ela"></span> ELA · <span class="sw math"></span> Math — % meeting
+    or exceeding the standard, all panels on the same 0–100% scale. 2020–21 gap:
+    no comparable testing.
+  </p>
+  <div class="panels">
+    {#each schools as s (s.cds)}
+      {@const ela = metSeries(s, 'ela')}
+      {@const math = metSeries(s, 'math')}
+      <figure class="panel">
+        <figcaption><a href="/school/{s.cds}">{s.name}</a></figcaption>
+        {#if ela.pts.length || math.pts.length}
+          <svg viewBox="0 0 {CW} {CH}" role="img" aria-label="Met+ by year for {s.name}">
+            {#each [0, 50, 100] as t (t)}
+              <line x1={CM.l} x2={CW - CM.r} y1={CY(t)} y2={CY(t)} class="grid" />
+              <text x={CM.l - 5} y={CY(t) + 3.5} class="tick" text-anchor="end">{t}</text>
+            {/each}
+            {#each [2015, 2019, 2022, 2025] as y (y)}
+              <text x={CX(y)} y={CH - 6} class="tick" text-anchor="middle">{y}</text>
+            {/each}
+            {#each [['ela', ela], ['math', math]] as [cls, ser] (cls)}
+              {#each ser.runs as run, ri (ri)}
+                <polyline
+                  fill="none"
+                  class="line {cls}"
+                  points={run.map((p) => `${CX(p.year).toFixed(1)},${CY(p.v).toFixed(1)}`).join(' ')}
+                />
+              {/each}
+              {#each ser.pts as p (cls + p.year)}
+                <circle cx={CX(p.year)} cy={CY(p.v)} r="2.2" class="dot {cls}">
+                  <title>{p.year} {cls.toUpperCase()}: {p.v.toFixed(0)}% met+</title>
+                </circle>
+              {/each}
+            {/each}
+          </svg>
+        {:else}
+          <p class="note">No published results.</p>
+        {/if}
+      </figure>
+    {/each}
+  </div>
+
   <p class="note">
     "Expected level" is the demographic adjustment model's prediction from the
     students each school serves (poverty, language, race/ethnicity, disability,
@@ -292,5 +362,83 @@
     font-size: 0.9rem;
     max-width: 46rem;
     margin-top: 0.7rem;
+  }
+  h2 {
+    margin: 1.6rem 0 0.2rem;
+  }
+  .chartlegend {
+    color: #52514e;
+    font-size: 0.85rem;
+    margin: 0 0 0.5rem;
+  }
+  .sw {
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    vertical-align: middle;
+    border-radius: 2px;
+  }
+  .sw.ela {
+    background: #2a78d6;
+  }
+  .sw.math {
+    background: #d97b29;
+  }
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 0.8rem;
+  }
+  .panel {
+    margin: 0;
+    background: #fffdf9;
+    border: 1px solid #e8e1d5;
+    border-radius: 10px;
+    padding: 0.5rem 0.7rem 0.3rem;
+  }
+  .panel figcaption {
+    font-size: 0.85rem;
+    font-weight: 650;
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .panel figcaption a {
+    text-decoration: none;
+    color: #211d18;
+  }
+  .panel figcaption a:hover {
+    color: #b0552f;
+  }
+  .panel svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .grid {
+    stroke: #f0ead9;
+  }
+  .tick {
+    font-size: 10px;
+    fill: #898781;
+  }
+  .line {
+    stroke-width: 2;
+  }
+  .line.ela,
+  .dot.ela {
+    stroke: #2a78d6;
+    fill: none;
+  }
+  .dot.ela {
+    fill: #2a78d6;
+    stroke: none;
+  }
+  .line.math {
+    stroke: #d97b29;
+  }
+  .dot.math {
+    fill: #d97b29;
   }
 </style>
