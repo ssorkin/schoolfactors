@@ -11,6 +11,14 @@
 
 set -euo pipefail
 
+# Serialize deploys (and fail loudly on overlap): a concurrent build clearing
+# site/build/ mid-rsync once shipped a half-copied release.
+exec 9>/tmp/schoolfactors-deploy.lock
+if ! flock -n 9; then
+  echo "another deploy is running (lock /tmp/schoolfactors-deploy.lock); waiting…" >&2
+  flock 9
+fi
+
 HOST=dronesclub
 RELEASES=/var/www/schoolfactors-releases
 CURRENT=/var/www/schoolfactors-current
