@@ -4,7 +4,8 @@
   import { TYPE_COLOR } from '$lib/maptypes.js';
 
   /**
-   * Leaflet dot map. `points`: [{ll: [lat, lon], cds, kind, name, type, popup}].
+   * Leaflet dot map. `points`: [{ll: [lat, lon], cds, kind, name, type, popup,
+   * color?}] — `color` (when set) overrides the school-type fill.
    * Canvas renderer; redraws are throttled (leading edge) so the map tracks
    * facet sliders live while they're dragged. Marker radius scales with zoom.
    * Auto-fits to the shown points until the user pans/zooms by hand; the Fit
@@ -54,7 +55,7 @@
         radius: radius(p.kind),
         color: '#ffffff',
         weight: 0.7,
-        fillColor: TYPE_COLOR[p.type] ?? TYPE_COLOR.regular,
+        fillColor: p.color ?? TYPE_COLOR[p.type] ?? TYPE_COLOR.regular,
         fillOpacity: 0.85
       });
       m.bindPopup(p.popup, { maxWidth: 300 });

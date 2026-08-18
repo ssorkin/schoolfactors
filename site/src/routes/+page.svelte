@@ -10,7 +10,14 @@
   import RangeFacet from '$lib/RangeFacet.svelte';
   import { matchNums, norm, parseQuery } from '$lib/facets.js';
   import { COLTIP } from '$lib/glossary.js';
-  import { TYPE_COLOR, TYPE_LABEL, entityType } from '$lib/maptypes.js';
+  import {
+    NO_PCT_COLOR,
+    TYPE_COLOR,
+    TYPE_LABEL,
+    entityType,
+    pctColor,
+    pctGradient
+  } from '$lib/maptypes.js';
 
   let items = $state(null);
   let query = $state('');
@@ -68,6 +75,7 @@
         if (m) initFacets[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
       }
     }
+    colorByPct = p.get('c') === '1';
     if (p.get('v') === 'map') openMap();
     restored = true;
   }
@@ -84,6 +92,7 @@
       if (sortDir === -1) p.set('d', '-1');
     }
     if (view === 'map') p.set('v', 'map');
+    if (colorByPct) p.set('c', '1');
     const hidden = Object.keys(typeSel).filter((t) => !typeSel[t]);
     if (hidden.length) p.set('t', hidden.join('.'));
     const narrowed = [];
@@ -265,6 +274,10 @@
   });
   let mapKind = $derived(kindFilter === 'all' ? 'school' : kindFilter);
 
+  // Dot color mode: school-type series (default), or the diverging Similar
+  // Schools %ile ramp (rust = below typical, gray = 50, blue = above).
+  let colorByPct = $state(false);
+
   // One facet per numeric table column. `scale` maps stored value → slider
   // units (econ is stored as a 0-1 fraction).
   const FACETS = [
@@ -348,36 +361,61 @@
 
   // Facet conjunction over the search/level-filtered list; an untouched facet
   // constrains nothing, a narrowed one also hides entities missing that value.
+  // `skipKey` exempts one facet — used to compute that facet's own slider
+  // limits from everything else.
+  function passesFacets(it, skipKey = null) {
+    for (const f of FACETS) {
+      if (f.key === skipKey) continue;
+      const b = bounds[f.key];
+      const sel = fsel[f.key];
+      if (!b || !sel || (sel[0] <= b[0] && sel[1] >= b[1])) continue;
+      let v = it[f.key];
+      if (v == null) return false;
+      if (f.scale) v = v * f.scale;
+      if (v < sel[0] || v > sel[1]) return false;
+    }
+    return true;
+  }
+
   let mapEligible = $derived(filtered.filter((it) => it.kind === mapKind && it.ll));
   let mapPoints = $derived.by(() => {
     const out = [];
     for (const it of mapEligible) {
       const type = entityType(it);
       if (mapKind === 'school' && !typeSel[type]) continue;
-      let ok = true;
-      for (const f of FACETS) {
-        const b = bounds[f.key];
-        const sel = fsel[f.key];
-        if (!b || !sel || (sel[0] <= b[0] && sel[1] >= b[1])) continue;
+      if (!passesFacets(it)) continue;
+      out.push({
+        ll: it.ll,
+        cds: it.cds,
+        kind: it.kind,
+        type,
+        color: colorByPct ? pctColor(it.adj_pct) : null,
+        popup: popupHtml(it)
+      });
+    }
+    return out;
+  });
+
+  // Slider limits track the data actually shown: each facet's limits are the
+  // extents over points passing every OTHER filter (its own excluded, so a
+  // narrowed slider can always be re-widened). Selections live in kind-wide
+  // `bounds` units and are kept when limits tighten; RangeFacet clamps the
+  // display. Falls back to the kind bounds when nothing passes.
+  let shownBounds = $derived.by(() => {
+    const out = {};
+    for (const f of FACETS) {
+      let mn = Infinity;
+      let mx = -Infinity;
+      for (const it of mapEligible) {
+        if (mapKind === 'school' && !typeSel[entityType(it)]) continue;
+        if (!passesFacets(it, f.key)) continue;
         let v = it[f.key];
-        if (v == null) {
-          ok = false;
-          break;
-        }
+        if (v == null) continue;
         if (f.scale) v = v * f.scale;
-        if (v < sel[0] || v > sel[1]) {
-          ok = false;
-          break;
-        }
+        if (v < mn) mn = v;
+        if (v > mx) mx = v;
       }
-      if (ok)
-        out.push({
-          ll: it.ll,
-          cds: it.cds,
-          kind: it.kind,
-          type,
-          popup: popupHtml(it)
-        });
+      out[f.key] = mn <= mx ? [Math.floor(mn), Math.ceil(mx)] : bounds[f.key];
     }
     return out;
   });
@@ -478,6 +516,10 @@
       {mapPoints.length.toLocaleString()} of {mapEligible.length.toLocaleString()}
       {mapKind === 'county' ? 'counties' : mapKind + 's'} shown
     </div>
+    <label class="colorby">
+      <input type="checkbox" bind:checked={colorByPct} />
+      Color by Similar Schools %ile
+    </label>
     {#if mapKind === 'school'}
       <div class="legend">
         {#each Object.keys(TYPE_LABEL) as t (t)}
@@ -487,19 +529,32 @@
             title="Click to show/hide {TYPE_LABEL[t].toLowerCase()} schools"
             onclick={() => (typeSel[t] = !typeSel[t])}
           >
-            <span class="dot" style:background={TYPE_COLOR[t]}></span>
+            {#if colorByPct}
+              <input type="checkbox" checked={typeSel[t]} tabindex="-1" />
+            {:else}
+              <span class="dot" style:background={TYPE_COLOR[t]}></span>
+            {/if}
             <span class="ltext">{TYPE_LABEL[t]}</span>
           </button>
         {/each}
       </div>
     {/if}
+    {#if colorByPct}
+      <div class="pctscale" title={COLTIP.adj_pct ?? ''}>
+        <div class="pctbar" style:background={pctGradient()}></div>
+        <div class="pctticks"><span>1</span><span>50 · typical</span><span>99</span></div>
+        <div class="pctnone">
+          <span class="dot" style:background={NO_PCT_COLOR}></span> no percentile
+        </div>
+      </div>
+    {/if}
     {#each FACETS as f (f.key)}
-      {#if fsel[f.key] && bounds[f.key]}
+      {#if fsel[f.key] && shownBounds[f.key]}
         <RangeFacet
           label={f.label}
           tip={COLTIP[f.key] ?? ''}
-          min={bounds[f.key][0]}
-          max={bounds[f.key][1]}
+          min={shownBounds[f.key][0]}
+          max={shownBounds[f.key][1]}
           step={f.step ?? 1}
           bind:lo={fsel[f.key][0]}
           bind:hi={fsel[f.key][1]}
@@ -511,7 +566,7 @@
     <p class="mapnote">
       Filters combine, and clicking a legend entry shows/hides that school type. Narrowing
       a filter also hides entities missing that value; entities without coordinates can't
-      be mapped.
+      be mapped. Slider limits follow the data the other filters leave shown.
     </p>
   </aside>
   {#if mapOpened}
@@ -693,6 +748,53 @@
     margin-bottom: 0.5rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #f0ead9;
+  }
+  .colorby {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    color: #52514e;
+    cursor: pointer;
+    margin-bottom: 0.45rem;
+  }
+  .colorby input {
+    accent-color: #2a78d6;
+    margin: 0;
+  }
+  .lrow input[type='checkbox'] {
+    pointer-events: none;
+    width: 11px;
+    height: 11px;
+    margin: 0;
+    flex: none;
+    align-self: center;
+    accent-color: #2a78d6;
+  }
+  .pctscale {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f0ead9;
+  }
+  .pctbar {
+    height: 9px;
+    border-radius: 4px;
+  }
+  .pctticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: #898781;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pctnone {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    color: #898781;
+    margin-top: 0.25rem;
   }
   .lrow {
     display: flex;

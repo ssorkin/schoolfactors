@@ -1,5 +1,10 @@
 <script>
-  /** Dual-thumb min/max range slider for one map facet. */
+  /**
+   * Dual-thumb min/max range slider for one map facet. min/max may tighten to
+   * the data currently shown while lo/hi keep the user's wider selection (so
+   * re-widening the other filters restores it); the readout and active state
+   * use the clamped view, matching where the thumbs actually sit.
+   */
   let {
     label,
     tip = '',
@@ -11,13 +16,15 @@
     fmt = (v) => v
   } = $props();
 
-  let active = $derived(lo > min || hi < max);
+  let dlo = $derived(Math.min(Math.max(lo, min), max));
+  let dhi = $derived(Math.max(Math.min(hi, max), min));
+  let active = $derived(dlo > min || dhi < max);
 </script>
 
 <div class="facet" class:active>
   <div class="head">
     <span class="label" title={tip}>{label}</span>
-    <span class="vals">{fmt(lo)} – {fmt(hi)}</span>
+    <span class="vals">{fmt(dlo)} – {fmt(dhi)}</span>
   </div>
   <div class="sliders">
     <input
