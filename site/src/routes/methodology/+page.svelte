@@ -51,8 +51,11 @@
       We use each school's <strong>mean scale score</strong> on the CAASPP Smarter Balanced
       tests (2015–2025) — never "percent proficient", which a school can move just by
       nudging students across a cut line. Scores are compared within the same grade,
-      subject, and year, in units of student-level standard deviations. We exclude 2020
-      (no testing) and 2021 (statewide participation collapsed to 24%).
+      subject, and year, in units of student-level standard deviations — the intuition:
+      a student at +1 SD scores higher than about 84% of students statewide, +2 SD
+      higher than about 98%, and about 68% of all students fall within ±1 SD of
+      average. We exclude 2020 (no testing) and 2021 (statewide participation
+      collapsed to 24%).
     </p>
 
     <h2 id="three-numbers">2. Three numbers per school</h2>

@@ -38,9 +38,10 @@ export const GLOSSARY = [
     id: 'student-sd',
     term: 'Student SD (the unit)',
     unit: 'standard deviations',
-    tip: 'The unit for all model numbers: one standard deviation of individual student scores statewide, within the same grade, subject, and year.',
+    tip: 'The unit for all model numbers. Intuition: a student at +1 SD scores higher than about 84% of students statewide; +2 SD, higher than about 98%.',
     def: [
-      'Every model number (Level, Growth, Trend, and their adjusted versions) is expressed in student standard deviations: one SD of individual student scores statewide, within the same grade, subject, and year. A school at +0.20 sits a fifth of a student SD above its comparison point.',
+      'A standard deviation (SD) measures how spread out scores are. The everyday intuition: a student scoring +1 SD above average outscores about 84% of students statewide; +2 SD, about 98%; −1 SD means about 84% score higher. (Equivalently: about 68% of all students fall within ±1 SD of average, 95% within ±2.)',
+      'Every model number (Level, Growth, Trend, and their adjusted versions) is expressed in student standard deviations: one SD of individual student scores statewide, within the same grade, subject, and year. A school at +0.20 means its average student sits a fifth of an SD above the comparison point — roughly outscoring 58% of students statewide instead of 50%.',
       'Behind this: each school-grade-subject-year mean scale score is standardized against the state — school mean minus state mean, divided by the student SD. The state average is therefore 0 in every year and grade by construction, and every model number is relative to the state.'
     ]
   },

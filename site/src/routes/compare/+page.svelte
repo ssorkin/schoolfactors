@@ -13,6 +13,29 @@
   import CsvButton from '$lib/CsvButton.svelte';
   import { dataUrl } from '$lib/data.js';
   import { GROUP_LABELS, GROUP_THEMES, SERIES_COLORS } from '$lib/groups.js';
+  import { GLOSSARY } from '$lib/glossary.js';
+
+  const glossaryById = Object.fromEntries(GLOSSARY.map((g) => [g.id, g]));
+
+  // On-page info popovers for the row terms (no navigation away). Fixed
+  // positioning so the popup escapes the table's scroll container; closes on
+  // outside click, Escape, scroll, or the x.
+  let info = $state(null); // { label, tip, gid, x, y }
+  function toggleInfo(ev, r) {
+    ev.stopPropagation();
+    if (info?.label === r.label) {
+      info = null;
+      return;
+    }
+    const rect = ev.currentTarget.getBoundingClientRect();
+    info = {
+      label: r.label,
+      tip: r.tip,
+      gid: r.gid,
+      x: Math.max(8, Math.min(rect.left, window.innerWidth - 400)),
+      y: Math.min(rect.bottom + 6, window.innerHeight - 280)
+    };
+  }
 
   const MAX = 6;
   let schools = $state([]);
@@ -77,7 +100,7 @@
     { label: '$ per pupil', gid: 'ppe', tip: 'Total ESSA per-pupil spending — school site plus allocated central costs, latest year, from CDE. Largely need-driven: higher is neither praise nor criticism.', f: (s) => (s.ppe == null ? '—' : '$' + s.ppe.toLocaleString()) },
     { label: 'ELA met+ (latest)', gid: 'met-plus', tip: 'Share of tests meeting or exceeding the standard, latest year. From CAASPP.', f: (s) => (s.pass_ela == null ? '—' : s.pass_ela + '%') },
     { label: 'Math met+ (latest)', gid: 'met-plus', tip: 'Share of tests meeting or exceeding the standard, latest year. From CAASPP.', f: (s) => (s.pass_math == null ? '—' : s.pass_math + '%') },
-    { label: 'Raw level (SDs vs state)', gid: 'level', tip: 'Where students score vs the state average, in student-level standard deviations, weighted toward recent years. From CAASPP mean scale scores.', f: (s) => fmt2(s.effects?.level_eb) },
+    { label: 'Raw level (SDs vs state)', gid: 'level', tip: 'Where students score vs the state average, in student-level standard deviations — at +1 SD, the average student here outscores about 84% of students statewide; at +2 SD, about 98%. Weighted toward recent years, from CAASPP mean scale scores.', f: (s) => fmt2(s.effects?.level_eb) },
     {
       label: 'Expected level, given students served',
       gid: 'expected-level',
@@ -190,6 +213,32 @@
   />
 </svelte:head>
 
+<svelte:window
+  onclick={() => (info = null)}
+  onkeydown={(e) => e.key === 'Escape' && (info = null)}
+  onscroll={() => (info = null)}
+/>
+
+{#if info}
+  <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
+  <div
+    class="popover"
+    role="dialog"
+    aria-label="About {info.label}"
+    style:left="{info.x}px"
+    style:top="{info.y}px"
+    onclick={(e) => e.stopPropagation()}
+  >
+    <button class="pclose" aria-label="Close" onclick={() => (info = null)}>×</button>
+    <h4>{glossaryById[info.gid]?.term ?? info.label}</h4>
+    <p class="ptip">{info.tip}</p>
+    {#each (glossaryById[info.gid]?.def ?? []).slice(0, 2) as para (para)}
+      <p class="pdef">{para}</p>
+    {/each}
+    <a href="/glossary#{info.gid}">Full glossary entry →</a>
+  </div>
+{/if}
+
 <h1>Compare schools</h1>
 <p class="lede">
   Side by side as equals: each school is measured against <em>its own</em>
@@ -242,12 +291,12 @@
               <td class="metric">
                 {r.label}
                 {#if r.gid}
-                  <a
+                  <button
                     class="info"
-                    href="/glossary#{r.gid}"
                     title={r.tip}
+                    aria-expanded={info?.label === r.label}
                     aria-label="What {r.label} means and where the data comes from"
-                    >ⓘ</a
+                    onclick={(ev) => toggleInfo(ev, r)}>ⓘ</button
                   >
                 {/if}
               </td>
@@ -310,6 +359,8 @@
   {/each}
 
   <p class="note">
+    Levels are in student standard deviations (SDs): at +1 SD a school's average
+    student outscores about 84% of students statewide; at +2 SD, about 98%.
     "Expected level" is the demographic adjustment model's prediction from the
     students each school serves (poverty, language, race/ethnicity, disability,
     parent education, size); "performance vs expectation" is what remains, and
@@ -449,13 +500,61 @@
     color: #52514e;
   }
   .info {
-    text-decoration: none;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
     color: #1c5cab;
+    font: inherit;
     font-size: 0.85em;
     margin-left: 0.25rem;
   }
   .info:hover {
     color: #b0552f;
+  }
+  .popover {
+    position: fixed;
+    z-index: 50;
+    width: min(92vw, 24rem);
+    max-height: 22rem;
+    overflow-y: auto;
+    background: #fffdf9;
+    border: 1px solid #d8d0c0;
+    border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(43, 39, 34, 0.18);
+    padding: 0.8rem 1rem;
+  }
+  .popover h4 {
+    margin: 0 1.2rem 0.3rem 0;
+    font-size: 0.95rem;
+  }
+  .popover .ptip {
+    margin: 0 0 0.4rem;
+    font-size: 0.86rem;
+    color: #2b2722;
+    font-weight: 550;
+  }
+  .popover .pdef {
+    margin: 0 0 0.4rem;
+    font-size: 0.82rem;
+    color: #52514e;
+  }
+  .popover a {
+    font-size: 0.84rem;
+    font-weight: 600;
+  }
+  .pclose {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.5rem;
+    border: none;
+    background: none;
+    font-size: 1.1rem;
+    color: #898781;
+    cursor: pointer;
+  }
+  .pclose:hover {
+    color: #d03b3b;
   }
   .panels {
     display: grid;

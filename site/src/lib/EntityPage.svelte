@@ -804,7 +804,9 @@
       </div>
       <div class="label">
         adjusted level — recent scores vs {KINDS_PLURAL[entity.kind] ?? 'schools'}
-        serving similar students (student SDs); rankings use the low end of the 95% band
+        serving similar students, in student standard deviations (+1 SD ≈ the average
+        student outscoring 84% of students statewide); rankings use the low end of
+        the 95% band
       </div>
     </div>
     <div class="tile">
