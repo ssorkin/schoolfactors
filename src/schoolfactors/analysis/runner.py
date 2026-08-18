@@ -156,6 +156,18 @@ def run_analysis() -> None:
     for path in figures.make_all(effects):
         print(f"  wrote {path.relative_to(figures.REPO_ROOT)}")
 
+    # Out-of-sample history: refit the level pipeline per cutoff year, prior
+    # data only, so the site can show what percentile each year's readers
+    # would have seen before that year's scores existed.
+    print("refitting per-cutoff-year history (prior data only) …")
+    from schoolfactors.analysis.history import level_history
+
+    hist = level_history(panel, lambda y: build_covariates(max_year=y))
+    print(
+        f"  {len(hist):,} school×cutoff rows, "
+        f"cutoffs {sorted(hist['as_of_year'].unique().to_list())}"
+    )
+
     # District-level fits: same machinery, district rows, district peer group.
     print("fitting district models …")
     from schoolfactors.analysis.panel import DISTRICT_TYPES
@@ -187,6 +199,7 @@ def run_analysis() -> None:
     out = PARQUET_DIR / "analysis"
     out.mkdir(parents=True, exist_ok=True)
     effects.write_parquet(out / "school_effects.parquet")
+    hist.write_parquet(out / "school_effects_history.parquet")
     deffects.write_parquet(out / "district_effects.parquet")
     ceffects.write_parquet(out / "county_effects.parquet")
     coef_table.write_parquet(out / "adjustment_coefficients.parquet")

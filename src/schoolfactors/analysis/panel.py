@@ -133,9 +133,14 @@ COVARIATE_GROUPS = {
 }
 
 
-def build_covariates(types: tuple[int, ...] = SCHOOL_TYPES) -> pl.DataFrame:
+def build_covariates(
+    types: tuple[int, ...] = SCHOOL_TYPES, max_year: int | None = None
+) -> pl.DataFrame:
+    """Tested-population shares, averaged across years. max_year restricts the
+    average to years <= max_year for the out-of-sample history refits."""
     ids = ", ".join(str(v) for v in COVARIATE_GROUPS.values())
     types_sql = str(types) if len(types) > 1 else f"({types[0]})"
+    year_cap = f"AND test_year <= {int(max_year)}" if max_year is not None else ""
     con = _con()
     df = con.execute(f"""
         WITH tested AS (
@@ -143,7 +148,7 @@ def build_covariates(types: tuple[int, ...] = SCHOOL_TYPES) -> pl.DataFrame:
             FROM caaspp_sb
             WHERE type_id IN {types_sql} AND grade = 13 AND test_id = 1
               AND student_group_id IN (1, {ids})
-              AND test_year NOT IN {EXCLUDED_YEARS}
+              AND test_year NOT IN {EXCLUDED_YEARS} {year_cap}
             GROUP BY 1, 2, 3
         ),
         wide AS (

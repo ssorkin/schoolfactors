@@ -10,10 +10,23 @@
   import CsvButton from '$lib/CsvButton.svelte';
   import PeerHistogram from '$lib/PeerHistogram.svelte';
   import PeerScatter from '$lib/PeerScatter.svelte';
+  import { pctColor } from '$lib/maptypes.js';
 
   let { entity, subItems = null, subKind = 'school', subLabel = '' } = $props();
 
   let e = $derived(entity.effects ?? {});
+
+  // Per-year Similar Schools %ile chips. pct_hist holds [year, pct] pairs,
+  // each refit only on results from BEFORE that year (the chip labeled 2024
+  // knew nothing about 2024's scores); tested years without a rankable
+  // history render as empty chips so the row still shows the span of data.
+  let pctByYear = $derived(new Map(entity.pct_hist ?? []));
+  let chipYears = $derived.by(() => {
+    if (!entity.pct_hist?.length) return [];
+    const ys = new Set((entity.cohort_scores ?? []).map((r) => r.year));
+    for (const [y] of entity.pct_hist) ys.add(y);
+    return [...ys].sort((a, b) => a - b);
+  });
 
   // ---- Head metadata + plain-language summary ----
   const SITE = 'https://schoolfactors.org';
@@ -539,9 +552,47 @@
 <h1>{entity.name}</h1>
 <p class="sub">
   {entity.kind === 'school' ? `${entity.district} · ` : ''}{entity.county} County
-  {#if e.n_years}· {e.n_years} test years · {e.total_scores?.toLocaleString()} scores{/if}
-  {#if e.last_year}· data through {e.last_year}{/if}
+  {#if !chipYears.length}
+    {#if e.n_years}· {e.n_years} test years · {e.total_scores?.toLocaleString()} scores{/if}
+    {#if e.last_year}· data through {e.last_year}{/if}
+  {/if}
 </p>
+{#if chipYears.length}
+  <div class="pct-years">
+    <a
+      class="py-label"
+      href="/glossary#adj-percentile"
+      title="Each year's percentile is refit using only test results from before that year — the chip shown for a year was knowable before that year's tests. Stable chips mean the ranking held up out of sample."
+      >Similar Schools %ile entering each year</a
+    >
+    {#each chipYears as y (y)}
+      {@const p = pctByYear.get(y)}
+      <span
+        class="py-chip"
+        class:empty={p == null}
+        style:border-bottom-color={p == null ? 'transparent' : pctColor(p)}
+        title={p == null
+          ? `${y}: tested, but not enough earlier data to rank`
+          : `Entering ${y}: ${ord(p)} percentile among ${
+              entity.kind === 'school' ? 'schools' : KINDS_PLURAL[entity.kind]
+            } serving similar students, using only pre-${y} results`}
+      >
+        <span class="py-year">’{String(y).slice(2)}</span>
+        <span class="py-val">{p ?? '·'}</span>
+      </span>
+    {/each}
+    {#if entity.adj_pct != null}
+      <span
+        class="py-chip now"
+        style:border-bottom-color={pctColor(entity.adj_pct)}
+        title="Now: {ord(entity.adj_pct)} percentile, using all years of data"
+      >
+        <span class="py-year">now</span>
+        <span class="py-val">{entity.adj_pct}</span>
+      </span>
+    {/if}
+  </div>
+{/if}
 {#if entity.address}
   <p class="addr">{entity.address}</p>
 {/if}
@@ -960,6 +1011,52 @@
     color: #898781;
     font-size: 0.85rem;
     margin: -0.4rem 0 0.6rem;
+  }
+  .pct-years {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem 0.35rem;
+    margin: -0.2rem 0 0.6rem;
+    max-width: 66rem;
+  }
+  .py-label {
+    font-size: 0.85rem;
+    color: #898781;
+    margin-right: 0.15rem;
+    text-decoration: none;
+    border-bottom: 1px dotted #b8b2a7;
+  }
+  .py-label:hover {
+    color: #6f6a61;
+  }
+  .py-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 2.1rem;
+    padding: 0.12rem 0.3rem 0.06rem;
+    border: 1px solid #e8e1d5;
+    border-bottom-width: 3px;
+    border-radius: 6px;
+    background: #fffdf9;
+    line-height: 1.2;
+  }
+  .py-chip.empty {
+    opacity: 0.55;
+  }
+  .py-chip.now {
+    border-color: #b0552f;
+    border-bottom-width: 3px;
+  }
+  .py-year {
+    font-size: 0.68rem;
+    color: #898781;
+  }
+  .py-val {
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+    color: #3f3a33;
   }
   .topgrid {
     display: grid;
