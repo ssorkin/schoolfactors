@@ -7,11 +7,14 @@
    * so the suggestion fragment is everything after the LAST facet key.
    * Pools are built from `items` rows ({county, district, kind, name, flags}).
    */
-  import { norm } from '$lib/facets.js';
+  import { NUM_FACETS, NUM_FACET_SUGGEST, norm } from '$lib/facets.js';
 
   let { items = [], query = $bindable(''), placeholder = 'Filter…' } = $props();
 
-  const FACET_KEY_RE = /(^|\s)(level|kind|county|district|type|is):/gi;
+  const FACET_KEY_RE = new RegExp(
+    `(^|\\s)(level|kind|county|district|type|is|${Object.keys(NUM_FACETS).join('|')}):`,
+    'gi'
+  );
   let sugOpen = $state(false);
   let sugIdx = $state(0);
 
@@ -44,6 +47,7 @@
     while ((m = FACET_KEY_RE.exec(q))) last = m;
     if (last) {
       const key = last[2].toLowerCase() === 'type' ? 'level' : last[2].toLowerCase();
+      if (NUM_FACETS[key]) return []; // numeric facet: user types >n / <n
       const head = q.slice(0, last.index + last[1].length) + key + ':';
       const frag = norm(q.slice(last.index + last[0].length)).trim();
       const pool = facetPools[key] ?? [];
@@ -53,16 +57,23 @@
         .slice(0, 8)
         .map((v) => ({ label: v.n, next: head + v.n + ' ' }));
     }
-    const t = q.match(/(^|\s)([a-z]{2,})$/i);
+    const t = q.match(/(^|\s)([a-z_]{2,})$/i);
     if (t) {
       const frag = t[2].toLowerCase();
-      return Object.keys(facetPools)
-        .filter((k) => k.startsWith(frag) && k !== frag)
-        .map((k) => ({
+      return [
+        ...Object.keys(facetPools)
+          .filter((k) => k.startsWith(frag) && k !== frag)
+          .map((k) => ({
+            label: k + ':',
+            hint: 'filter by ' + k,
+            next: q.slice(0, t.index + t[1].length) + k + ':'
+          })),
+        ...NUM_FACET_SUGGEST.filter((k) => k.startsWith(frag) && k !== frag).map((k) => ({
           label: k + ':',
-          hint: 'filter by ' + k,
+          hint: `numeric — e.g. ${k}:<150 or ${k}:>20`,
           next: q.slice(0, t.index + t[1].length) + k + ':'
-        }));
+        }))
+      ];
     }
     return [];
   });

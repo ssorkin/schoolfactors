@@ -8,7 +8,7 @@
   import FacetFilter from '$lib/FacetFilter.svelte';
   import MapView from '$lib/MapView.svelte';
   import RangeFacet from '$lib/RangeFacet.svelte';
-  import { norm, parseQuery } from '$lib/facets.js';
+  import { matchNums, norm, parseQuery } from '$lib/facets.js';
   import { COLTIP } from '$lib/glossary.js';
   import { TYPE_COLOR, TYPE_LABEL, entityType } from '$lib/maptypes.js';
 
@@ -135,6 +135,7 @@
       if (facets.county && !norm(it.county).includes(facets.county)) continue;
       if (facets.district && !norm(it.district ?? '').includes(facets.district)) continue;
       if (facets.is && !(it.flags ?? []).some((f) => f.startsWith(facets.is))) continue;
+      if (!matchNums(parsed.nums, it)) continue;
       let ok = true;
       for (const t of free) {
         if (!it._name.includes(t) && !it._extra.includes(t)) {
@@ -441,7 +442,7 @@
   <FacetFilter
     bind:query
     items={items ?? []}
-    placeholder={'Filter… try "district:los angeles unified", "county:sonoma level:high", or "is:magnet"'}
+    placeholder={'Filter… try "students:<150 level:elementary", "frpm:>80 growth:>0.2", or "is:magnet"'}
   />
   <div class="chips" role="group" aria-label="Kind">
     {#each [['all', 'All'], ['school', 'Schools'], ['district', 'Districts'], ['county', 'Counties']] as [k, label] (k)}

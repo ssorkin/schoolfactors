@@ -6,7 +6,7 @@
   import Badges from '$lib/Badges.svelte';
   import CsvButton from '$lib/CsvButton.svelte';
   import FacetFilter from '$lib/FacetFilter.svelte';
-  import { norm, parseQuery } from '$lib/facets.js';
+  import { matchNums, norm, parseQuery } from '$lib/facets.js';
 
   const CATEGORIES = [
     [128, 'Students with disabilities'],
@@ -94,6 +94,7 @@
       if (facets.county && !norm(r.county).includes(facets.county)) continue;
       if (facets.district && !norm(r.district ?? '').includes(facets.district)) continue;
       if (facets.is && !(r.flags ?? []).some((f) => f.startsWith(facets.is))) continue;
+      if (!matchNums(parsed.nums, r)) continue;
       let ok = true;
       for (const t of free) {
         if (!r._hay.includes(t)) {
@@ -197,7 +198,7 @@
   <FacetFilter
     bind:query
     items={rows ?? []}
-    placeholder={'Filter… try "district:los angeles unified", "county:sonoma level:high", or "is:magnet"'}
+    placeholder={'Filter… try "students:<150 level:elementary", "frpm:>80", or "is:magnet"'}
   />
   <div class="chips" role="group" aria-label="Kind">
     {#each [['school', 'Schools'], ['district', 'Districts'], ['county', 'Counties'], ['all', 'All']] as [k, label] (k)}
