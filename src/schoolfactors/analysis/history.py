@@ -3,10 +3,11 @@
 For each cutoff year C, the full level pipeline (per-school WLS → EB shrinkage →
 demographic adjustment) is refit on data through C only, with the covariate
 averages likewise restricted — later years never leak into an earlier fit. The
-export stage turns the cutoff-C fit into the Similar Schools percentile a
-reader would have seen ENTERING the next test year, so each chip on a school
-page is a genuine forecast: the chip labeled 2024 knew nothing about 2024's
-scores, and the chip sequence shows how stable and predictive the measure is.
+export stage turns the cutoff-C fit into the similar-entities percentile a
+reader would have seen ENTERING the next test year, so each chip on an entity
+page (school, district, or county) is a genuine forecast: the chip labeled
+2024 knew nothing about 2024's scores, and the chip sequence shows how stable
+and predictive the measure is.
 """
 
 from __future__ import annotations

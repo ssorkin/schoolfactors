@@ -180,6 +180,8 @@ def run_analysis() -> None:
     deffects = deffects.join(build_covariates(DISTRICT_TYPES), on="cds", how="left")
     for param in ("level", "growth"):
         deffects, _, _ = adjust(deffects, param)
+    dhist = level_history(dpanel, lambda y: build_covariates(DISTRICT_TYPES, max_year=y))
+    print(f"  history: {len(dhist):,} district×cutoff rows")
 
     # County-level fits: only 58 counties, so the adjustment uses a reduced
     # covariate set to avoid overfitting the cross-section.
@@ -195,13 +197,19 @@ def run_analysis() -> None:
     county_covs = ["share_econ_dis", "share_el", "share_swd", "share_hispanic", "share_white"]
     for param in ("level", "growth"):
         ceffects, _, _ = adjust(ceffects, param, county_covs)
+    chist = level_history(
+        cpanel, lambda y: build_covariates(COUNTY_TYPES, max_year=y), county_covs
+    )
+    print(f"  history: {len(chist):,} county×cutoff rows")
 
     out = PARQUET_DIR / "analysis"
     out.mkdir(parents=True, exist_ok=True)
     effects.write_parquet(out / "school_effects.parquet")
     hist.write_parquet(out / "school_effects_history.parquet")
     deffects.write_parquet(out / "district_effects.parquet")
+    dhist.write_parquet(out / "district_effects_history.parquet")
     ceffects.write_parquet(out / "county_effects.parquet")
+    chist.write_parquet(out / "county_effects_history.parquet")
     coef_table.write_parquet(out / "adjustment_coefficients.parquet")
 
     import json

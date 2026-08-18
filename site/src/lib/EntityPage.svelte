@@ -563,7 +563,11 @@
       class="py-label"
       href="/glossary#adj-percentile"
       title="Each year's percentile is refit using only test results from before that year — the chip shown for a year was knowable before that year's tests. Stable chips mean the ranking held up out of sample."
-      >Similar Schools %ile entering each year</a
+      >Similar {entity.kind === 'district'
+        ? 'Districts'
+        : entity.kind === 'county'
+          ? 'Counties'
+          : 'Schools'} %ile entering each year</a
     >
     {#each chipYears as y (y)}
       {@const p = pctByYear.get(y)}

@@ -299,19 +299,21 @@ def run_export() -> None:
                 flags_map[entry["cds"]].insert(0, "selective")
     school_type_map = {c: school_type(fl) for c, fl in flags_map.items()}
 
-    # Out-of-sample percentile history: for each cutoff year, rank schools the
+    # Out-of-sample percentile history: for each cutoff year, rank entities the
     # way the live percentile does (lower bound of the 95% band, reliability
-    # >= 0.70, data current through the cutoff, alternative programs pooled
-    # separately) — but on a model refit from data through that cutoff only.
-    # Each result is labeled with the NEXT test year: the chip a school page
-    # shows for 2024 is the percentile a reader entering 2024 would have seen,
-    # computed before 2024's scores existed. The current all-data percentile
-    # (adj_pct) is the "now" chip; no history row duplicates it.
-    pct_hist_map: dict[str, list[list[int]]] = {}
-    hist_path = PARQUET_DIR / "analysis" / "school_effects_history.parquet"
-    if hist_path.exists():
+    # >= 0.70, data current through the cutoff, and — for schools — alternative
+    # programs pooled separately) — but on a model refit from data through that
+    # cutoff only. Each result is labeled with the NEXT test year: the chip an
+    # entity page shows for 2024 is the percentile a reader entering 2024 would
+    # have seen, computed before 2024's scores existed. The current all-data
+    # percentile (adj_pct) is the "now" chip; no history row duplicates it.
+    def pct_history(stem: str, cls_of) -> dict[str, list[list[int]]]:
         from itertools import pairwise
 
+        out: dict[str, list[list[int]]] = {}
+        hist_path = PARQUET_DIR / "analysis" / f"{stem}_history.parquet"
+        if not hist_path.exists():
+            return out
         hist = pl.read_parquet(hist_path)
         hist_years = sorted(hist["as_of_year"].unique().to_list())
         for cut, nxt in pairwise(hist_years):
@@ -323,9 +325,7 @@ def run_export() -> None:
             )
             by_cls: dict[str, list[tuple[str, float]]] = {}
             for cds_, lcb in sub.select("cds", "level_adj_lcb").rows():
-                t = school_type_map.get(cds_, "standard")
-                cls = "alternative" if t == "alternative" else "general"
-                by_cls.setdefault(cls, []).append((cds_, lcb))
+                by_cls.setdefault(cls_of(cds_), []).append((cds_, lcb))
             for members in by_cls.values():
                 pool = sorted(lcb for _, lcb in members)
                 if len(pool) < 20:
@@ -334,9 +334,24 @@ def run_export() -> None:
                     lo = bisect.bisect_left(pool, lcb)
                     hi = bisect.bisect_right(pool, lcb)
                     pct = min(99, max(1, round(100 * (lo + hi) / 2 / len(pool))))
-                    pct_hist_map.setdefault(cds_, []).append([nxt, pct])
-    print(f"  percentile history: {len(pct_hist_map):,} schools "
-          f"({sum(len(v) for v in pct_hist_map.values()):,} school×year chips)")
+                    out.setdefault(cds_, []).append([nxt, pct])
+        return out
+
+    pct_hist_by_kind = {
+        "schools": pct_history(
+            "school_effects",
+            lambda c: (
+                "alternative"
+                if school_type_map.get(c, "standard") == "alternative"
+                else "general"
+            ),
+        ),
+        "districts": pct_history("district_effects", lambda c: ""),
+        "counties": pct_history("county_effects", lambda c: ""),
+    }
+    for kind_, m in pct_hist_by_kind.items():
+        print(f"  percentile history: {len(m):,} {kind_} "
+              f"({sum(len(v) for v in m.values()):,} chips)")
 
     from schoolfactors.analysis.neighbors import build_neighbors
 
@@ -731,10 +746,10 @@ def run_export() -> None:
                     for r in _rows(steps_by, cds)
                 ],
             }
+            if cds in pct_hist_by_kind[kind]:
+                payload["pct_hist"] = pct_hist_by_kind[kind][cds]
             if kind == "schools":
                 payload["address"] = addr_map.get(cds)
-                if cds in pct_hist_map:
-                    payload["pct_hist"] = pct_hist_map[cds]
                 nb = neighbors.get(cds, {})
                 payload["neighbors"] = {
                     "nearby": [
