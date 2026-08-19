@@ -49,6 +49,9 @@ ACS_TABLES: dict[str, dict] = {
     "C17002": {"geo": "blockgroup", "counties": ["037"]},
     # Hispanic or Latino origin by race — attendance-area race/ethnicity shares.
     "B03002": {"geo": "blockgroup", "counties": ["037"]},
+    # Sex by age — resident school-age children per attendance area, banded to
+    # each school's grade span (bins 5-9 / 10-14 / 15-17, split per single year).
+    "B01001": {"geo": "blockgroup", "counties": ["037"]},
 }
 
 STATE_FIPS = "06"

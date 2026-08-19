@@ -457,9 +457,11 @@ def export_lausd() -> None:
         # Boundaries per level, with resident demographics when available.
         demo = lausd_geo.polygon_demographics(con)
         demo_by_key: dict[tuple[str, str], dict] = {}
+        ages_by_key: dict[tuple[str, str], dict[int, float]] = {}
         if demo is not None:
             seg = {"E": (0, 5), "M": (5, 10), "H": (10, 15)}
             joined = demo.to_dicts()
+            has_ages = "age_5" in (joined[0] if joined else {})
             for lvl, (a, b) in seg.items():
                 agg: dict[str, dict] = {}
                 for d in joined:
@@ -474,6 +476,10 @@ def export_lausd() -> None:
                     acc["rt"] += d["race_total"] or 0
                     for x in ("his", "wht", "blk", "asn"):
                         acc[f"r_{x}"] += d[f"race_{x}"] or 0
+                    if has_ages:
+                        ages = ages_by_key.setdefault((lvl, k), {})
+                        for age in range(5, 18):
+                            ages[age] = ages.get(age, 0.0) + (d.get(f"age_{age}") or 0)
                 for k, acc in agg.items():
                     race = {
                         x: _r(acc[f"r_{x}"] / acc["rt"]) if acc["rt"] else None
@@ -508,6 +514,22 @@ def export_lausd() -> None:
                     props.update(d)
                     if meta.get("cds"):
                         school_demo[meta["cds"]] = d
+                # Resident children in this area's own grade band (grade g ~
+                # age g+5) — combined spans (e.g. 0-6, 6-12) get their full
+                # band; degenerate spans from source quirks (lo == hi) fall
+                # back to the level's standard grades.
+                grades = meta.get("grades")
+                if not grades or int(grades[1]) <= int(grades[0]):
+                    grades = {"E": (0, 5), "M": (6, 8), "H": (9, 12)}[level]
+                ages = ages_by_key.get((level, k))
+                if ages:
+                    a0 = 5 + max(int(grades[0]), 0)
+                    a1 = 5 + min(int(grades[1]), 12)
+                    props["grades"] = [int(grades[0]), int(grades[1])]
+                    props["ages"] = [a0, a1]
+                    props["students"] = round(
+                        sum(ages.get(age, 0) for age in range(a0, a1 + 1))
+                    )
                 features.append(
                     {"type": "Feature", "properties": props, "geometry": mapping(g)}
                 )

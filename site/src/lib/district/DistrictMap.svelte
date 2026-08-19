@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import 'leaflet/dist/leaflet.css';
-  import { TYPE_COLOR, entityType } from '$lib/maptypes.js';
+  import { NO_PCT_COLOR, entityType, pctColor } from '$lib/maptypes.js';
   import { levelShape, shapeMarker } from '$lib/mapshapes.js';
   import { METRICS, NO_DATA } from './choropleth.js';
   import { getBoundaries } from './lausdData.js';
@@ -79,7 +79,16 @@
         lines.push(`Also serves: ${others}`);
       }
       lines.push(`${esc(m.label)}: ${m.fmt(m.value(props, school))}`);
-      if (props.pop != null) lines.push(`${Number(props.pop).toLocaleString()} residents (2020)`);
+      if (school?.enrollment != null) {
+        lines.push(`${school.enrollment.toLocaleString()} students enrolled`);
+      }
+      if (props.students != null && props.ages) {
+        lines.push(
+          `~${Number(props.students).toLocaleString()} resident children ` +
+            `ages ${props.ages[0]}–${props.ages[1]} (census)`
+        );
+      }
+      if (props.pop != null) lines.push(`${Number(props.pop).toLocaleString()} residents all ages (2020)`);
       lines.push(`<a href="/school/${props.cds}">School page →</a>`);
     } else {
       lines.push('<b>Unassigned area</b> — no school resolves to this zone');
@@ -112,8 +121,19 @@
     layerPromises[lvl] ??= getBoundaries(lvl).then((fc) =>
       L.geoJSON(fc, {
         style: styleFeature,
+        // Popup opens AT THE SCHOOL (not the click point), with a ring
+        // highlighting which marker serves the clicked area.
         onEachFeature: (f, layer) =>
-          layer.bindPopup(() => polygonPopup(f.properties), { maxWidth: 300 })
+          layer.on('click', (e) => {
+            const props = f.properties;
+            const school = props.cds ? schoolByCds.get(props.cds) : null;
+            const at = school?.ll ?? e.latlng;
+            selectArea(layer, school?.ll);
+            L.popup({ maxWidth: 300 })
+              .setLatLng(at)
+              .setContent(polygonPopup(props))
+              .openOn(map);
+          })
       })
     );
     polyLayers[lvl] = await layerPromises[lvl];
@@ -134,20 +154,59 @@
     return 4 * Math.min(3, Math.max(0.8, 1 + (map.getZoom() - 10) * 0.25));
   }
 
+  // Clicking an attendance area darkens its border and pins the school that
+  // serves it; both clear when the popup closes.
+  const PIN_HTML =
+    '<svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M14 1C7 1 1.5 6.6 1.5 13.5c0 9.4 11 22.3 12.5 23.5 1.5-1.2 12.5-14.1 ' +
+    '12.5-23.5C26.5 6.6 21 1 14 1z" fill="#b0552f" stroke="#fff" stroke-width="1.6"/>' +
+    '<circle cx="14" cy="13.5" r="4.6" fill="#fff"/></svg>';
+  let selPin = null;
+  let selLayer = null;
+  function clearSelection() {
+    if (selPin) {
+      map.removeLayer(selPin);
+      selPin = null;
+    }
+    if (selLayer) {
+      selLayer.setStyle(styleFeature(selLayer.feature));
+      selLayer = null;
+    }
+  }
+  function selectArea(layer, ll) {
+    clearSelection();
+    selLayer = layer;
+    layer.setStyle({ color: '#211d18', weight: 3 });
+    if (ll) {
+      selPin = L.marker(ll, {
+        interactive: false,
+        icon: L.divIcon({
+          className: 'schoolpin',
+          html: PIN_HTML,
+          iconSize: [28, 38],
+          iconAnchor: [14, 36]
+        })
+      }).addTo(map);
+    }
+  }
+
   function drawMarkers() {
     if (!markerLayer) return;
     markerLayer.clearLayers();
     for (const s of shownSchools) {
       if (!s.ll) continue;
+      // Fill = Similar Schools %ile (same ramp as the perf choropleth), so
+      // choice schools with no attendance area show their score too; shape
+      // still encodes level; type stays in the popup.
       const m = shapeMarker(
         L,
         s.ll,
         {
           radius: markerRadius(),
           color: '#ffffff',
-          weight: 0.7,
-          fillColor: TYPE_COLOR[entityType({ kind: 'school', flags: s.flags })],
-          fillOpacity: 0.85
+          weight: 0.9,
+          fillColor: s.adj_pct == null ? NO_PCT_COLOR : pctColor(s.adj_pct),
+          fillOpacity: 0.95
         },
         levelShape(s.level)
       );
@@ -179,10 +238,12 @@
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
     markerLayer = L.layerGroup().addTo(map);
+    el._leafletMap = map; // test hook: lets headless checks drive the view
     map.on('zoomstart movestart', () => {
       if (!fitting) locked = true;
     });
     map.on('zoomend', drawMarkers);
+    map.on('popupclose', clearSelection);
     fit();
     ready = true; // the ready-gated $effect below performs the initial showLevel
     drawMarkers();
@@ -326,5 +387,8 @@
   }
   .map :global(.leaflet-popup-content a) {
     color: #1c5cab;
+  }
+  .map :global(.schoolpin) {
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
   }
 </style>

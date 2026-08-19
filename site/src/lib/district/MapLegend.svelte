@@ -1,6 +1,6 @@
 <script>
   import { METRICS, NO_DATA } from './choropleth.js';
-  import { TYPE_COLOR, TYPE_LABEL } from '$lib/maptypes.js';
+  import { pctGradient } from '$lib/maptypes.js';
   import { SHAPE_GLYPH, levelShape } from '$lib/mapshapes.js';
 
   let { metric = 'perf', showSchools = true, level = 'e' } = $props();
@@ -20,13 +20,11 @@
   </div>
   {#if showSchools}
     <div class="types">
-      {#each Object.keys(TYPE_COLOR) as t}
-        <span class="type">
-          <span class="dot" style="background: {TYPE_COLOR[t]}"></span>{TYPE_LABEL[t].split(' (')[0]}
-        </span>
-      {/each}
       <span class="shapes">
-        {SHAPE_GLYPH[levelShape(level)]} {LEVEL_WORD[level]} schools · ◆ K-12 / other
+        {SHAPE_GLYPH[levelShape(level)]} {LEVEL_WORD[level]} schools · ◆ K-12 / other —
+        filled by Similar Schools %ile
+        <span class="minibar" style="background: {pctGradient()}"></span>
+        (school type shows in each popup)
       </span>
     </div>
   {/if}
@@ -92,6 +90,12 @@
   }
   .shapes {
     color: #898781;
-    white-space: nowrap;
+  }
+  .minibar {
+    display: inline-block;
+    width: 64px;
+    height: 8px;
+    border-radius: 4px;
+    vertical-align: middle;
   }
 </style>

@@ -43,6 +43,14 @@ B03002_RACES = {
     "blk": ("Not Hispanic or Latino", "Black or African American alone"),
     "asn": ("Not Hispanic or Latino", "Asian alone"),
 }
+# B01001 (sex by age) school-age bins; single years of age are estimated by
+# splitting each bin uniformly, so grade-span bands (grade g ~ age g+5) can be
+# summed per attendance area — including combined middle/high spans.
+B01001_SCHOOL_BINS = {
+    "5 to 9 years": range(5, 10),
+    "10 to 14 years": range(10, 15),
+    "15 to 17 years": range(15, 18),
+}
 
 
 def _con() -> duckdb.DuckDBPyConnection:
@@ -247,6 +255,33 @@ def polygon_demographics(
                 )
                 out = out.join(agg, on="p_key", how="left")
 
+        # Single-year age estimates (5-17) from B01001, when acquired.
+        ages = _bg_values(con, "B01001")
+        if ages is not None:
+            age_df, age_labels = ages
+            joined = age_df.join(shares, on="bg_geoid")
+            for bin_label, year_range in B01001_SCHOOL_BINS.items():
+                variables = [
+                    v for v, lbl in age_labels.items()
+                    if v.endswith("E")
+                    and len(_label_parts(lbl)) == 4
+                    and _label_parts(lbl)[2] in ("Male", "Female")
+                    and _label_parts(lbl)[3] == bin_label
+                ]
+                if len(variables) != 2:
+                    raise ValueError(f"B01001 label selection drifted for {bin_label!r}")
+                agg = (
+                    joined.filter(pl.col("variable").is_in(variables))
+                    .with_columns((pl.col("v") * pl.col("share")).alias("x"))
+                    .group_by("p_key")
+                    .agg(pl.col("x").sum().alias("bin"))
+                )
+                width = len(year_range)
+                agg = agg.with_columns(
+                    *[(pl.col("bin") / width).alias(f"age_{a}") for a in year_range]
+                ).drop("bin")
+                out = out.join(agg, on="p_key", how="left")
+
         out = out.with_columns(
             (pl.col("pov_under185") / pl.col("pov_universe")).alias("p185"),
             *[
@@ -289,15 +324,16 @@ def dissolve_by_level(
     info: dict[str, dict] = {}
     for key5, rows in lvl.group_by("key5"):
         rows = rows.sort("primary", descending=True)
-        schools = [
-            {"cds": r["cds"], "name": r["name"]}
-            for r in rows.to_dicts()
-            if r["cds"] is not None
-        ]
+        dicts = rows.to_dicts()
+        schools = [{"cds": r["cds"], "name": r["name"]} for r in dicts if r["cds"] is not None]
+        los = [r["lo_grd"] for r in dicts if r["lo_grd"] is not None]
+        his = [r["hi_grd"] for r in dicts if r["hi_grd"] is not None]
         info[key5[0]] = {
             "cds": schools[0]["cds"] if schools else None,
             "name": schools[0]["name"] if schools else None,
             "schools": schools,
+            # union of resident schools' grade spans: the grades this area feeds
+            "grades": [min(los), max(his)] if los and his else None,
         }
 
     keys = sorted(by_key)
