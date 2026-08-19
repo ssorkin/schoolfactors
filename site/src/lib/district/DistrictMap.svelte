@@ -128,7 +128,7 @@
             const props = f.properties;
             const school = props.cds ? schoolByCds.get(props.cds) : null;
             const at = school?.ll ?? e.latlng;
-            selectArea(layer, school?.ll);
+            selectArea(layer);
             L.popup({ maxWidth: 300 })
               .setLatLng(at)
               .setContent(polygonPopup(props))
@@ -154,40 +154,19 @@
     return 4 * Math.min(3, Math.max(0.8, 1 + (map.getZoom() - 10) * 0.25));
   }
 
-  // Clicking an attendance area darkens its border and pins the school that
-  // serves it; both clear when the popup closes.
-  const PIN_HTML =
-    '<svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">' +
-    '<path d="M14 1C7 1 1.5 6.6 1.5 13.5c0 9.4 11 22.3 12.5 23.5 1.5-1.2 12.5-14.1 ' +
-    '12.5-23.5C26.5 6.6 21 1 14 1z" fill="#b0552f" stroke="#fff" stroke-width="1.6"/>' +
-    '<circle cx="14" cy="13.5" r="4.6" fill="#fff"/></svg>';
-  let selPin = null;
+  // Clicking an attendance area darkens its border (the popup already opens at
+  // the school, so no separate pin); clears when the popup closes.
   let selLayer = null;
   function clearSelection() {
-    if (selPin) {
-      map.removeLayer(selPin);
-      selPin = null;
-    }
     if (selLayer) {
       selLayer.setStyle(styleFeature(selLayer.feature));
       selLayer = null;
     }
   }
-  function selectArea(layer, ll) {
+  function selectArea(layer) {
     clearSelection();
     selLayer = layer;
     layer.setStyle({ color: '#211d18', weight: 3 });
-    if (ll) {
-      selPin = L.marker(ll, {
-        interactive: false,
-        icon: L.divIcon({
-          className: 'schoolpin',
-          html: PIN_HTML,
-          iconSize: [28, 38],
-          iconAnchor: [14, 36]
-        })
-      }).addTo(map);
-    }
   }
 
   function drawMarkers() {
@@ -387,8 +366,5 @@
   }
   .map :global(.leaflet-popup-content a) {
     color: #1c5cab;
-  }
-  .map :global(.schoolpin) {
-    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
   }
 </style>
