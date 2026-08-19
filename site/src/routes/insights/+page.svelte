@@ -21,7 +21,11 @@
   {#each POSTS as p (p.slug)}
     <li>
       <a class="card" href="/insights/{p.slug}">
-        <span class="pdate">{fmtDate(p.date)}</span>
+        <span class="pdate">
+          {fmtDate(p.date)}{p.updated ? ` · updated ${fmtDate(p.updated)}` : ''}{p.author
+            ? ` · ${p.author}`
+            : ''}
+        </span>
         <span class="ptitle">{p.title}</span>
         <span class="pblurb">{p.blurb}</span>
         <span class="more">Read the analysis →</span>

@@ -3,12 +3,15 @@
 export const POSTS = [
   {
     slug: 'lausd-enrollment-choice',
-    title: 'Where families have choice, enrollment drains from low-scoring schools',
+    title: 'Enrollment drains from low-scoring schools — but mostly, the children left first',
     date: '2026-08-17',
+    updated: '2026-08-19',
+    author: 'Stephen Sorkin',
     blurb:
-      'In Los Angeles Unified, a decade of enrollment decline fell hardest on the ' +
-      'elementary schools with the lowest raw 2015–16 scores — and raw scores, not ' +
-      'demographics-adjusted ones, are what the pattern tracks.'
+      "LAUSD's enrollment decline fell hardest on elementaries with the lowest raw " +
+      '2015–16 scores. Revisited with attendance-area census data: the neighborhoods ' +
+      'of those schools lost children at nearly the same rate — subtract that, and ' +
+      'most of the "flight" disappears.'
   },
   {
     slug: 'growth-vs-level',
