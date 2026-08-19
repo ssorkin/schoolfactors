@@ -63,11 +63,12 @@
 {:else}
   <h2>Poverty: two measures of the same neighborhoods</h2>
   <p>
-    {pct(demo?.resident?.p185)} of residents inside LAUSD live under 185% of the
-    federal poverty line (census); the district reports
-    {pct(demo?.district?.frpm)} of its enrolled students as FRPM-eligible under the
-    same threshold —
-    {demo?.district?.ratio ? `${demo.district.ratio.toFixed(1)}× the census rate` : 'a substantially higher rate'}.
+    {pct(demo?.district?.p185)} of resident <em>children 6–17</em> inside LAUSD live
+    under 185% of the federal poverty line (census; among residents of all ages it's
+    {pct(demo?.resident?.p185)} — children are poorer than the population overall).
+    The district reports {pct(demo?.district?.frpm)} of its enrolled students as
+    FRPM-eligible under the same threshold —
+    {demo?.district?.ratio ? `${demo.district.ratio.toFixed(1)}× the census children's rate` : 'a substantially higher rate'}.
     The difference is how the two measures work, not an error; see
     <a href="/lausd/funding">Funding</a> for the statewide picture.
   </p>

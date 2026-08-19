@@ -1,4 +1,22 @@
 {
+  "acs5_2015_b14003_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2015_b14003_sd_elementary.json",
+    "url": "https://api.census.gov/data/2015/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "83435b88c424398c7970ae768b8ff9d207dd1bb1b616f7166f081ea4f74c7169",
+    "size": 699517,
+    "downloaded_at": "2026-08-19T21:01:16+00:00",
+    "note": "ACS5 2015 B14003, school district (elementary), state 06"
+  },
+  "acs5_2015_b14003_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2015_b14003_sd_secondary.json",
+    "url": "https://api.census.gov/data/2015/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "5ddf43da868c2c8fff8ded373aa2422c9697bac43eb4625cc36a1d391394123c",
+    "size": 157111,
+    "downloaded_at": "2026-08-19T21:01:17+00:00",
+    "note": "ACS5 2015 B14003, school district (secondary), state 06"
+  },
   "acs5_2015_b17024_sd_elementary.json": {
     "dataset": "census",
     "filename": "acs5_2015_b17024_sd_elementary.json",
@@ -26,6 +44,15 @@
     "downloaded_at": "2026-08-19T20:12:26+00:00",
     "note": "ACS5 2015 B17024, school district (unified), state 06"
   },
+  "acs5_2015_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2015_groups_b14003.json",
+    "url": "https://api.census.gov/data/2015/acs/acs5/groups/B14003.json",
+    "sha256": "e392e0185e0f0bb88c902206bfdb46de149c5d2e4a309f3612ba23d344248841",
+    "size": 251628,
+    "downloaded_at": "2026-08-19T20:59:14+00:00",
+    "note": "ACS5 2015 variable metadata for B14003"
+  },
   "acs5_2015_groups_b17024.json": {
     "dataset": "census",
     "filename": "acs5_2015_groups_b17024.json",
@@ -34,6 +61,33 @@
     "size": 326876,
     "downloaded_at": "2026-08-19T20:12:22+00:00",
     "note": "ACS5 2015 variable metadata for B17024"
+  },
+  "acs5_2016_b14003_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2016_b14003_sd_elementary.json",
+    "url": "https://api.census.gov/data/2016/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "5ee611414933b20adb6aa5f9c397d902a76734b13f6e2caef9fa6234b92c6766",
+    "size": 691046,
+    "downloaded_at": "2026-08-19T21:01:20+00:00",
+    "note": "ACS5 2016 B14003, school district (elementary), state 06"
+  },
+  "acs5_2016_b14003_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2016_b14003_sd_secondary.json",
+    "url": "https://api.census.gov/data/2016/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "d97d298963c102e438fd95874ba42442f723a8d996a87aee6920de3a190d5489",
+    "size": 162419,
+    "downloaded_at": "2026-08-19T21:01:20+00:00",
+    "note": "ACS5 2016 B14003, school district (secondary), state 06"
+  },
+  "acs5_2016_b14003_sd_unified.json": {
+    "dataset": "census",
+    "filename": "acs5_2016_b14003_sd_unified.json",
+    "url": "https://api.census.gov/data/2016/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28unified%29:*&in=state:06",
+    "sha256": "a0fdd91b0488d300d8be949472478e1017949a06a204b7dd34b1e1fcc8ed73e9",
+    "size": 467642,
+    "downloaded_at": "2026-08-19T21:01:18+00:00",
+    "note": "ACS5 2016 B14003, school district (unified), state 06"
   },
   "acs5_2016_b17024_sd_elementary.json": {
     "dataset": "census",
@@ -62,6 +116,15 @@
     "downloaded_at": "2026-08-19T20:12:32+00:00",
     "note": "ACS5 2016 B17024, school district (unified), state 06"
   },
+  "acs5_2016_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2016_groups_b14003.json",
+    "url": "https://api.census.gov/data/2016/acs/acs5/groups/B14003.json",
+    "sha256": "4e7d38e7a3d0683b17e047e5bff414a0ad003747cbd78f6d27e05e363a508ab2",
+    "size": 251740,
+    "downloaded_at": "2026-08-19T21:01:17+00:00",
+    "note": "ACS5 2016 variable metadata for B14003"
+  },
   "acs5_2016_groups_b17024.json": {
     "dataset": "census",
     "filename": "acs5_2016_groups_b17024.json",
@@ -70,6 +133,15 @@
     "size": 326988,
     "downloaded_at": "2026-08-19T20:12:29+00:00",
     "note": "ACS5 2016 variable metadata for B17024"
+  },
+  "acs5_2017_b14003_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2017_b14003_sd_secondary.json",
+    "url": "https://api.census.gov/data/2017/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "eaab18be53c31719bdf39e5bf7ded1f95d80b70d96d0ab7e9e86c3864c81df53",
+    "size": 162432,
+    "downloaded_at": "2026-08-19T21:04:34+00:00",
+    "note": "ACS5 2017 B14003, school district (secondary), state 06"
   },
   "acs5_2017_b17024_sd_elementary.json": {
     "dataset": "census",
@@ -98,6 +170,15 @@
     "downloaded_at": "2026-08-19T20:12:39+00:00",
     "note": "ACS5 2017 B17024, school district (unified), state 06"
   },
+  "acs5_2017_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2017_groups_b14003.json",
+    "url": "https://api.census.gov/data/2017/acs/acs5/groups/B14003.json",
+    "sha256": "4a533a4005ab4d38b75786ebf762d53fd7d05172b92789043bab532caef9504b",
+    "size": 261882,
+    "downloaded_at": "2026-08-19T21:01:21+00:00",
+    "note": "ACS5 2017 variable metadata for B14003"
+  },
   "acs5_2017_groups_b17024.json": {
     "dataset": "census",
     "filename": "acs5_2017_groups_b17024.json",
@@ -106,6 +187,33 @@
     "size": 337130,
     "downloaded_at": "2026-08-19T20:12:36+00:00",
     "note": "ACS5 2017 variable metadata for B17024"
+  },
+  "acs5_2018_b14003_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2018_b14003_sd_elementary.json",
+    "url": "https://api.census.gov/data/2018/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "a272fb441bf910147623aa78d9a7d2411ee455ac32e689a9288cd0f2f60b2f52",
+    "size": 688509,
+    "downloaded_at": "2026-08-19T21:04:37+00:00",
+    "note": "ACS5 2018 B14003, school district (elementary), state 06"
+  },
+  "acs5_2018_b14003_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2018_b14003_sd_secondary.json",
+    "url": "https://api.census.gov/data/2018/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "30e05f908c75c71387c5857a1f3dba2e9a73b707a127b6e160f40fbce713e7f9",
+    "size": 156976,
+    "downloaded_at": "2026-08-19T21:04:38+00:00",
+    "note": "ACS5 2018 B14003, school district (secondary), state 06"
+  },
+  "acs5_2018_b14003_sd_unified.json": {
+    "dataset": "census",
+    "filename": "acs5_2018_b14003_sd_unified.json",
+    "url": "https://api.census.gov/data/2018/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28unified%29:*&in=state:06",
+    "sha256": "25172cfef0c32b3953032a1dd1c7dd0c108f511730e051ed3d50fe6f22aa59aa",
+    "size": 469088,
+    "downloaded_at": "2026-08-19T21:04:35+00:00",
+    "note": "ACS5 2018 B14003, school district (unified), state 06"
   },
   "acs5_2018_b17024_sd_elementary.json": {
     "dataset": "census",
@@ -134,6 +242,15 @@
     "downloaded_at": "2026-08-19T19:06:49+00:00",
     "note": "ACS5 2018 B17024, school district (unified), state 06"
   },
+  "acs5_2018_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2018_groups_b14003.json",
+    "url": "https://api.census.gov/data/2018/acs/acs5/groups/B14003.json",
+    "sha256": "809eb1f024d7567a43dce4b1041ebd3ad9b21035b6a96e8fc5f5c4608f0e0cbd",
+    "size": 263792,
+    "downloaded_at": "2026-08-19T21:04:34+00:00",
+    "note": "ACS5 2018 variable metadata for B14003"
+  },
   "acs5_2018_groups_b17024.json": {
     "dataset": "census",
     "filename": "acs5_2018_groups_b17024.json",
@@ -142,6 +259,33 @@
     "size": 339040,
     "downloaded_at": "2026-08-19T19:06:46+00:00",
     "note": "ACS5 2018 variable metadata for B17024"
+  },
+  "acs5_2019_b14003_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2019_b14003_sd_elementary.json",
+    "url": "https://api.census.gov/data/2019/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "da1f88784de3431943a5c0143c3aa7deeffeacac25da637854a03f44d0e51e07",
+    "size": 688696,
+    "downloaded_at": "2026-08-19T21:04:41+00:00",
+    "note": "ACS5 2019 B14003, school district (elementary), state 06"
+  },
+  "acs5_2019_b14003_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2019_b14003_sd_secondary.json",
+    "url": "https://api.census.gov/data/2019/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "4b401ac9b28bf193125809cd46e9eb348ff95290975e479e5ae6922c04c74357",
+    "size": 157063,
+    "downloaded_at": "2026-08-19T21:04:41+00:00",
+    "note": "ACS5 2019 B14003, school district (secondary), state 06"
+  },
+  "acs5_2019_b14003_sd_unified.json": {
+    "dataset": "census",
+    "filename": "acs5_2019_b14003_sd_unified.json",
+    "url": "https://api.census.gov/data/2019/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28unified%29:*&in=state:06",
+    "sha256": "c068d11bc1b266b7e5159a2fb8652ff2d1ceb36306f0836ce9dccb1d31a986de",
+    "size": 469220,
+    "downloaded_at": "2026-08-19T21:04:39+00:00",
+    "note": "ACS5 2019 B14003, school district (unified), state 06"
   },
   "acs5_2019_b17024_sd_elementary.json": {
     "dataset": "census",
@@ -170,6 +314,15 @@
     "downloaded_at": "2026-08-19T20:12:44+00:00",
     "note": "ACS5 2019 B17024, school district (unified), state 06"
   },
+  "acs5_2019_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2019_groups_b14003.json",
+    "url": "https://api.census.gov/data/2019/acs/acs5/groups/B14003.json",
+    "sha256": "b54175798b420f3d0dde6c13977fdf17bdf2a09db0ef1a44b927add5458c2bf9",
+    "size": 264400,
+    "downloaded_at": "2026-08-19T21:04:38+00:00",
+    "note": "ACS5 2019 variable metadata for B14003"
+  },
   "acs5_2019_groups_b17024.json": {
     "dataset": "census",
     "filename": "acs5_2019_groups_b17024.json",
@@ -178,6 +331,33 @@
     "size": 340024,
     "downloaded_at": "2026-08-19T20:12:42+00:00",
     "note": "ACS5 2019 variable metadata for B17024"
+  },
+  "acs5_2020_b14003_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2020_b14003_sd_elementary.json",
+    "url": "https://api.census.gov/data/2020/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "4d11fa67ac45dd5ee7b1a5da0579aabf50c2d20dbb9ccddbb9d606aa5b9a263c",
+    "size": 689637,
+    "downloaded_at": "2026-08-19T21:04:44+00:00",
+    "note": "ACS5 2020 B14003, school district (elementary), state 06"
+  },
+  "acs5_2020_b14003_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2020_b14003_sd_secondary.json",
+    "url": "https://api.census.gov/data/2020/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "7a461377bb5474c2db80c8ef07d1a00a1fb7e76c2344a1a99d084c1d75d6f114",
+    "size": 157309,
+    "downloaded_at": "2026-08-19T21:04:45+00:00",
+    "note": "ACS5 2020 B14003, school district (secondary), state 06"
+  },
+  "acs5_2020_b14003_sd_unified.json": {
+    "dataset": "census",
+    "filename": "acs5_2020_b14003_sd_unified.json",
+    "url": "https://api.census.gov/data/2020/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28unified%29:*&in=state:06",
+    "sha256": "42a32a216afdf928e7c80511fc905d45066147bf802b9a8e990e690bc29f862a",
+    "size": 471087,
+    "downloaded_at": "2026-08-19T21:04:43+00:00",
+    "note": "ACS5 2020 B14003, school district (unified), state 06"
   },
   "acs5_2020_b17024_sd_elementary.json": {
     "dataset": "census",
@@ -206,6 +386,15 @@
     "downloaded_at": "2026-08-19T20:12:50+00:00",
     "note": "ACS5 2020 B17024, school district (unified), state 06"
   },
+  "acs5_2020_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2020_groups_b14003.json",
+    "url": "https://api.census.gov/data/2020/acs/acs5/groups/B14003.json",
+    "sha256": "982423f46d5ed3383f7331beb0d9bcdd3c78bc36fe38ca131da051431fc3d132",
+    "size": 272614,
+    "downloaded_at": "2026-08-19T21:04:41+00:00",
+    "note": "ACS5 2020 variable metadata for B14003"
+  },
   "acs5_2020_groups_b17024.json": {
     "dataset": "census",
     "filename": "acs5_2020_groups_b17024.json",
@@ -214,6 +403,33 @@
     "size": 359584,
     "downloaded_at": "2026-08-19T20:12:48+00:00",
     "note": "ACS5 2020 variable metadata for B17024"
+  },
+  "acs5_2021_b14003_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2021_b14003_sd_elementary.json",
+    "url": "https://api.census.gov/data/2021/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "f31c0f22f3f4f6d613112915a924c1880af07761e7d710a2641570312f0c072b",
+    "size": 687541,
+    "downloaded_at": "2026-08-19T21:07:26+00:00",
+    "note": "ACS5 2021 B14003, school district (elementary), state 06"
+  },
+  "acs5_2021_b14003_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2021_b14003_sd_secondary.json",
+    "url": "https://api.census.gov/data/2021/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "4fda30b3b40b35789582470f82542f45f3b246934a0d0715f8bdc1ea9a817995",
+    "size": 157464,
+    "downloaded_at": "2026-08-19T21:07:26+00:00",
+    "note": "ACS5 2021 B14003, school district (secondary), state 06"
+  },
+  "acs5_2021_b14003_sd_unified.json": {
+    "dataset": "census",
+    "filename": "acs5_2021_b14003_sd_unified.json",
+    "url": "https://api.census.gov/data/2021/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28unified%29:*&in=state:06",
+    "sha256": "e37d88c13b106efaef934b052e0327c7f2ce86ec47e94fc2a90780d4467d017f",
+    "size": 471331,
+    "downloaded_at": "2026-08-19T21:04:46+00:00",
+    "note": "ACS5 2021 B14003, school district (unified), state 06"
   },
   "acs5_2021_b17024_sd_elementary.json": {
     "dataset": "census",
@@ -242,6 +458,15 @@
     "downloaded_at": "2026-08-19T20:12:56+00:00",
     "note": "ACS5 2021 B17024, school district (unified), state 06"
   },
+  "acs5_2021_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2021_groups_b14003.json",
+    "url": "https://api.census.gov/data/2021/acs/acs5/groups/B14003.json",
+    "sha256": "14ffbe64810effb19eb98831510bb238a63782bb308de311b34c5024dddf5f5b",
+    "size": 276616,
+    "downloaded_at": "2026-08-19T21:04:45+00:00",
+    "note": "ACS5 2021 variable metadata for B14003"
+  },
   "acs5_2021_groups_b17024.json": {
     "dataset": "census",
     "filename": "acs5_2021_groups_b17024.json",
@@ -250,6 +475,24 @@
     "size": 377790,
     "downloaded_at": "2026-08-19T20:12:54+00:00",
     "note": "ACS5 2021 variable metadata for B17024"
+  },
+  "acs5_2022_b14003_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2022_b14003_sd_elementary.json",
+    "url": "https://api.census.gov/data/2022/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "fb2fc3624d7e0674f911247d83ab138d3fe2ca0f08a2b3f462dbad73f74a8e8e",
+    "size": 687783,
+    "downloaded_at": "2026-08-19T21:08:45+00:00",
+    "note": "ACS5 2022 B14003, school district (elementary), state 06"
+  },
+  "acs5_2022_b14003_sd_unified.json": {
+    "dataset": "census",
+    "filename": "acs5_2022_b14003_sd_unified.json",
+    "url": "https://api.census.gov/data/2022/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28unified%29:*&in=state:06",
+    "sha256": "c7bbeb6305bb4fcb7671e2b31d7ab6fd2722f7298d95dcc46f95f683e722b194",
+    "size": 470157,
+    "downloaded_at": "2026-08-19T21:08:43+00:00",
+    "note": "ACS5 2022 B14003, school district (unified), state 06"
   },
   "acs5_2022_b17024_sd_elementary.json": {
     "dataset": "census",
@@ -278,6 +521,15 @@
     "downloaded_at": "2026-08-19T20:13:02+00:00",
     "note": "ACS5 2022 B17024, school district (unified), state 06"
   },
+  "acs5_2022_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2022_groups_b14003.json",
+    "url": "https://api.census.gov/data/2022/acs/acs5/groups/B14003.json",
+    "sha256": "df5ea9cf7574e67a3b91f1f05bca3e139e4110e1090e7803b59f48bff38a0d99",
+    "size": 282484,
+    "downloaded_at": "2026-08-19T21:07:26+00:00",
+    "note": "ACS5 2022 variable metadata for B14003"
+  },
   "acs5_2022_groups_b17024.json": {
     "dataset": "census",
     "filename": "acs5_2022_groups_b17024.json",
@@ -304,6 +556,33 @@
     "size": 4056962,
     "downloaded_at": "2026-08-19T16:58:59+00:00",
     "note": "ACS5 2023 B03002, block groups, county 06037"
+  },
+  "acs5_2023_b14003_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_b14003_sd_elementary.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "73789fe4de9f1c73e500813a8e1863ab90ea30012320ea9911714aa940f40df1",
+    "size": 687710,
+    "downloaded_at": "2026-08-19T21:10:49+00:00",
+    "note": "ACS5 2023 B14003, school district (elementary), state 06"
+  },
+  "acs5_2023_b14003_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_b14003_sd_secondary.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "1e7a017c7d1097151c36b6345385bea6eec690123216bbbc639442b1b7e0b768",
+    "size": 157461,
+    "downloaded_at": "2026-08-19T21:10:49+00:00",
+    "note": "ACS5 2023 B14003, school district (secondary), state 06"
+  },
+  "acs5_2023_b14003_sd_unified.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_b14003_sd_unified.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B14003)&for=school%20district%20%28unified%29:*&in=state:06",
+    "sha256": "a51e15025ea5b0910a230e4f1ba35f8257e7e42d41846d66198275be5e0d401e",
+    "size": 470162,
+    "downloaded_at": "2026-08-19T21:10:47+00:00",
+    "note": "ACS5 2023 B14003, school district (unified), state 06"
   },
   "acs5_2023_b17024_sd_elementary.json": {
     "dataset": "census",
@@ -358,6 +637,15 @@
     "size": 225462,
     "downloaded_at": "2026-08-19T16:58:53+00:00",
     "note": "ACS5 2023 variable metadata for B03002"
+  },
+  "acs5_2023_groups_b14003.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_groups_b14003.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5/groups/B14003.json",
+    "sha256": "385275aa449264a474a34ad5aefc05c59b3cdead3a811c200f1b12669712a544",
+    "size": 284808,
+    "downloaded_at": "2026-08-19T20:59:13+00:00",
+    "note": "ACS5 2023 variable metadata for B14003"
   },
   "acs5_2023_groups_b17024.json": {
     "dataset": "census",

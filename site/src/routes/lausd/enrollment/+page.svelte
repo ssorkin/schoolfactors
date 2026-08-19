@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import StackedArea from '$lib/district/StackedArea.svelte';
   import { getSchools } from '$lib/district/lausdData.js';
 
   let { data } = $props();
@@ -54,12 +55,55 @@
   });
   let capLatest = $derived(capYears.length ? capYears[capYears.length - 1] : null);
 
+  // "Where did the students go?" decompositions.
+  const RES_SERIES = [
+    { key: 'public', label: 'Public school', color: '#2a78d6' },
+    { key: 'private', label: 'Private school', color: '#9db9dd' },
+    { key: 'not_enrolled', label: 'Not enrolled', color: '#d8d4cc' }
+  ];
+  const CLS_SERIES = [
+    { key: 'traditional', label: 'Traditional LAUSD', color: '#eb6834' },
+    { key: 'affiliated', label: 'Affiliated charter', color: '#f0b28a' },
+    { key: 'independent', label: 'Independent charter', color: '#1e6b3a' }
+  ];
+  let residence = $derived(enrollment?.residence ?? []);
+  let byClass = $derived(enrollment?.by_class ?? []);
+  function chg(rows, key) {
+    const vals = rows.map(([, d]) => d[key]).filter((v) => v != null);
+    if (vals.length < 2) return null;
+    return Math.round((vals[vals.length - 1] / vals[0] - 1) * 100);
+  }
+  let deltas = $derived({
+    children: chg(residence, 'total'),
+    pub: chg(residence, 'public'),
+    prv: chg(residence, 'private'),
+    not: chg(residence, 'not_enrolled'),
+    trad: chg(byClass, 'traditional'),
+    aff: chg(byClass, 'affiliated'),
+    ind: chg(byClass, 'independent')
+  });
+  const sgn = (v) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`);
+
   let closures = $derived(
     [...(enrollment?.closures ?? [])].sort(
       (a, b) => b.year - a.year || (b.last_enr ?? 0) - (a.last_enr ?? 0)
     )
   );
-  let nCharterClosed = $derived(closures.filter((c) => c.charter).length);
+  let closureCounts = $derived.by(() => {
+    const K12 = new Set([
+      'Elementary',
+      'Intermediate/Middle/Junior High',
+      'High School',
+      'Elementary-High Combination'
+    ]);
+    const out = { charter: 0, campus: 0, other: 0 };
+    for (const c of closures) {
+      if (c.charter) out.charter++;
+      else if (K12.has(c.eil)) out.campus++;
+      else out.other++;
+    }
+    return out;
+  });
   const EIL_SHORT = {
     Elementary: 'Elementary',
     'Intermediate/Middle/Junior High': 'Middle',
@@ -80,11 +124,10 @@
 
 <h2>A shrinking district</h2>
 <p>
-  LAUSD has lost roughly a quarter of its students since 2015 — falling birth rates,
-  families leaving Los Angeles, and enrollment moving to charters all pull the same
-  direction. The census line shows the area's resident children fell far less than
-  enrollment did over the same years: most of the gap is families opting out of
-  district schools, not disappearing from the neighborhoods. The decline is the
+  LAUSD has lost roughly a quarter of its students since 2015, while the census
+  shows the area's resident children fell far less over the same years. The
+  decomposition below breaks both sides apart — who lives here and where they
+  enroll, and which kinds of LAUSD-authorized schools shrank. The decline is the
   backdrop for every other story here: funding per student, small schools, and
   closures.
 </p>
@@ -155,6 +198,52 @@
   </div>
 {/if}
 
+<h2>Where did the students go?</h2>
+<p>
+  Two decompositions of the same decline. The left side is <b>residence-based</b>
+  (census): every child aged 5–17 living inside LAUSD's boundary, by where they go
+  to school. The right side is <b>school-based</b> (CDE): every student enrolled in
+  a school under LAUSD's CDS code, by school class. The two universes don't
+  reconcile exactly — the census assigns children to where they <em>live</em>, not
+  where they attend, so inter-district enrollment and independent charters drawing
+  from outside the boundary sit in the gap. That non-reconciliation is informative,
+  not a bug.
+</p>
+
+{#if residence.length > 1 && byClass.length > 1}
+  <div class="duo">
+    <StackedArea
+      data={residence}
+      series={RES_SERIES}
+      title="Resident children 5–17, by enrollment (ACS 5-yr, {residence[0][0]}–{residence[residence.length - 1][0]})"
+    />
+    <StackedArea
+      data={byClass}
+      series={CLS_SERIES}
+      title="Enrollment in LAUSD-authorized schools (CDE, {byClass[0][0]}–{byClass[byClass.length - 1][0]})"
+    />
+  </div>
+  <ul class="deltas">
+    <li>Resident children 5–17: <b>{sgn(deltas.children)}</b></li>
+    <li>… attending public school: <b>{sgn(deltas.pub)}</b></li>
+    <li>… attending private school: <b>{sgn(deltas.prv)}</b></li>
+    <li>… not enrolled anywhere: <b>{sgn(deltas.not)}</b></li>
+    <li>Traditional LAUSD enrollment: <b>{sgn(deltas.trad)}</b></li>
+    <li>Affiliated charter enrollment: <b>{sgn(deltas.aff)}</b></li>
+    <li>Independent charter enrollment: <b>{sgn(deltas.ind)}</b></li>
+  </ul>
+  <p class="method">
+    Reading it: the resident child population shrank modestly and private-school
+    share held roughly flat, while traditional LAUSD schools shrank far faster than
+    either — independent charters barely shrank at all. The two panels cover
+    different windows (ACS vintages vs school years) and different universes, so
+    ratios between them are <em>apparent</em>, not student-level origin/destination
+    measures. "Not enrolled" includes homeschooling and census reporting error.
+  </p>
+{:else}
+  <p class="pending">The decomposition appears once the census B14003 series is exported.</p>
+{/if}
+
 <h2>Capacity</h2>
 {#if capLatest}
   <p>
@@ -189,11 +278,13 @@
 
 <h2>Closures</h2>
 <p>
-  {closures.length || '…'} LAUSD schools in the state directory closed since 2015 —
-  {nCharterClosed} of them charters, whose closures reflect authorization and
-  finances as much as enrollment. Closures cluster where enrollment fell hardest;
-  schools with a page link to their full history. "Last enrollment" is the most
-  recent census count on record before closure.
+  The state directory records {closures.length || '…'} LAUSD closures since 2015,
+  but they're not one thing: <b>{closureCounts.campus} district-operated K–12
+  campuses</b> actually ceased operation, {closureCounts.charter} were charters
+  (whose closures reflect authorization and finances as much as enrollment), and
+  {closureCounts.other} were adult, preschool, special-education, or
+  program/administrative entries. Schools with a page link to their full history;
+  "last enrollment" is the most recent census count on record before closure.
 </p>
 {#if closures.length}
   <div class="tablewrap">
@@ -299,5 +390,29 @@
     position: sticky;
     top: 0;
     background: #faf7f2;
+  }
+  .duo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  @media (max-width: 900px) {
+    .duo {
+      grid-template-columns: 1fr;
+    }
+  }
+  .deltas {
+    columns: 2;
+    font-size: 0.9rem;
+    margin: 0.8rem 0 0.3rem;
+  }
+  @media (max-width: 640px) {
+    .deltas {
+      columns: 1;
+    }
+  }
+  .method {
+    font-size: 0.85rem;
+    color: #6f6a61;
   }
 </style>

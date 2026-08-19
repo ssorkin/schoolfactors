@@ -45,6 +45,11 @@ DISTRICT_VINTAGES = tuple(range(2015, LATEST_VINTAGE + 1))
 ACS_TABLES: dict[str, dict] = {
     # Age by ratio of income to poverty level; the census-residents counterpart to FRPM.
     "B17024": {"geo": "district"},
+    # Sex by school enrollment by type by age: resident children 5-17 split into
+    # public school / private school / not enrolled — the residence-based side of
+    # "where did the students go?" (the practical API equivalent of NCES ACS-ED's
+    # grade-relevant-children universe, which assigns children by residence).
+    "B14003": {"geo": "district"},
     # Ratio of income to poverty level (all ages) — B17024 is not published at block
     # group, so attendance-area poverty comes from C17002.
     "C17002": {"geo": "blockgroup", "counties": ["037"]},

@@ -228,6 +228,83 @@ def _census_children(con) -> dict[str, dict] | None:
     return out or None
 
 
+def _residence_enrollment(con) -> dict[str, dict] | None:
+    """Resident children 5-17 inside LAUSD by enrollment status, per ACS vintage.
+
+    B14003 at the unified-district geography: public school / private school /
+    not enrolled, summed over sex and the 5-9 / 10-14 / 15-17 age bins. This is
+    residence-based (ACS-ED-style: children are assigned to where they live, not
+    where they attend), so it will not reconcile exactly with LEA-based counts.
+    """
+    views = {r[0] for r in con.execute("SHOW TABLES").fetchall()}
+    if "census_acs_raw" not in views:
+        return None
+    ages = {"5 to 9 years", "10 to 14 years", "15 to 17 years"}
+    cats = {
+        "Enrolled in public school": "public",
+        "Enrolled in private school": "private",
+        "Not enrolled in school": "not_enrolled",
+    }
+    rows = con.execute(
+        """
+        SELECT vintage, variable, label, sum(TRY_CAST(value AS DOUBLE)) AS v
+        FROM census_acs_raw
+        WHERE table_id = 'B14003' AND geoid = ? AND geo_type LIKE 'sd_%'
+          AND (TRY_CAST(value AS DOUBLE) IS NULL OR TRY_CAST(value AS DOUBLE) >= 0)
+        GROUP BY 1, 2, 3
+        """,
+        [LAUSD_GEOID],
+    ).fetchall()
+    out: dict[str, dict] = {}
+    for vintage, variable, label, v in rows:
+        if not variable.endswith("E") or not label or v is None:
+            continue
+        # Hierarchy is Total > Sex > STATUS > AGE (status before age), e.g.
+        # "Estimate!!Total!!Male!!Enrolled in public school!!5 to 9 years".
+        parts = [p.rstrip(":") for p in label.split("!!")]
+        if len(parts) != 5 or parts[2] not in ("Male", "Female") or parts[4] not in ages:
+            continue
+        cat = cats.get(parts[3])
+        if cat is None:
+            continue
+        acc = out.setdefault(vintage, {"public": 0, "private": 0, "not_enrolled": 0})
+        acc[cat] += v
+    for acc in out.values():
+        acc["total"] = acc["public"] + acc["private"] + acc["not_enrolled"]
+        for k in list(acc):
+            acc[k] = int(round(acc[k]))
+    return out or None
+
+
+def _school_enrollment_by_class(con) -> dict[int, dict]:
+    """LAUSD-authorized enrollment by school class per spring year (FRPM K-12).
+
+    traditional = district-run; affiliated = locally funded charter; independent
+    = directly funded charter. LEA-based: everything under the LAUSD CDS prefix,
+    regardless of where the student lives.
+    """
+    rows = con.execute(
+        """
+        SELECT TRY_CAST(substr(academic_year, 1, 4) AS INT) + 1 AS year,
+               CASE
+                   WHEN trim(charter_school_y_n) IN ('Yes', 'Y')
+                        AND charter_funding_type ILIKE '%direct%' THEN 'independent'
+                   WHEN trim(charter_school_y_n) IN ('Yes', 'Y') THEN 'affiliated'
+                   ELSE 'traditional'
+               END AS cls,
+               sum(TRY_CAST(enrollment_k_12 AS DOUBLE)) AS enr
+        FROM frpm_raw
+        WHERE cds LIKE '1964733%' AND school_code <> '0000000'
+        GROUP BY 1, 2
+        """
+    ).fetchall()
+    out: dict[int, dict] = {}
+    for year, cls, enr in rows:
+        if year and enr:
+            out.setdefault(year, {})[cls] = int(round(enr))
+    return out
+
+
 def _district_pages() -> set[str]:
     index_path = SITE_DATA / "index.json"
     if not index_path.exists():
@@ -640,6 +717,8 @@ def export_lausd() -> None:
         for c in closures:
             c["has_page"] = c["cds"] in index_rows
         children_by_vintage = _census_children(con) or {}
+        residence = _residence_enrollment(con) or {}
+        by_class = _school_enrollment_by_class(con)
         _write(
             "enrollment.json",
             {
@@ -649,6 +728,12 @@ def export_lausd() -> None:
                 "resident_children": [
                     [int(v), d["children"]] for v, d in sorted(children_by_vintage.items())
                 ],
+                # "Where did the students go?" — residence-based (census B14003,
+                # children 5-17 by enrollment status) vs LEA-based (CDE FRPM,
+                # LAUSD-authorized enrollment by school class). Different
+                # universes by design; they should not reconcile exactly.
+                "residence": [[int(v), d] for v, d in sorted(residence.items())],
+                "by_class": [[y, d] for y, d in sorted(by_class.items())],
                 "closures": closures,
                 "capacity_years": sorted(
                     {y for rows in capacity.values() for y, _, _ in rows}
@@ -686,25 +771,29 @@ def export_lausd() -> None:
         )
 
         # Compact stats for the overview lander's cards (SSR-inlined, so small):
-        # resident school-age children per ACS vintage and their poverty share.
+        # resident children 5-17 (B14003 totals) per ACS vintage, their poverty
+        # share (B17024, ages 6-17), and the latest enrollment-by-class split.
         children = _census_children(con) or {}
-        vints = sorted(children)
-        latest_v = vints[-1] if vints else None
-        prev_v = vints[0] if len(vints) > 1 else None
+        rvints = sorted(residence)
+        latest_rv = rvints[-1] if rvints else None
+        prev_rv = rvints[0] if len(rvints) > 1 else None
+        latest_cls = by_class[max(by_class)] if by_class else None
         _write(
             "overview.json",
             {
                 "census": {
-                    "vintage": latest_v,
-                    "children": children.get(latest_v, {}).get("children"),
-                    "p185": children.get(latest_v, {}).get("p185"),
-                    "prev_vintage": prev_v,
-                    "children_prev": children.get(prev_v, {}).get("children")
-                    if prev_v
+                    "vintage": latest_rv,
+                    "children": residence.get(latest_rv, {}).get("total"),
+                    "children_prev": residence.get(prev_rv, {}).get("total")
+                    if prev_rv
                     else None,
+                    "prev_vintage": prev_rv,
+                    # poverty share is B17024's 6-17 universe (labeled on-page)
+                    "p185": children.get(max(children), {}).get("p185") if children else None,
                 }
-                if latest_v
+                if latest_rv
                 else None,
+                "by_class": {"year": max(by_class), **latest_cls} if latest_cls else None,
             },
         )
 

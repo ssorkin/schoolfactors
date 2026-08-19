@@ -6,11 +6,13 @@
   let { data } = $props();
   let d = $derived(data.district);
   let census = $derived(data.overview?.census ?? null);
+  let byClass = $derived(data.overview?.by_class ?? null);
   let childChange = $derived(
     census?.children && census?.children_prev
       ? census.children / census.children_prev - 1
       : null
   );
+  const fmtK = (v) => (v == null ? '—' : `${Math.round(v / 1000)}k`);
 
   let schools = $state([]);
   let loadError = $state(false);
@@ -49,18 +51,25 @@
 
 <p class="lede">
   Los Angeles Unified is the second-largest school district in the country:
-  {fmtN(d?.enrollment)} students across roughly a thousand schools, serving an area
-  of about 4.6 million residents. This story maps the district — every school, every
-  attendance area — and follows the numbers into funding, enrollment, and the gap
-  between who lives here and who enrolls.
+  {fmtN(d?.enrollment)} students across roughly a thousand LAUSD-authorized schools
+  — traditional schools plus the affiliated and independent charters under its CDS
+  code — serving an area of about 4.6 million residents. This story maps the
+  district — every school, every attendance area — and follows the numbers into
+  funding, enrollment, and the gap between who lives here and who enrolls.
 </p>
 
 <div class="cards">
   <div class="card">
     <span class="big">{fmtN(d?.enrollment)}</span>
-    <span class="lbl">students enrolled</span>
+    <span class="lbl">students in LAUSD-authorized schools</span>
+    {#if byClass}
+      <span class="split">
+        {fmtK(byClass.traditional)} traditional · {fmtK(byClass.affiliated)} affiliated
+        charter · {fmtK(byClass.independent)} independent charter
+      </span>
+    {/if}
     {#if census?.children}
-      <span class="sub">vs {fmtN(census.children)} resident children 6–17 (census)</span>
+      <span class="sub">vs {fmtN(census.children)} resident children 5–17 (census)</span>
     {/if}
   </div>
   <div class="card">
@@ -69,7 +78,7 @@
     {#if childChange != null}
       <span class="sub">
         vs {childChange > 0 ? '+' : ''}{Math.round(childChange * 100)}% resident
-        children (ACS {census.prev_vintage}→{census.vintage})
+        children 5–17 (ACS {census.prev_vintage}→{census.vintage})
       </span>
     {/if}
   </div>
@@ -77,7 +86,7 @@
     <span class="big">{fmtPct(frpmLatest)}</span>
     <span class="lbl">students FRPM-eligible</span>
     {#if census?.p185 != null}
-      <span class="sub">vs {fmtPct(census.p185)} resident children under 185% FPL</span>
+      <span class="sub">vs {fmtPct(census.p185)} resident children 6–17 under 185% FPL</span>
     {/if}
   </div>
   <div class="card">
@@ -150,6 +159,11 @@
     padding: 0.8rem 1rem;
     display: flex;
     flex-direction: column;
+  }
+  .split {
+    margin-top: 0.25rem;
+    font-size: 0.76rem;
+    color: #52514e;
   }
   /* census counterpart, stacked under each district number */
   .sub {
