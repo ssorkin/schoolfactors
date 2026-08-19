@@ -22,6 +22,8 @@ dependencies = [
     "typer>=0.15",
     "rich>=13",
     "matplotlib>=3.11.1",
+    "shapely>=2",
+    "topojson>=1.10",
 ]
 
 [project.optional-dependencies]

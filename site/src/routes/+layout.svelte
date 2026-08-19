@@ -3,7 +3,12 @@
   let { children } = $props();
 </script>
 
-<div class="shell" class:wide={page.url.pathname === '/' || page.url.pathname === '/compare'}>
+<div
+  class="shell"
+  class:wide={page.url.pathname === '/' ||
+    page.url.pathname === '/compare' ||
+    page.url.pathname.startsWith('/lausd')}
+>
   <header>
     <a class="brand" href="/">School<span>Factors</span></a>
     <nav>

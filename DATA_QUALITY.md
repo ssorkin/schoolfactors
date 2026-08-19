@@ -1,6 +1,6 @@
 # Data Quality Report
 
-Generated 2026-08-15 by `sf check`. This report is a first-class artifact of the pipeline: problems in the source data are surfaced here and in `known_issues/`, never silently patched.
+Generated 2026-08-19 by `sf check`. This report is a first-class artifact of the pipeline: problems in the source data are surfaced here and in `known_issues/`, never silently patched.
 
 ## Known issues (documented registry)
 
@@ -36,6 +36,39 @@ Group 6 ("Fluent English proficient and English only") is the sum of groups 7 (I
 
 **Handling:** Analyses that need "fluent but not English-only" must use groups 7 + 8 directly, never group 6 minus anything.
 
+### One MP25 attendance-area key (E 11017) resolves to no school
+
+*coverage_gap, affects lausd_gis 2025* — id `lausd-mp25-key-11017-unresolved`
+
+LAUSD's MP25 layer partitions the district into 985 polygons keyed by the
+elementary/middle/high school serving each (E_KEY/M_KEY/H_KEY). The Codes lookup
+tables (Att{e,m,h}1112_Codes, dated 2016-17) resolve most keys; keys created since
+resolve through the Attendance Boundary Info table (POLYID prefix match). Elementary
+key 11017 — one polygon, P_KEY 110172048830201 — appears in neither source. The
+11001-11016 series are all newer zones known only to the info table, so 11017 is
+most likely a zone created after that table's last refresh.
+
+**Handling:** The polygon keeps null e_cds/e_name in the polygon table and site exports (rendered
+as "no data"); its middle/high keys resolve normally. Re-check after the next
+acquisition snapshot — `check_lausd_resolution` will flag any change in the
+unresolved set.
+
+### Exam-admission magnets inside comprehensive schools cannot be separated
+
+*structural-limitation, affects caaspp 2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025* — id `magnet-within-school-selection`
+
+CDE reports a comprehensive school and its co-located magnet program(s) as a single CDS, so school-level results blend a neighborhood population with a selectively admitted one. North Hollywood Senior High (19647331936350) is the canonical case: its Highly Gifted Magnet admits by gifted identification citywide, inflating both the school's raw level and every student group's rates (the magnet's students appear inside each group row), while the demographic adjustment cannot observe the academic selection. The school types as "magnet", but flagging it "selective" would misclassify its majority neighborhood enrollment. This is a boundary of school-level data, not a correctable error.
+
+**Handling:** Documented, not patched. Candidate improvement (roadmap): ingest LAUSD's GATE annual school reports (ssr.lausd.net, GATE_AnnualSchoolReport), which count gifted-identified students per school and could support disaggregating or at least flagging magnet-within-school populations for LAUSD entities.
+
+### Central-cost allocation conventions vary by LEA and can shift between years
+
+*reporting-inconsistency, affects ppe 2019, 2020, 2021, 2022, 2023* — id `ppe-central-allocation-conventions`
+
+ESSA PPE splits each school's per-pupil figure into school-site and allocated central-office dollars, but each district chooses its own allocation method, and some changed methods mid-series. Berkeley Unified is a clear case: its 2019-20 through 2021-22 filings allocate $30k-$49k/pupil of "central" costs to Berkeley High (central federal alone reaches $30k/pupil in 2021-22 — several times the school-site total and far beyond any plausible spending), then from 2022-23 the same school's central allocation drops to a sane $0.3k-$15k/pupil. The inflated years pass the totals-reporter screen because the LEA's median stays under $100k/pupil. Statewide, roughly 4% of school rows in every file year carry central allocations more than twice their school-site spending — some legitimately (small schools in central-heavy districts), so a blanket screen would discard real data.
+
+**Handling:** Not screened beyond the existing totals-reporter and implausible-value rules — a reliable detector for "allocation convention changed" that does not also discard legitimate central-heavy schools has not been designed yet. The spending history shown on entity pages is CDE's published figures after the documented normalizations, and the site copy notes that year-to-year level shifts can reflect filing conventions rather than actual spending changes. Candidate improvement: flag LEA-years whose median central-to-school-site ratio departs by more than ~3x from that LEA's own cross-year median.
+
 ### Some LEAs filed implausibly low ESSA PPE — state/local dollars missing
 
 *reporting-inconsistency, affects ppe 2024, 2025* — id `ppe-implausibly-low-filings`
@@ -51,6 +84,14 @@ Nine LEAs (93 school rows, ~66,000 students) filed 2024-25 ESSA per-pupil expend
 The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting conventions. Most LEAs report per-pupil dollars as specified, but roughly 5% of LEAs (98 of 1,926 with membership data) filed school-level TOTAL expenditures in the per-pupil columns. Example: Granada Hills Charter reports $99,223,734 with 5,927 students — dividing by membership yields a plausible $16,741/pupil. The convention is consistent within an LEA (all of Acalanes Union High's schools are totals), so detection is per-LEA, not per-row.
 
 **Handling:** Named transform in analysis/export.py (normalize ppe totals-reporters): an LEA whose median reported value exceeds $100,000/pupil is treated as a totals-reporter and every one of its rows is divided by student membership (rows without membership become null). After normalization, values outside [$5,000, $500,000] per pupil are treated as unusable and dropped (see also ppe-implausibly-low-filings for the symmetric low-side LEA rule; the high ceiling deliberately keeps tiny SpEd/court/community-day programs that legitimately run $150k-$400k per pupil). District and county figures are rebuilt from school dollars (value x membership, summed, re-divided) — never by averaging per-pupil ratios.
+
+### CAASPP's SED flag and FRPM eligibility disagree by ±5pp at ~30% of high schools
+
+*definition-divergence, affects caaspp 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025* — id `sed-vs-frpm-measure-divergence`
+
+CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definition — FRPM-eligible, or neither parent a high-school graduate, or migrant/foster/homeless — nominally a superset of FRPM. In practice the two measures sit at parity on average and disagree in both directions: across 1,205 high schools with >= 100 grade-11 students in 2025, grade-11 SED share minus school-wide FRPM share has median +0.3pp, but 14% of schools show SED at least 5pp BELOW FRPM (a superset measuring under its subset) and 16% at least 5pp above. Candidate mechanisms: grade-composition differences (FRPM spans the school; SED here is grade 11 only), and divergent collection regimes — CEP/universal-meals districts count FRPM via direct certification and alternative income forms while the SED flag comes through CALPADS, and income-form collection weakens in upper high-school grades. John Marshall Senior High (19647331935568) illustrates the tail: grade-11 tested SED fell 77% -> 67% over the decade while school-wide FRPM held ~72%, with test participation 92-97% and uniform across groups (so participation skew is ruled out).
+
+**Handling:** Not corrected — both measures are published as defined. Site handling: the glossary documents the SED / FRPM / unduplicated-count distinctions; the intake-shift warning on entity pages cross-checks tested-SED shifts against FRPM census history over the same span and says explicitly when school-wide FRPM moved much less (i.e., the shift reflects who is tested or how students are classified, not who enrolls). The adjustment model's covariates use tested-population shares consistently, so model comparisons are like-for-like even where the two measures diverge.
 
 ## Check findings
 
@@ -88,8 +129,8 @@ The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting conve
   - Elk Grove Unified (cds 3467314…): parent=33,878 vs children 67,756
 - 🔴 **2021** gender (male 3 + female 4 = all students): 3 district(s) violate the identity by more than 2%
   - Shasta County Office of Education (cds 4510454…): parent=95 vs children 93
-  - Yolo County Office of Education (cds 5710579…): parent=48 vs children 47
   - Monte Rio Union Elementary (cds 4970813…): parent=48 vs children 47
+  - Yolo County Office of Education (cds 5710579…): parent=48 vs children 47
 - 🔴 **2022** gender (male 3 + female 4 = all students): 4 district(s) violate the identity by more than 2%
   - Humboldt County Office of Education (cds 1210124…): parent=62 vs children 59
   - Imperial County Office of Education (cds 1310132…): parent=49 vs children 48
@@ -105,11 +146,11 @@ The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting conve
   - SBE - Latitude 37.8 High (cds 0177180…): parent=93 vs children 91
   - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=36 vs children 35
 - 🔴 **2025** gender (male 3 + female 4 = all students): 5 district(s) violate the identity by more than 2%
-  - Leggett Valley Unified (cds 2375218…): parent=68 vs children 65
   - Contra Costa County Office of Education (cds 0710074…): parent=90 vs children 87
+  - Leggett Valley Unified (cds 2375218…): parent=68 vs children 65
   - SBE - Altus Schools East County (cds 3777099…): parent=76 vs children 74
-  - Monte Rio Union Elementary (cds 4970813…): parent=44 vs children 43
   - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=46 vs children 45
+  - Monte Rio Union Elementary (cds 4970813…): parent=44 vs children 43
 ### entity_continuity
 
 - 🟡 **2016** 18 schools report in 2015 and 2017 but not 2016 (closures/reopenings, code changes, or reporting gaps)
@@ -130,6 +171,9 @@ The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting conve
 - 🟡 **2023** 100.0% of 10,223 school-level All-Students ELA rows have suppressed scores
 - 🟡 **2024** 100.0% of 10,242 school-level All-Students ELA rows have suppressed scores
 - 🟡 **2025** 100.0% of 10,221 school-level All-Students ELA rows have suppressed scores
+### census_frpm
+
+- ℹ️ ACS 2023 B17024 vs FRPM 2025-2026: 905/936 districts matched (97%), median FRPM/P185 rate ratio 1.86x (PPIC benchmark ~1.8x)
 ### enrollment_definition
 
 - ℹ️ **2016** subgroup enrollment varies normally (0.0% of 877 districts constant)
@@ -141,6 +185,11 @@ The ESSA per-pupil expenditure file (essappe2425data.xlsx) mixes reporting conve
 - ℹ️ **2023** subgroup enrollment varies normally (0.0% of 864 districts constant)
 - ℹ️ **2024** subgroup enrollment varies normally (0.0% of 871 districts constant)
 - ℹ️ **2025** subgroup enrollment varies normally (0.0% of 865 districts constant)
+### lausd_resolution
+
+- ℹ️ 985 MP25 polygons; 0 P_KEY/segment mismatches
+- ℹ️ 820/821 distinct E/M/H keys resolved to schools; unresolved: [{'level': 'E', 'key5': '11017'}]
+- ℹ️ all 697 resolved CDS codes exist in the CDE directory under district 1964733
 ### participation
 
 - ℹ️ **2015** statewide ELA participation 96.0%

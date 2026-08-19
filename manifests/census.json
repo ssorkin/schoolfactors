@@ -1,0 +1,74 @@
+{
+  "acs5_2023_b03002_bg_06037.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_b03002_bg_06037.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B03002)&for=block%20group:*&in=state:06%20county:037",
+    "sha256": "e8d895682a590b5eaa5597af0feee6e5eca834d4099b8dd9be5ef88f452c76e8",
+    "size": 4056962,
+    "downloaded_at": "2026-08-19T16:58:59+00:00",
+    "note": "ACS5 2023 B03002, block groups, county 06037"
+  },
+  "acs5_2023_b17024_sd_elementary.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_b17024_sd_elementary.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B17024)&for=school%20district%20%28elementary%29:*&in=state:06",
+    "sha256": "e7d3f3a9481076cd1e3bce2fc62035423ba56e4e83f779382f3f1f67f1d7e2c3",
+    "size": 1466745,
+    "downloaded_at": "2026-08-19T16:58:47+00:00",
+    "note": "ACS5 2023 B17024, school district (elementary), state 06"
+  },
+  "acs5_2023_b17024_sd_secondary.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_b17024_sd_secondary.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B17024)&for=school%20district%20%28secondary%29:*&in=state:06",
+    "sha256": "d6819628ca2a3c933e7675d9067b37a7e4e59a3e3f00950408171a2f3c49825a",
+    "size": 338946,
+    "downloaded_at": "2026-08-19T16:58:49+00:00",
+    "note": "ACS5 2023 B17024, school district (secondary), state 06"
+  },
+  "acs5_2023_b17024_sd_unified.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_b17024_sd_unified.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B17024)&for=school%20district%20%28unified%29:*&in=state:06",
+    "sha256": "82244e63e55bc879dfcbbfd05d510083dbfa1963fdca2db3aa16e3a94906fa6c",
+    "size": 1012319,
+    "downloaded_at": "2026-08-19T16:58:45+00:00",
+    "note": "ACS5 2023 B17024, school district (unified), state 06"
+  },
+  "acs5_2023_c17002_bg_06037.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_c17002_bg_06037.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(C17002)&for=block%20group:*&in=state:06%20county:037",
+    "sha256": "fed1d7740f0dd07815873fce1f7c04a6f1a2773ede0bea04142a020bc1a606e3",
+    "size": 2347914,
+    "downloaded_at": "2026-08-19T16:58:53+00:00",
+    "note": "ACS5 2023 C17002, block groups, county 06037"
+  },
+  "acs5_2023_groups_b03002.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_groups_b03002.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5/groups/B03002.json",
+    "sha256": "4ff54af6df4255bdae85a9031ba053dfa845dfdd32739c0b61562155615ccfed",
+    "size": 225462,
+    "downloaded_at": "2026-08-19T16:58:53+00:00",
+    "note": "ACS5 2023 variable metadata for B03002"
+  },
+  "acs5_2023_groups_b17024.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_groups_b17024.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5/groups/B17024.json",
+    "sha256": "699081a071728c2ba1ec767bf02de8f809fde68b9f54d7efefe84d0983137018",
+    "size": 385982,
+    "downloaded_at": "2026-08-19T16:58:42+00:00",
+    "note": "ACS5 2023 variable metadata for B17024"
+  },
+  "acs5_2023_groups_c17002.json": {
+    "dataset": "census",
+    "filename": "acs5_2023_groups_c17002.json",
+    "url": "https://api.census.gov/data/2023/acs/acs5/groups/C17002.json",
+    "sha256": "54a815612e42c9fd03aed468d86cf765750e86fcf744f4204ee3dd554f2e8fee",
+    "size": 209140,
+    "downloaded_at": "2026-08-19T16:58:49+00:00",
+    "note": "ACS5 2023 variable metadata for C17002"
+  }
+}

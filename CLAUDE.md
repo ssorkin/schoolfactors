@@ -6,6 +6,7 @@ pipeline (acquire → ingest → quality → analysis) in Python, static SvelteK
 ## Commands
 
 - `uv sync` — install; `uv run sf --help` — pipeline CLI (`acquire`, `ingest`, `check`, `analyze`, `export`)
+- `sf acquire --dataset census` needs `CENSUS_API_KEY` (env or repo-root `.env`, git-ignored; see CONTRIBUTING.md). Keys never go into manifests.
 - `uv run pytest` — tests; `uv run ruff check src tests` — lint
 - Site: `cd site && npm run dev` / `npm run build` (static; data from `sf export`)
 - Deploy (atomic): `scripts/deploy.sh [--build]` — rsync `site/build/` to dronesclub

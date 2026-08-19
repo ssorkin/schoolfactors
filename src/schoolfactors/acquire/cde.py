@@ -87,6 +87,12 @@ SCRAPED_FAMILIES: list[tuple[str, str, str, str]] = [
         "current expense of education, district per-ADA",
     ),
     (
+        "lcff",
+        f"{CDE}/fg/aa/pa/lcffsumdata.asp",
+        "documents/lcffsummary",
+        "LCFF summary: base/supplemental/concentration grants per LEA",
+    ),
+    (
         "tamo",
         f"{CDE}/ds/ad/filestamo.asp",
         "demo-downloads/tamo",

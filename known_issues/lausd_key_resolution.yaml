@@ -1,0 +1,22 @@
+id: lausd-mp25-key-11017-unresolved
+dataset: lausd_gis
+years: [2025]
+kind: coverage_gap
+title: One MP25 attendance-area key (E 11017) resolves to no school
+description: |
+  LAUSD's MP25 layer partitions the district into 985 polygons keyed by the
+  elementary/middle/high school serving each (E_KEY/M_KEY/H_KEY). The Codes lookup
+  tables (Att{e,m,h}1112_Codes, dated 2016-17) resolve most keys; keys created since
+  resolve through the Attendance Boundary Info table (POLYID prefix match). Elementary
+  key 11017 — one polygon, P_KEY 110172048830201 — appears in neither source. The
+  11001-11016 series are all newer zones known only to the info table, so 11017 is
+  most likely a zone created after that table's last refresh.
+evidence: |
+  SELECT p_key FROM lausd_mp25_raw WHERE e_key = '11017'  -- 1 polygon
+  SELECT count(*) FROM lausd_codes_raw WHERE level='E' AND key5='11017'   -- 0
+  SELECT count(*) FROM lausd_abinfo_raw WHERE substr(polyid,1,5)='11017'  -- 0
+handling: |
+  The polygon keeps null e_cds/e_name in the polygon table and site exports (rendered
+  as "no data"); its middle/high keys resolve normally. Re-check after the next
+  acquisition snapshot — `check_lausd_resolution` will flag any change in the
+  unresolved set.

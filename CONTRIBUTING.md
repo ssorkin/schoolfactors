@@ -82,6 +82,22 @@ admission process (school or district page preferred). PRs that add entries with
 a source, or that characterize a school beyond what the source supports, will be
 asked to revise.
 
+## Census API key
+
+The `census` family (ACS tables behind the FRPM-vs-census comparison and the LAUSD
+attendance-area demographics) uses api.census.gov, which requires an API key —
+keyless requests are redirected to an error page. Setup, once:
+
+1. Request a key at <https://api.census.gov/data/key_signup.html> (free; arrives by
+   email within minutes).
+2. Put it in a `.env` file at the repo root (git-ignored):
+   `CENSUS_API_KEY=your-key-here` — or export it in your shell.
+3. Run `uv run sf acquire --dataset census`, then `uv run sf ingest --dataset census`
+   and `uv run sf analyze`.
+
+The key is only ever sent to api.census.gov as a query parameter; manifest entries
+record the request URLs with the key redacted, so it cannot leak into the repo.
+
 ## Adding a data source
 
 1. Downloader in `acquire/` (scrape the landing page; record manifests; respect the

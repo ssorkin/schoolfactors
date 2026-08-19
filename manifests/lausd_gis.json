@@ -1,0 +1,92 @@
+{
+  "atte1112_codes.json": {
+    "dataset": "lausd_gis",
+    "filename": "atte1112_codes.json",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/Boundaries_and_Sites/FeatureServer/4/query",
+    "sha256": "ae5c8b919d094a2ecbfadd5bee1f4f8a4c0fd78af81a1bdb08ce903a14e2685e",
+    "size": 185257,
+    "downloaded_at": "2026-08-19T16:04:21+00:00",
+    "note": "742 features in 1 page(s), f=json"
+  },
+  "attendance_boundary_info.json": {
+    "dataset": "lausd_gis",
+    "filename": "attendance_boundary_info.json",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/Attendance_Boundaries/FeatureServer/2/query",
+    "sha256": "c94a13a971f708961447be22509daec8edaecee9d059bfa83981ac87f10418d8",
+    "size": 1460744,
+    "downloaded_at": "2026-08-19T16:04:23+00:00",
+    "note": "5036 features in 3 page(s), f=json"
+  },
+  "atth1112_codes.json": {
+    "dataset": "lausd_gis",
+    "filename": "atth1112_codes.json",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/Boundaries_and_Sites/FeatureServer/6/query",
+    "sha256": "48e2dd090bc9cf796b7671e0378b1d845b96299ea4e92f4506d07263dae4927f",
+    "size": 63533,
+    "downloaded_at": "2026-08-19T16:04:22+00:00",
+    "note": "239 features in 1 page(s), f=json"
+  },
+  "attm1112_codes.json": {
+    "dataset": "lausd_gis",
+    "filename": "attm1112_codes.json",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/Boundaries_and_Sites/FeatureServer/5/query",
+    "sha256": "38637948a5c897a745652122c071bfee5a614071a667f3c7c14e1448805ba866",
+    "size": 65726,
+    "downloaded_at": "2026-08-19T16:04:21+00:00",
+    "note": "257 features in 1 page(s), f=json"
+  },
+  "la_blocks_2020.json": {
+    "dataset": "lausd_gis",
+    "filename": "la_blocks_2020.json",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/tl_2025_06_tabblock2020/FeatureServer/0/query",
+    "sha256": "70d76bffbe092605150bc925336a9a92589b1590fda7c516f6ce068cc0311730",
+    "size": 12545456,
+    "downloaded_at": "2026-08-19T16:04:52+00:00",
+    "note": "91626 features in 46 page(s), f=json"
+  },
+  "lausd_boundary.geojson": {
+    "dataset": "lausd_gis",
+    "filename": "lausd_boundary.geojson",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/LAUSD_Boundary/FeatureServer/0/query",
+    "sha256": "f59466e227d2912ed2daad86e0441fb3028b13a41289db00d5164409f2d51264",
+    "size": 229116,
+    "downloaded_at": "2026-08-19T16:04:25+00:00",
+    "note": "1 features in 1 page(s), f=geojson"
+  },
+  "locx_2023_24.json": {
+    "dataset": "lausd_gis",
+    "filename": "locx_2023_24.json",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/LOCX_file_2023_2024/FeatureServer/0/query",
+    "sha256": "988f27f268837fc1dfb3be7e83eeb10c7a5ef0ecdb0791044cde2da5853abf63",
+    "size": 2116816,
+    "downloaded_at": "2026-08-19T16:04:24+00:00",
+    "note": "1438 features in 2 page(s), f=json"
+  },
+  "mp25_polygons.geojson": {
+    "dataset": "lausd_gis",
+    "filename": "mp25_polygons.geojson",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/MP25/FeatureServer/0/query",
+    "sha256": "d29c18917ad3fc1a9553e4f5dee81c69ee43047b1814f0d8a0a36515491120ec",
+    "size": 4376763,
+    "downloaded_at": "2026-08-19T16:04:21+00:00",
+    "note": "985 features in 1 page(s), f=geojson"
+  },
+  "school_points.geojson": {
+    "dataset": "lausd_gis",
+    "filename": "school_points.geojson",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/School_Points/FeatureServer/0/query",
+    "sha256": "9f88be56395f8e9e1747e96108dda3dcb6e2cefb22bbc2aa3e81e56e8a382cac",
+    "size": 558590,
+    "downloaded_at": "2026-08-19T16:04:23+00:00",
+    "note": "1141 features in 1 page(s), f=geojson"
+  },
+  "sites_capacity_enrollment.json": {
+    "dataset": "lausd_gis",
+    "filename": "sites_capacity_enrollment.json",
+    "url": "https://services3.arcgis.com/9QBcCnjxM5EBVdGe/ArcGIS/rest/services/LAUSD_Sites_with_Capacity_and_Enrollment/FeatureServer/0/query",
+    "sha256": "3744af4b7c959b731f7e29280ca5855181959ea816581548fd9f6a0b611cddf6",
+    "size": 1837478,
+    "downloaded_at": "2026-08-19T16:04:26+00:00",
+    "note": "1810 features in 1 page(s), f=json"
+  }
+}

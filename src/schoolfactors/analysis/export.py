@@ -1295,3 +1295,9 @@ def run_export() -> None:
 
     n_og = generate_og_images(index, REPO_ROOT / "site" / "static" / "og")
     print(f"  og share images: {n_og:,} written")
+
+    # District data-story exports (reads index.json + district payload written above).
+    from schoolfactors.analysis.lausd_export import export_lausd
+
+    print("exporting /lausd data story …")
+    export_lausd()

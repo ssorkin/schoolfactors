@@ -1,0 +1,146 @@
+{
+  "README.md": {
+    "dataset": "lausd_seni",
+    "filename": "README.md",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "3974f602d5cdb68da00a417906d68384933d09efccaa512b8590aefea76c4945",
+    "size": 2239,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "SENI_2023-2024.csv": {
+    "dataset": "lausd_seni",
+    "filename": "SENI_2023-2024.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "fb160efadc67e1d3c41863366a34416625131eca7760fafa1a276f92a9d9e130",
+    "size": 205509,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "SENI_2024-2025.csv": {
+    "dataset": "lausd_seni",
+    "filename": "SENI_2024-2025.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "fb43f901da4069842d9f270cd32c27f146a00a62338d031c49b870140817dde3",
+    "size": 230012,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "SENI_2025-2026.csv": {
+    "dataset": "lausd_seni",
+    "filename": "SENI_2025-2026.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "1f34d231be3204157ba780d4b09af9b703cf7ebe70dd950630d9cd661b7fa6eb",
+    "size": 216479,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "SENI_2026-2027.csv": {
+    "dataset": "lausd_seni",
+    "filename": "SENI_2026-2027.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "c565393cc2b30d7d9d6a6d9358d1beb76a30da8eb56cc1a362e79684203d427a",
+    "size": 217103,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "SENIplus_2022-2023.csv": {
+    "dataset": "lausd_seni",
+    "filename": "SENIplus_2022-2023.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "6af36161b9315bdeed367905e9d01394984a21baa368d805aa2130a01106d0cd",
+    "size": 227156,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "SENIplus_ESSER-II_Elementary_2021-2022.csv": {
+    "dataset": "lausd_seni",
+    "filename": "SENIplus_ESSER-II_Elementary_2021-2022.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "82e5d5df581054d92c458ff237d61eadd41f641dc29dd4d7ccbf8e99c41cb5d0",
+    "size": 86252,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "SENIplus_ESSER-II_High_2021-2022.csv": {
+    "dataset": "lausd_seni",
+    "filename": "SENIplus_ESSER-II_High_2021-2022.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "291ed814ba9ada43e6acc6b603ce48a9bf6ca803ef224efc6c481cab53082f97",
+    "size": 20862,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "SENIplus_ESSER-II_Middle_2021-2022.csv": {
+    "dataset": "lausd_seni",
+    "filename": "SENIplus_ESSER-II_Middle_2021-2022.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "42749729a4a80a5d62e30a24624b7e7993177bb23aacfb454c58b1551d415507",
+    "size": 16069,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "dictionaries/SENIDataDictionary_2023-2024.csv": {
+    "dataset": "lausd_seni",
+    "filename": "dictionaries/SENIDataDictionary_2023-2024.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "3f5abd55e62c78ad9056962edafed1a5ded51c707920086851b6a52506f306e4",
+    "size": 9846,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "dictionaries/SENIDataDictionary_2024-2025.csv": {
+    "dataset": "lausd_seni",
+    "filename": "dictionaries/SENIDataDictionary_2024-2025.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "65a464bc9f1101dfdf9b47f2d58a910596405c40dc851b2da458217681d646f1",
+    "size": 10034,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "dictionaries/SENIDataDictionary_2025-2026.csv": {
+    "dataset": "lausd_seni",
+    "filename": "dictionaries/SENIDataDictionary_2025-2026.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "6fdc7586090746abe799eebb0875580be65c4ba6bc3a8c3180bfa2e10b6ee081",
+    "size": 9232,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "dictionaries/SENIDataDictionary_2026-2027.csv": {
+    "dataset": "lausd_seni",
+    "filename": "dictionaries/SENIDataDictionary_2026-2027.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "f553e6590963428ec680999d4619179c5527259b7890f4010ebf8a0012f788bb",
+    "size": 9232,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "dictionaries/SENIPlusBusinessRules_2021-2022.docx": {
+    "dataset": "lausd_seni",
+    "filename": "dictionaries/SENIPlusBusinessRules_2021-2022.docx",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "20b9e7158ea0e17f2fc7c251b04a38f90861e83239fab5bfc4d384459e4db54d",
+    "size": 23169,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "dictionaries/SENIPlusDataDictionary_2022-2023.csv": {
+    "dataset": "lausd_seni",
+    "filename": "dictionaries/SENIPlusDataDictionary_2022-2023.csv",
+    "url": "https://my.lausd.net/OpenDataCatalog/Browse.aspx?id=6&dbid=0&repo=OpenDataCatalog",
+    "sha256": "f03e2871172bd1fc5d49481c6c04800cd6aba3ab536dd44f25a928f0b0ece8e8",
+    "size": 10401,
+    "downloaded_at": "2026-08-19T16:48:29+00:00",
+    "note": "manually exported from the bot-protected Open Data Catalog (see module docstring for the flow); URL is the catalog page"
+  },
+  "seni_2024_25_overview.pdf": {
+    "dataset": "lausd_seni",
+    "filename": "seni_2024_25_overview.pdf",
+    "url": "https://media.edlio.net/64ddac7d/710e69a5/1fa710cd/b5f4b4f3ed6f48c784652e10b1798661",
+    "sha256": "85e808d75e2a38927e806ae234a5d204c6f78fa6d3b4379202ff51348a70d496",
+    "size": 141722,
+    "downloaded_at": "2026-08-19T16:23:25+00:00",
+    "note": "SENI document (LAUSD LCAP)"
+  }
+}

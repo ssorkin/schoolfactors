@@ -156,6 +156,16 @@ def run_analysis() -> None:
     for path in figures.make_all(effects):
         print(f"  wrote {path.relative_to(figures.REPO_ROOT)}")
 
+    # District residents vs district attendance: census B17024 vs FRPM (skipped
+    # with a message until the census family is acquired + ingested).
+    print("census poverty vs FRPM …")
+    from schoolfactors.analysis import census_poverty
+
+    census_df = census_poverty.build_district_table()
+    if census_df is not None:
+        path = census_poverty.make_figure(census_df)
+        print(f"  wrote {path.relative_to(figures.REPO_ROOT)}")
+
     # Out-of-sample history: refit the level pipeline per cutoff year, prior
     # data only, so the site can show what percentile each year's readers
     # would have seen before that year's scores existed.

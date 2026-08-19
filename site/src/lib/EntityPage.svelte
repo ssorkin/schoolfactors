@@ -549,6 +549,13 @@
   {/if}
 </nav>
 
+{#if entity.cds === '19647330000000'}
+  <p class="storylink">
+    <a href="/lausd">Explore the LAUSD data story →</a>
+    maps, attendance areas, funding, enrollment, and demographics
+  </p>
+{/if}
+
 <h1>{entity.name}</h1>
 <p class="sub">
   {entity.kind === 'school' ? `${entity.district} · ` : ''}{entity.county} County
@@ -1003,6 +1010,19 @@
     font-size: 0.9rem;
     color: #898781;
     margin-bottom: 0.4rem;
+  }
+  .storylink {
+    font-size: 0.9rem;
+    color: #6f6a61;
+    background: #fff;
+    border: 1px solid #e8e1d5;
+    border-radius: 8px;
+    padding: 0.45rem 0.8rem;
+    margin: 0.3rem 0 0.6rem;
+  }
+  .storylink a {
+    font-weight: 600;
+    margin-right: 0.4rem;
   }
   h1 {
     margin: 0.2rem 0 0.2rem;

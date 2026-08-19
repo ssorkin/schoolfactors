@@ -1,0 +1,229 @@
+<script>
+  import { onMount } from 'svelte';
+  import { getSchools } from '$lib/district/lausdData.js';
+
+  let { data } = $props();
+  let d = $derived(data.district);
+  let enrollment = $derived(data.enrollment);
+
+  const ENR_YEARS = Array.from({ length: 12 }, (_, i) => 2015 + i);
+
+  let schools = $state([]);
+  onMount(async () => {
+    try {
+      schools = await getSchools();
+    } catch {
+      /* capacity section degrades */
+    }
+  });
+
+  // District enrollment line.
+  const W = 680;
+  const H = 220;
+  const M = { top: 14, right: 16, bottom: 28, left: 60 };
+  let pts = $derived(
+    (d?.enr ?? []).map((v, i) => ({ year: ENR_YEARS[i], v })).filter((p) => p.v != null)
+  );
+  let lo = $derived(Math.min(...pts.map((p) => p.v)) * 0.94);
+  let hi = $derived(Math.max(...pts.map((p) => p.v)) * 1.03);
+  const X = $derived((y) => M.left + ((y - 2015) / 11) * (W - M.left - M.right));
+  const Y = $derived((v) => M.top + (1 - (v - lo) / (hi - lo)) * (H - M.top - M.bottom));
+  let hover = $state(null);
+  const fmtN = (v) => Math.round(v).toLocaleString();
+
+  // Capacity utilization from per-school OPCAP vs enrollment (2016-2022).
+  let capYears = $derived.by(() => {
+    const agg = new Map();
+    for (const s of schools) {
+      for (const [year, opcap, enr] of s.capacity ?? []) {
+        if (opcap == null || enr == null) continue;
+        const a = agg.get(year) ?? { opcap: 0, enr: 0, n: 0, under50: 0 };
+        a.opcap += opcap;
+        a.enr += enr;
+        a.n += 1;
+        if (opcap > 0 && enr / opcap < 0.5) a.under50 += 1;
+        agg.set(year, a);
+      }
+    }
+    return [...agg.entries()].sort((a, b) => a[0] - b[0]);
+  });
+  let capLatest = $derived(capYears.length ? capYears[capYears.length - 1] : null);
+
+  // Closures grouped by year.
+  let closuresByYear = $derived.by(() => {
+    const by = new Map();
+    for (const c of enrollment?.closures ?? []) {
+      by.set(c.year, [...(by.get(c.year) ?? []), c]);
+    }
+    return [...by.entries()].sort((a, b) => b[0] - a[0]);
+  });
+</script>
+
+<svelte:head>
+  <title>LAUSD enrollment — SchoolFactors</title>
+  <meta
+    name="description"
+    content="LAUSD's decade of enrollment decline: the district-wide trend, school capacity utilization, and school closures."
+  />
+</svelte:head>
+
+<h2>A shrinking district</h2>
+<p>
+  LAUSD has lost roughly a quarter of its students since 2015 — falling birth rates,
+  families leaving Los Angeles, and enrollment moving to charters all pull the same
+  direction. The decline is the backdrop for every other story here: funding per
+  student, small schools, and closures.
+</p>
+
+{#if pts.length > 1}
+  <div class="chartwrap">
+    <svg
+      viewBox="0 0 {W} {H}"
+      role="img"
+      aria-label="LAUSD enrollment by year"
+      onmouseleave={() => (hover = null)}
+    >
+      {#each [lo, (lo + hi) / 2, hi] as t}
+        <line x1={M.left} y1={Y(t)} x2={W - M.right} y2={Y(t)} stroke="#e1e0d9" />
+        <text x={M.left - 6} y={Y(t) + 4} text-anchor="end" class="tick">{fmtN(t)}</text>
+      {/each}
+      <polyline
+        points={pts.map((p) => `${X(p.year)},${Y(p.v)}`).join(' ')}
+        fill="none"
+        stroke="#2a78d6"
+        stroke-width="2"
+      />
+      {#each pts as p}
+        <circle
+          cx={X(p.year)}
+          cy={Y(p.v)}
+          r={hover?.year === p.year ? 5 : 3}
+          fill="#2a78d6"
+          onmouseenter={() => (hover = p)}
+        />
+        <text x={X(p.year)} y={H - 8} text-anchor="middle" class="tick">
+          {String(p.year).slice(2)}
+        </text>
+      {/each}
+    </svg>
+    <p class="caption">
+      {#if hover}
+        <b>{hover.year - 1}–{String(hover.year).slice(2)}</b>: {fmtN(hover.v)} students
+      {:else}
+        Census-day enrollment by school year (spring label).
+      {/if}
+    </p>
+  </div>
+{/if}
+
+<h2>Capacity</h2>
+{#if capLatest}
+  <p>
+    LAUSD's own facilities data pairs each campus's operational capacity with its
+    enrollment. In {capLatest[0]}, the {capLatest[1].n.toLocaleString()} campuses
+    with both numbers enrolled {fmtN(capLatest[1].enr)} students against
+    {fmtN(capLatest[1].opcap)} seats —
+    <b>{Math.round((capLatest[1].enr / capLatest[1].opcap) * 100)}% utilization</b>,
+    with {capLatest[1].under50.toLocaleString()} campuses under half full.
+  </p>
+  <table>
+    <thead><tr><th>Year</th><th>Seats</th><th>Enrolled</th><th>Utilization</th><th>Campuses &lt;50% full</th></tr></thead>
+    <tbody>
+      {#each capYears as [year, a]}
+        <tr>
+          <td>{year}</td>
+          <td>{fmtN(a.opcap)}</td>
+          <td>{fmtN(a.enr)}</td>
+          <td>{Math.round((a.enr / a.opcap) * 100)}%</td>
+          <td>{a.under50}</td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+{:else}
+  <p class="pending">Capacity data loads with the school list…</p>
+{/if}
+
+<h2>Closures</h2>
+<p>
+  {enrollment?.closures?.length ?? '…'} LAUSD schools in the state directory closed
+  since 2015. Closures cluster where enrollment fell hardest; each links to its
+  school page and history.
+</p>
+{#each closuresByYear as [year, list]}
+  <details>
+    <summary><b>{year}</b> — {list.length} school{list.length === 1 ? '' : 's'}</summary>
+    <ul>
+      {#each list as c}
+        <li>
+          {#if c.has_page}<a href="/school/{c.cds}">{c.name}</a>{:else}{c.name}{/if}
+          <span class="eil">{c.eil}</span>
+        </li>
+      {/each}
+    </ul>
+  </details>
+{/each}
+
+<p class="crosslink">
+  Related: <a href="/insights/lausd-enrollment-choice">Which LAUSD elementaries
+  shrank — and what predicted it</a> — enrollment change correlates with early raw
+  scores, which largely track demographics.
+</p>
+
+<style>
+  .chartwrap {
+    overflow-x: auto;
+  }
+  svg {
+    width: 100%;
+    max-width: 760px;
+    height: auto;
+    display: block;
+    background: #fcfcfb;
+    border: 1px solid #e8e1d5;
+    border-radius: 10px;
+  }
+  .tick {
+    font-size: 11px;
+    fill: #898781;
+  }
+  .caption {
+    font-size: 0.85rem;
+    color: #52514e;
+    min-height: 1.4em;
+  }
+  table {
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th,
+  td {
+    text-align: right;
+    padding: 0.3rem 0.9rem 0.3rem 0;
+    border-bottom: 1px solid #eee7da;
+  }
+  th:first-child,
+  td:first-child {
+    text-align: left;
+  }
+  .eil {
+    color: #898781;
+    font-size: 0.8rem;
+  }
+  .pending {
+    color: #6f6a61;
+    font-size: 0.88rem;
+  }
+  .crosslink {
+    margin-top: 1.5rem;
+  }
+  details ul {
+    columns: 2;
+    font-size: 0.88rem;
+  }
+  @media (max-width: 680px) {
+    details ul {
+      columns: 1;
+    }
+  }
+</style>

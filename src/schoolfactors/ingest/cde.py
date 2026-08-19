@@ -39,7 +39,7 @@ TAB_FAMILIES = [
     "dashboard",
     "growth",
 ]
-XLSX_FAMILIES = ["frpm", "cupc", "ppe", "currentexpense"]
+XLSX_FAMILIES = ["frpm", "cupc", "ppe", "currentexpense", "lcff"]
 
 
 def snake(name: str) -> str:
@@ -116,6 +116,41 @@ def read_xlsx(path: Path) -> pl.DataFrame:
     return _derive_cds(df)
 
 
+def _find_header_row(head) -> int | None:
+    for i, row in head.iterrows():
+        joined = " ".join(str(v) for v in row.tolist())
+        if any(k in joined for k in ("County Code", "CountyCode", "CDS Code", "CDSCode")):
+            return i
+    return None
+
+
+def read_lcff(path: Path) -> pl.DataFrame:
+    """Read every certification sheet of an LCFF summary file.
+
+    Each file carries the same year at several certification stages (P-1, P-2, Annual,
+    AN R1 recertifications) as separate sheets; all are kept, tagged `certification`,
+    so analysis can pick the most final stage per year (p_1 < p_2 < annual < anr1 < …).
+    """
+    import pandas as pd
+
+    xl = pd.ExcelFile(path)
+    frames = []
+    for sheet in xl.sheet_names:
+        head = xl.parse(sheet, nrows=14, header=None, dtype=str)
+        header_row = _find_header_row(head)
+        if header_row is None:  # e.g. the Data Descriptions sheet
+            continue
+        pdf = xl.parse(sheet, header=header_row, dtype=str)
+        pdf = pdf.replace({t: None for t in NULL_TOKENS})
+        df = pl.from_pandas(pdf.astype("string"))
+        df = df.rename({c: snake(c) for c in df.columns})
+        cert = snake(sheet.split()[-1])  # "ANR1" -> anr1, "P-2" -> p_2, "Annual" -> annual
+        frames.append(_derive_cds(df).with_columns(pl.lit(cert).alias("certification")))
+    if not frames:
+        raise ValueError(f"no sheet with a County Code header found in {path.name}")
+    return pl.concat(frames, how="diagonal")
+
+
 def ingest_family(family: str) -> None:
     raw_dir = RAW_DIR / family
     if not raw_dir.exists():
@@ -125,7 +160,7 @@ def ingest_family(family: str) -> None:
     for path in paths:
         try:
             if is_xlsx and path.suffix.lower() in (".xlsx", ".xls"):
-                df = read_xlsx(path)
+                df = read_lcff(path) if family == "lcff" else read_xlsx(path)
             elif not is_xlsx and path.suffix.lower() in (".txt", ".csv", ".tsv"):
                 df = read_tab(path)
             else:

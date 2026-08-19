@@ -23,5 +23,8 @@ site/static/og/
 analysis/_output/
 *.quarto_ipynb
 
+# Secrets (e.g. CENSUS_API_KEY) — see CONTRIBUTING.md
+.env
+
 # OS / editor
 .DS_Store

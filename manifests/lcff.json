@@ -1,0 +1,65 @@
+{
+  "lcffsummary1920.xlsx": {
+    "dataset": "lcff",
+    "filename": "lcffsummary1920.xlsx",
+    "url": "https://www.cde.ca.gov/fg/aa/pa/documents/lcffsummary1920.xlsx",
+    "sha256": "98f54314328019ccf827bb622fb9f2f473d37828ef5b51906f4b452968f32f76",
+    "size": 908001,
+    "downloaded_at": "2026-08-19T16:18:24+00:00",
+    "note": "LCFF summary: base/supplemental/concentration grants per LEA"
+  },
+  "lcffsummary2021.xlsx": {
+    "dataset": "lcff",
+    "filename": "lcffsummary2021.xlsx",
+    "url": "https://www.cde.ca.gov/fg/aa/pa/documents/lcffsummary2021.xlsx",
+    "sha256": "58480ce8c98d248b8053d52a5c4229464a7577d0b1b715e3a72d608843ca179f",
+    "size": 1457384,
+    "downloaded_at": "2026-08-19T16:18:20+00:00",
+    "note": "LCFF summary: base/supplemental/concentration grants per LEA"
+  },
+  "lcffsummary2122.xlsx": {
+    "dataset": "lcff",
+    "filename": "lcffsummary2122.xlsx",
+    "url": "https://www.cde.ca.gov/fg/aa/pa/documents/lcffsummary2122.xlsx",
+    "sha256": "9ffbc2c2d33fb51a53746dedede975c4becdfb8ec8384184ab69aa55bb31db01",
+    "size": 3167173,
+    "downloaded_at": "2026-08-19T16:18:15+00:00",
+    "note": "LCFF summary: base/supplemental/concentration grants per LEA"
+  },
+  "lcffsummary2223.xlsx": {
+    "dataset": "lcff",
+    "filename": "lcffsummary2223.xlsx",
+    "url": "https://www.cde.ca.gov/fg/aa/pa/documents/lcffsummary2223.xlsx",
+    "sha256": "f49c09a8571dc9b3c96a0b6c7171dc24d4010adfc84bc7ecc4c1b3c2556a574f",
+    "size": 3166464,
+    "downloaded_at": "2026-08-19T16:18:06+00:00",
+    "note": "LCFF summary: base/supplemental/concentration grants per LEA"
+  },
+  "lcffsummary2324.xlsx": {
+    "dataset": "lcff",
+    "filename": "lcffsummary2324.xlsx",
+    "url": "https://www.cde.ca.gov/fg/aa/pa/documents/lcffsummary2324.xlsx",
+    "sha256": "c07385e371d6ae81fd38c94c536fc97f5e195f660ada4ba22984add9d856fa05",
+    "size": 1442454,
+    "downloaded_at": "2026-08-19T16:18:00+00:00",
+    "note": "LCFF summary: base/supplemental/concentration grants per LEA"
+  },
+  "lcffsummary2425.xlsx": {
+    "dataset": "lcff",
+    "filename": "lcffsummary2425.xlsx",
+    "url": "https://www.cde.ca.gov/fg/aa/pa/documents/lcffsummary2425.xlsx",
+    "sha256": "1bcc314e18a4619480598d68d43ae7d40dca89ad2d27f5a5eadb628c570d63c8",
+    "size": 1447798,
+    "downloaded_at": "2026-08-19T16:17:55+00:00",
+    "note": "LCFF summary: base/supplemental/concentration grants per LEA"
+  },
+  "lcffsummary2526.xlsx": {
+    "dataset": "lcff",
+    "filename": "lcffsummary2526.xlsx",
+    "url": "https://www.cde.ca.gov/fg/aa/pa/documents/lcffsummary2526.xlsx",
+    "sha256": "f0eb9d4d8bf5931a40f665b3f74cdc7f66bdb1367400acdd05ef9ecb9efd6fb4",
+    "size": 783995,
+    "downloaded_at": "2026-08-19T16:17:49+00:00",
+    "note": "LCFF summary: base/supplemental/concentration grants per LEA"
+  }
+}
