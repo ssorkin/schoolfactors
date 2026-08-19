@@ -59,37 +59,31 @@
   <div class="card">
     <span class="big">{fmtN(d?.enrollment)}</span>
     <span class="lbl">students enrolled</span>
+    {#if census?.children}
+      <span class="sub">vs {fmtN(census.children)} resident children 6–17 (census)</span>
+    {/if}
   </div>
   <div class="card">
     <span class="big">{enrChange == null ? '—' : `${Math.round(enrChange * 100)}%`}</span>
-    <span class="lbl">enrollment change since 2015</span>
+    <span class="lbl">enrollment since 2015</span>
+    {#if childChange != null}
+      <span class="sub">
+        vs {childChange > 0 ? '+' : ''}{Math.round(childChange * 100)}% resident
+        children (ACS {census.prev_vintage}→{census.vintage})
+      </span>
+    {/if}
+  </div>
+  <div class="card">
+    <span class="big">{fmtPct(frpmLatest)}</span>
+    <span class="lbl">students FRPM-eligible</span>
+    {#if census?.p185 != null}
+      <span class="sub">vs {fmtPct(census.p185)} resident children under 185% FPL</span>
+    {/if}
   </div>
   <div class="card">
     <span class="big">{d?.ppe == null ? '—' : `$${fmtN(d.ppe)}`}</span>
     <span class="lbl">spending per student</span>
   </div>
-  <div class="card">
-    <span class="big">{fmtPct(frpmLatest)}</span>
-    <span class="lbl">students FRPM-eligible</span>
-  </div>
-  {#if census}
-    <div class="card resident">
-      <span class="big">{fmtN(census.children)}</span>
-      <span class="lbl">resident children 6–17 (census, ACS {census.vintage})</span>
-    </div>
-    {#if childChange != null}
-      <div class="card resident">
-        <span class="big">
-          {childChange > 0 ? '+' : ''}{Math.round(childChange * 100)}%
-        </span>
-        <span class="lbl">resident children since ACS {census.prev_vintage}</span>
-      </div>
-    {/if}
-    <div class="card resident">
-      <span class="big">{fmtPct(census.p185)}</span>
-      <span class="lbl">resident children under 185% of poverty (census)</span>
-    </div>
-  {/if}
 </div>
 
 <h2>The map</h2>
@@ -157,9 +151,13 @@
     display: flex;
     flex-direction: column;
   }
-  /* census-resident cards: same family, marked as the "who lives here" side */
-  .card.resident {
-    border-left: 3px solid #2a78d6;
+  /* census counterpart, stacked under each district number */
+  .sub {
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed #e8e1d5;
+    font-size: 0.8rem;
+    color: #1c5cab;
   }
   .big {
     font-size: 1.6rem;

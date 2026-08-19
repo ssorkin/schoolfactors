@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import DistrictMap from '$lib/district/DistrictMap.svelte';
+  import MapMultiples from '$lib/district/MapMultiples.svelte';
   import { getSchools } from '$lib/district/lausdData.js';
   import { entityType, TYPE_LABEL } from '$lib/maptypes.js';
   import { dataUrl } from '$lib/data.js';
@@ -21,8 +22,10 @@
   });
 
   let hasDemo = $derived(demographics != null && !demographics.census_pending);
-  let metrics = $derived(hasDemo ? ['perf', 'p185', 'his', 'wht', 'blk', 'asn'] : ['perf']);
 
+  const LEVEL_LABEL = { e: 'Elementary', m: 'Middle', h: 'High' };
+  let level = $state('e');
+  let showSchools = $state(true);
   let onlyNoBoundary = $state(false);
   let filter = $derived(onlyNoBoundary ? (s) => !s.has_boundary : null);
 
@@ -56,18 +59,39 @@
   >), resolved to state CDS codes against LAUSD's school lookup tables.
 </p>
 
-<label class="chk">
-  <input type="checkbox" bind:checked={onlyNoBoundary} />
-  Show only schools <b>without</b> an attendance area
-</label>
+<div class="controls">
+  <div class="seg" role="group" aria-label="Boundary level">
+    {#each ['e', 'm', 'h'] as lvl}
+      <button class:on={level === lvl} onclick={() => (level = lvl)}>
+        {LEVEL_LABEL[lvl]}
+      </button>
+    {/each}
+  </div>
+  <label class="chk">
+    <input type="checkbox" bind:checked={showSchools} /> Show schools
+  </label>
+  <label class="chk">
+    <input type="checkbox" bind:checked={onlyNoBoundary} />
+    Only schools <b>without</b> an attendance area
+  </label>
+</div>
 
-<DistrictMap {schools} {metrics} schoolFilter={filter} height="74vh" />
-
-{#if !hasDemo}
+{#if hasDemo}
+  <MapMultiples {schools} {level} {showSchools} schoolFilter={filter} />
+{:else}
+  <DistrictMap
+    {schools}
+    bind:level
+    bind:showSchools
+    metrics={['perf']}
+    schoolFilter={filter}
+    showControls={false}
+    height="74vh"
+  />
   <p class="pending">
     Neighborhood demographics per attendance area (resident child poverty,
     race/ethnicity from census block groups) will appear here once the census
-    acquisition runs — the shading options extend automatically.
+    acquisition runs — the demographic panels extend automatically.
   </p>
 {/if}
 
@@ -100,12 +124,41 @@
 </details>
 
 <style>
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1.1rem;
+    margin-bottom: 0.7rem;
+  }
+  .seg {
+    display: inline-flex;
+    border: 1px solid #d7cfc0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .seg button {
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 550;
+    border: none;
+    background: #fff;
+    color: #52514e;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+  }
+  .seg button + button {
+    border-left: 1px solid #d7cfc0;
+  }
+  .seg button.on {
+    background: #b0552f;
+    color: #fff;
+  }
   .chk {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     font-size: 0.9rem;
-    margin-bottom: 0.6rem;
   }
   .pending {
     color: #6f6a61;

@@ -237,11 +237,53 @@ def _district_pages() -> set[str]:
     }
 
 
-def _census_frpm() -> tuple[dict | None, pl.DataFrame | None]:
+def lcff_funding_flags(con) -> dict[str, dict]:
+    """Per-district LCFF funding status from the latest certification on file.
+
+    A district is "basic aid" (community funded) when its local property-tax
+    revenue meets or exceeds its LCFF entitlement — it keeps the excess and
+    receives no formula state aid. Everyone else is LCFF (state-aid) funded.
+    Returns {district cds: {basic_aid: bool, local_share: float}}.
+    """
+    views = {r[0] for r in con.execute("SHOW TABLES").fetchall()}
+    if "lcff_raw" not in views:
+        return {}
+    rows = con.execute(
+        """
+        WITH ranked AS (
+            SELECT cds,
+                   TRY_CAST(total_lcff_entitlement AS DOUBLE) AS total,
+                   TRY_CAST(total_local_revenue_or_in_lieu_of_property_taxes AS DOUBLE)
+                       AS local,
+                   row_number() OVER (
+                       PARTITION BY cds ORDER BY source_file DESC,
+                       CASE certification
+                           WHEN 'anr3' THEN 7 WHEN 'anr2' THEN 6 WHEN 'anr1' THEN 5
+                           WHEN 'r1' THEN 4 WHEN 'annual' THEN 3 WHEN 'an' THEN 3
+                           WHEN 'p_2' THEN 2 ELSE 1 END DESC
+                   ) AS rn
+            FROM lcff_raw
+            WHERE substr(cds, 8, 7) = '0000000'
+              AND total_lcff_entitlement IS NOT NULL
+        )
+        SELECT cds, total, local FROM ranked WHERE rn = 1
+        """
+    ).fetchall()
+    return {
+        cds: {
+            "basic_aid": local is not None and total and local >= total,
+            "local_share": _r(local / total) if local is not None and total else None,
+        }
+        for cds, total, local in rows
+    }
+
+
+def _census_frpm(flags: dict[str, dict] | None = None) -> tuple[dict | None, pl.DataFrame | None]:
     if not CENSUS_FRPM_PARQUET.exists():
         return None, None
     df = pl.read_parquet(CENSUS_FRPM_PARQUET)
     pages = _district_pages()
+    flags = flags or {}
     matched = df.filter(
         pl.col("ratio").is_not_null() & pl.col("ratio").is_finite()
     )
@@ -262,6 +304,7 @@ def _census_frpm() -> tuple[dict | None, pl.DataFrame | None]:
                 "p185": _r(r["p185"]),
                 "ratio": _r(r["ratio"]),
                 "has_page": r["cds"] in pages,
+                "basic_aid": flags.get(r["cds"], {}).get("basic_aid", False),
             }
             for r in df.sort("cds").to_dicts()
         ],
@@ -539,7 +582,8 @@ def export_lausd() -> None:
             _write(f"boundaries_{level.lower()}.geojson", fc)
 
         # Demographics: per-school resident stats + district census-vs-FRPM row.
-        census_payload, census_df = _census_frpm()
+        funding_flags = lcff_funding_flags(con)
+        census_payload, census_df = _census_frpm(funding_flags)
         district_row = None
         if census_df is not None:
             hit = census_df.filter(pl.col("cds") == LAUSD_DCDS)
@@ -595,10 +639,16 @@ def export_lausd() -> None:
         closures = _closures(con)
         for c in closures:
             c["has_page"] = c["cds"] in index_rows
+        children_by_vintage = _census_children(con) or {}
         _write(
             "enrollment.json",
             {
                 "district_enr": district.get("enr"),
+                # Resident children 6-17 inside the boundary, one point per ACS
+                # 5-year release (overlapping windows, labeled by end year).
+                "resident_children": [
+                    [int(v), d["children"]] for v, d in sorted(children_by_vintage.items())
+                ],
                 "closures": closures,
                 "capacity_years": sorted(
                     {y for rows in capacity.values() for y, _, _ in rows}
@@ -629,6 +679,7 @@ def export_lausd() -> None:
                 "ppe_years": district.get("ppe_years"),
                 "frpm_hist": district.get("frpm_hist"),
                 "lcff": _lcff(con),
+                "lcff_status": funding_flags.get(LAUSD_DCDS),
                 "seni": seni_summary,
                 "census": district_row,
             },

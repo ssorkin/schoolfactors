@@ -946,6 +946,21 @@
 
 {#if (entity.enr ?? []).some((v) => v != null) || (entity.ppe_hist ?? []).some((v) => v != null)}
   <h2>Enrollment and spending</h2>
+  {#if entity.lcff_status}
+    <p class="lcffnote">
+      {#if entity.lcff_status.basic_aid}
+        <b>Basic aid (community funded) district:</b> local property taxes exceed the
+        LCFF formula amount{entity.lcff_status.local_share
+          ? ` (${Math.round(entity.lcff_status.local_share * 100)}% of the entitlement)`
+          : ''}, so the district keeps the excess and receives no formula state aid.
+      {:else}
+        <b>LCFF (state-aid funded) district:</b> local property taxes cover
+        {entity.lcff_status.local_share
+          ? `${Math.round(entity.lcff_status.local_share * 100)}%`
+          : 'part'} of the LCFF formula amount and the state funds the rest.
+      {/if}
+    </p>
+  {/if}
   <SpendChart
     enr={entity.enr}
     enrYears={ENR_YEARS}
@@ -1023,6 +1038,10 @@
   .storylink a {
     font-weight: 600;
     margin-right: 0.4rem;
+  }
+  .lcffnote {
+    font-size: 0.9rem;
+    color: #52514e;
   }
   h1 {
     margin: 0.2rem 0 0.2rem;

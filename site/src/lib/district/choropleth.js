@@ -28,13 +28,14 @@ export function seqGradient() {
   return `linear-gradient(90deg, ${SEQ_STOPS.join(', ')})`;
 }
 
-const pctile = (v) => {
-  if (v == null) return 'no data';
+export const ordinal = (v) => {
   const n = Math.round(v);
   const suf = n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd'
     : n % 10 === 3 && n !== 13 ? 'rd' : 'th';
-  return `${n}${suf} %ile vs schools serving similar students`;
+  return `${n}${suf}`;
 };
+const pctile = (v) =>
+  v == null ? 'no data' : `${ordinal(v)} %ile vs schools serving similar students`;
 const pct = (v) => (v == null ? 'no data' : `${Math.round(v * 100)}%`);
 
 // Each metric: where the value comes from (polygon properties + the joined school
@@ -43,6 +44,7 @@ const pct = (v) => (v == null ? 'no data' : `${Math.round(v * 100)}%`);
 export const METRICS = {
   perf: {
     label: 'School performance (Similar Schools %ile)',
+    short: 'Similar Schools %ile',
     legend: 'diverging',
     gradient: pctGradient,
     ends: ['below typical', 'above typical'],
@@ -52,6 +54,7 @@ export const METRICS = {
   },
   p185: {
     label: 'Resident child poverty (under 185% of poverty)',
+    short: 'Child poverty',
     legend: 'sequential',
     gradient: seqGradient,
     ends: ['0%', '80%+'],
@@ -62,15 +65,16 @@ export const METRICS = {
     },
     fmt: pct
   },
-  his: raceMetric('his', 'Residents Hispanic or Latino (share)'),
-  wht: raceMetric('wht', 'Residents white (share)'),
-  blk: raceMetric('blk', 'Residents Black (share)'),
-  asn: raceMetric('asn', 'Residents Asian (share)')
+  his: raceMetric('his', 'Residents Hispanic or Latino (share)', 'Hispanic share'),
+  wht: raceMetric('wht', 'Residents white (share)', 'White share'),
+  blk: raceMetric('blk', 'Residents Black (share)', 'Black share'),
+  asn: raceMetric('asn', 'Residents Asian (share)', 'Asian share')
 };
 
-function raceMetric(key, label) {
+function raceMetric(key, label, short) {
   return {
     label,
+    short,
     legend: 'sequential',
     gradient: seqGradient,
     ends: ['0%', '100%'],

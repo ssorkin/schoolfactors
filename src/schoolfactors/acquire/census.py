@@ -33,10 +33,11 @@ from schoolfactors.paths import RAW_DIR
 DATASET = "census"
 ACS_BASE = "https://api.census.gov/data"
 LATEST_VINTAGE = 2023
-# Earlier 5-year vintage for change-over-time comparisons; non-overlapping with
-# LATEST_VINTAGE's 2019-2023 window. District tables only (block groups changed
-# definition at the 2020 census, so BG tables stay single-vintage).
-PREV_VINTAGE = 2018
+# District tables are acquired for every 5-year release back to 2015 so the
+# site can draw resident-population series (windows overlap; series are labeled
+# by end year). Block groups changed definition at the 2020 census, so BG
+# tables stay single-vintage.
+DISTRICT_VINTAGES = tuple(range(2015, LATEST_VINTAGE + 1))
 
 # Registry of ACS 5-year tables to acquire. geo "district" fetches all three
 # school-district summary levels for the state; geo "blockgroup" fetches every block
@@ -145,7 +146,7 @@ def acquire(vintage: int = LATEST_VINTAGE) -> None:
             note=f"ACS5 {vintage} variable metadata for {table}",
         )
         if spec["geo"] == "district":
-            for v in {vintage, PREV_VINTAGE}:
+            for v in sorted({vintage, *DISTRICT_VINTAGES}):
                 vbase = f"{ACS_BASE}/{v}/acs/acs5"
                 if v != vintage:
                     _fetch_json(

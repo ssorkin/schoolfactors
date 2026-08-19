@@ -3,7 +3,7 @@
   import 'leaflet/dist/leaflet.css';
   import { NO_PCT_COLOR, entityType, pctColor } from '$lib/maptypes.js';
   import { levelShape, shapeMarker } from '$lib/mapshapes.js';
-  import { METRICS, NO_DATA } from './choropleth.js';
+  import { METRICS, NO_DATA, ordinal } from './choropleth.js';
   import { getBoundaries } from './lausdData.js';
   import MapLegend from './MapLegend.svelte';
 
@@ -24,6 +24,8 @@
     showSchools = $bindable(true),
     schoolFilter = null,
     showControls = true,
+    showLegend = true,
+    onmapready = null, // callback(map): lets a parent sync several instances
     height = '68vh'
   } = $props();
 
@@ -65,8 +67,25 @@
     };
   }
 
-  function polygonPopup(props) {
+  // Compact metric line: "Similar Schools %ile: 24th" / "Child poverty: 32%".
+  function metricLine(props, school) {
     const m = METRICS[metric];
+    const v = m.value(props, school);
+    if (metric === 'perf') {
+      return `${esc(m.short)}: <b>${v == null ? 'no data' : ordinal(v)}</b>`;
+    }
+    return `${esc(m.short)}: <b>${m.fmt(v)}</b>`;
+  }
+
+  function statRows(rows) {
+    const body = rows
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => `<tr><td>${k}</td><td class="num">${v}</td></tr>`)
+      .join('');
+    return body ? `<table class="stats">${body}</table>` : '';
+  }
+
+  function polygonPopup(props) {
     const school = props.cds ? schoolByCds.get(props.cds) : null;
     const lines = [];
     if (props.name) {
@@ -78,17 +97,17 @@
           .join(', ');
         lines.push(`Also serves: ${others}`);
       }
-      lines.push(`${esc(m.label)}: ${m.fmt(m.value(props, school))}`);
-      if (school?.enrollment != null) {
-        lines.push(`${school.enrollment.toLocaleString()} students enrolled`);
-      }
-      if (props.students != null && props.ages) {
-        lines.push(
-          `~${Number(props.students).toLocaleString()} resident children ` +
-            `ages ${props.ages[0]}–${props.ages[1]} (census)`
-        );
-      }
-      if (props.pop != null) lines.push(`${Number(props.pop).toLocaleString()} residents all ages (2020)`);
+      lines.push(metricLine(props, school));
+      lines.push(
+        statRows([
+          ['Enrolled', school?.enrollment?.toLocaleString()],
+          [
+            props.ages ? `Residents ${props.ages[0]}–${props.ages[1]}` : null,
+            props.students != null ? `~${Number(props.students).toLocaleString()}` : null
+          ],
+          ['All residents', props.pop != null ? Number(props.pop).toLocaleString() : null]
+        ])
+      );
       lines.push(`<a href="/school/${props.cds}">School page →</a>`);
     } else {
       lines.push('<b>Unassigned area</b> — no school resolves to this zone');
@@ -103,10 +122,12 @@
     if (type !== 'regular') badges.push(type);
     if (!s.has_boundary) badges.push('no attendance area');
     lines.push(badges.join(' · '));
-    if (s.adj_pct != null) lines.push(METRICS.perf.fmt(s.adj_pct));
-    if (s.enrollment != null) lines.push(`${s.enrollment.toLocaleString()} students`);
+    if (s.adj_pct != null) {
+      lines.push(`${METRICS.perf.short}: <b>${ordinal(s.adj_pct)}</b>`);
+    }
+    lines.push(statRows([['Enrolled', s.enrollment?.toLocaleString()]]));
     lines.push(`<a href="/school/${s.cds}">School page →</a>`);
-    return lines.join('<br>');
+    return lines.filter(Boolean).join('<br>');
   }
 
   // One L.geoJSON per level, created exactly once even under concurrent calls
@@ -226,6 +247,7 @@
     fit();
     ready = true; // the ready-gated $effect below performs the initial showLevel
     drawMarkers();
+    onmapready?.(map);
     return () => map.remove();
   });
 
@@ -283,7 +305,9 @@
   </button>
 </div>
 
-<MapLegend {metric} {showSchools} {level} />
+{#if showLegend}
+  <MapLegend {metric} {showSchools} {level} />
+{/if}
 
 <style>
   .controls {
@@ -366,5 +390,20 @@
   }
   .map :global(.leaflet-popup-content a) {
     color: #1c5cab;
+  }
+  .map :global(.leaflet-popup-content table.stats) {
+    border-collapse: collapse;
+    margin: 0.15rem 0;
+  }
+  .map :global(.leaflet-popup-content .stats td) {
+    padding: 0 0 0.05rem;
+    color: #52514e;
+  }
+  .map :global(.leaflet-popup-content .stats td.num) {
+    text-align: right;
+    padding-left: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    color: #211d18;
+    font-weight: 600;
   }
 </style>

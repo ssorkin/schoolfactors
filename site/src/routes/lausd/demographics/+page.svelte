@@ -75,8 +75,8 @@
 
 <p>
   For the neighborhood-by-neighborhood view — resident poverty and race/ethnicity
-  shaded over each attendance area — use the
-  <a href="/lausd/map">map's</a> "color areas by" options.
+  shaded over each attendance area — see the
+  <a href="/lausd/map">map page's</a> side-by-side panels.
 </p>
 
 <style>

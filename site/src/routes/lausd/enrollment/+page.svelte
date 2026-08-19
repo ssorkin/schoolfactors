@@ -17,15 +17,20 @@
     }
   });
 
-  // District enrollment line.
+  // District enrollment vs resident children 6-17, shared axis (both are
+  // counts of children). Colors match DemoBars: enrolled orange, residents blue.
   const W = 680;
-  const H = 220;
-  const M = { top: 14, right: 16, bottom: 28, left: 60 };
+  const H = 240;
+  const M = { top: 14, right: 16, bottom: 40, left: 60 };
   let pts = $derived(
     (d?.enr ?? []).map((v, i) => ({ year: ENR_YEARS[i], v })).filter((p) => p.v != null)
   );
-  let lo = $derived(Math.min(...pts.map((p) => p.v)) * 0.94);
-  let hi = $derived(Math.max(...pts.map((p) => p.v)) * 1.03);
+  let rpts = $derived(
+    (enrollment?.resident_children ?? []).map(([year, v]) => ({ year, v }))
+  );
+  let allVals = $derived([...pts, ...rpts].map((p) => p.v));
+  let lo = $derived(Math.min(...allVals) * 0.94);
+  let hi = $derived(Math.max(...allVals) * 1.03);
   const X = $derived((y) => M.left + ((y - 2015) / 11) * (W - M.left - M.right));
   const Y = $derived((v) => M.top + (1 - (v - lo) / (hi - lo)) * (H - M.top - M.bottom));
   let hover = $state(null);
@@ -77,8 +82,11 @@
 <p>
   LAUSD has lost roughly a quarter of its students since 2015 — falling birth rates,
   families leaving Los Angeles, and enrollment moving to charters all pull the same
-  direction. The decline is the backdrop for every other story here: funding per
-  student, small schools, and closures.
+  direction. The census line shows the area's resident children fell far less than
+  enrollment did over the same years: most of the gap is families opting out of
+  district schools, not disappearing from the neighborhoods. The decline is the
+  backdrop for every other story here: funding per student, small schools, and
+  closures.
 </p>
 
 {#if pts.length > 1}
@@ -96,27 +104,52 @@
       <polyline
         points={pts.map((p) => `${X(p.year)},${Y(p.v)}`).join(' ')}
         fill="none"
-        stroke="#2a78d6"
+        stroke="#eb6834"
         stroke-width="2"
       />
+      {#if rpts.length > 1}
+        <polyline
+          points={rpts.map((p) => `${X(p.year)},${Y(p.v)}`).join(' ')}
+          fill="none"
+          stroke="#2a78d6"
+          stroke-width="2"
+          stroke-dasharray="5 4"
+        />
+      {/if}
       {#each pts as p}
         <circle
           cx={X(p.year)}
           cy={Y(p.v)}
-          r={hover?.year === p.year ? 5 : 3}
-          fill="#2a78d6"
-          onmouseenter={() => (hover = p)}
+          r={hover?.year === p.year && hover?.kind === 'enr' ? 5 : 3}
+          fill="#eb6834"
+          onmouseenter={() => (hover = { ...p, kind: 'enr' })}
         />
         <text x={X(p.year)} y={H - 8} text-anchor="middle" class="tick">
           {String(p.year).slice(2)}
         </text>
       {/each}
+      {#each rpts as p}
+        <circle
+          cx={X(p.year)}
+          cy={Y(p.v)}
+          r={hover?.year === p.year && hover?.kind === 'res' ? 5 : 3}
+          fill="#2a78d6"
+          onmouseenter={() => (hover = { ...p, kind: 'res' })}
+        />
+      {/each}
     </svg>
     <p class="caption">
       {#if hover}
-        <b>{hover.year - 1}–{String(hover.year).slice(2)}</b>: {fmtN(hover.v)} students
+        {#if hover.kind === 'res'}
+          <b>ACS {hover.year}</b> (5-yr window): {fmtN(hover.v)} resident children 6–17
+        {:else}
+          <b>{hover.year - 1}–{String(hover.year).slice(2)}</b>: {fmtN(hover.v)} students enrolled
+        {/if}
       {:else}
-        Census-day enrollment by school year (spring label).
+        <span class="k"><span class="sw" style="background:#eb6834"></span>Students
+          enrolled (census-day count)</span>
+        <span class="k"><span class="sw" style="background:#2a78d6"></span>Resident
+          children 6–17 (ACS 5-yr, labeled by window end)</span>
       {/if}
     </p>
   </div>
@@ -220,6 +253,18 @@
     font-size: 0.85rem;
     color: #52514e;
     min-height: 1.4em;
+  }
+  .k {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-right: 0.9rem;
+  }
+  .sw {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    display: inline-block;
   }
   table {
     border-collapse: collapse;

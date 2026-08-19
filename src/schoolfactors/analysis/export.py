@@ -900,10 +900,20 @@ def run_export() -> None:
             by_district.setdefault(e["district_cds"], []).append(child_entry(e))
         elif e["kind"] == "district":
             by_county.setdefault(e["county_cds"], []).append(child_entry(e))
+    # LCFF vs basic-aid funding status per district (from the LCFF summary
+    # files' latest certification) — displayed alongside spending.
+    from schoolfactors.analysis.lausd_export import lcff_funding_flags
+
+    con_lcff = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    funding_flags = lcff_funding_flags(con_lcff)
+    con_lcff.close()
+
     for dcds in district_pages:
         path = SITE_DATA / "districts" / f"{dcds}.json"
         d = json.loads(path.read_text())
         d["schools"] = sorted(by_district.get(dcds, []), key=lambda s: s["name"] or "")
+        if dcds in funding_flags:
+            d["lcff_status"] = funding_flags[dcds]
         path.write_text(json.dumps(d))
     for ccds in county_pages:
         path = SITE_DATA / "counties" / f"{ccds}.json"

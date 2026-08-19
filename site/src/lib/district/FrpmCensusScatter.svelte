@@ -79,7 +79,9 @@
       <b>{hover.name}</b>: {Math.round(hover.frpm * 100)}% FRPM vs
       {Math.round(hover.p185 * 100)}% census poverty
       ({hover.ratio == null ? '—' : `${hover.ratio.toFixed(2)}× the census rate`}) ·
-      {hover.enr_5_17.toLocaleString()} students 5–17
+      {hover.enr_5_17.toLocaleString()} students 5–17{hover.basic_aid
+        ? ' · basic aid district'
+        : ''}
     {:else}
       {rows.length.toLocaleString()} districts · dot area tracks enrollment · click a
       dot for its district page

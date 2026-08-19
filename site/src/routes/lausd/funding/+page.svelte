@@ -64,7 +64,13 @@
     California's Local Control Funding Formula sends every district a base grant per
     student, then adds a <b>supplemental</b> grant for each low-income, English
     learner, or foster student, and a <b>concentration</b> grant where those
-    students exceed 55% of enrollment. LAUSD's unduplicated share is
+    students exceed 55% of enrollment. LAUSD is an <b>LCFF (state-aid funded)</b>
+    district — its local property taxes cover
+    {funding?.lcff_status?.local_share
+      ? `${Math.round(funding.lcff_status.local_share * 100)}%`
+      : 'about a quarter'} of the formula amount and the state funds the rest —
+    unlike the ~150 "basic aid" districts whose local taxes exceed the formula and
+    who keep the excess. LAUSD's unduplicated share is
     {lcffLatest?.upp == null ? '—' : `${Math.round(lcffLatest.upp * 100)}%`}, so the
     equity add-ons are large:
     {fmtB(lcffLatest?.supplemental)} supplemental +
