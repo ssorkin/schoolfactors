@@ -33,6 +33,10 @@ from schoolfactors.paths import RAW_DIR
 DATASET = "census"
 ACS_BASE = "https://api.census.gov/data"
 LATEST_VINTAGE = 2023
+# Earlier 5-year vintage for change-over-time comparisons; non-overlapping with
+# LATEST_VINTAGE's 2019-2023 window. District tables only (block groups changed
+# definition at the 2020 census, so BG tables stay single-vintage).
+PREV_VINTAGE = 2018
 
 # Registry of ACS 5-year tables to acquire. geo "district" fetches all three
 # school-district summary levels for the state; geo "blockgroup" fetches every block
@@ -138,14 +142,22 @@ def acquire(vintage: int = LATEST_VINTAGE) -> None:
             note=f"ACS5 {vintage} variable metadata for {table}",
         )
         if spec["geo"] == "district":
-            for level, geo_name in SD_LEVELS.items():
-                _fetch_json(
-                    f"acs5_{vintage}_{t}_sd_{level}.json",
-                    f"{base}?get=NAME,group({table})"
-                    f"&for={_quote(geo_name)}:*&in=state:{STATE_FIPS}",
-                    note=f"ACS5 {vintage} {table}, {geo_name}, state {STATE_FIPS}",
-                    key=key,
-                )
+            for v in {vintage, PREV_VINTAGE}:
+                vbase = f"{ACS_BASE}/{v}/acs/acs5"
+                if v != vintage:
+                    _fetch_json(
+                        f"acs5_{v}_groups_{t}.json",
+                        f"{vbase}/groups/{table}.json",
+                        note=f"ACS5 {v} variable metadata for {table}",
+                    )
+                for level, geo_name in SD_LEVELS.items():
+                    _fetch_json(
+                        f"acs5_{v}_{t}_sd_{level}.json",
+                        f"{vbase}?get=NAME,group({table})"
+                        f"&for={_quote(geo_name)}:*&in=state:{STATE_FIPS}",
+                        note=f"ACS5 {v} {table}, {geo_name}, state {STATE_FIPS}",
+                        key=key,
+                    )
         elif spec["geo"] == "blockgroup":
             for county in spec["counties"]:
                 _fetch_json(

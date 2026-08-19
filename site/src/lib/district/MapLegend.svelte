@@ -1,9 +1,11 @@
 <script>
   import { METRICS, NO_DATA } from './choropleth.js';
   import { TYPE_COLOR, TYPE_LABEL } from '$lib/maptypes.js';
+  import { SHAPE_GLYPH, levelShape } from '$lib/mapshapes.js';
 
-  let { metric = 'perf', showSchools = true } = $props();
+  let { metric = 'perf', showSchools = true, level = 'e' } = $props();
   let m = $derived(METRICS[metric]);
+  const LEVEL_WORD = { e: 'elementary', m: 'middle', h: 'high' };
 </script>
 
 <div class="legend">
@@ -23,6 +25,9 @@
           <span class="dot" style="background: {TYPE_COLOR[t]}"></span>{TYPE_LABEL[t].split(' (')[0]}
         </span>
       {/each}
+      <span class="shapes">
+        {SHAPE_GLYPH[levelShape(level)]} {LEVEL_WORD[level]} schools · ◆ K-12 / other
+      </span>
     </div>
   {/if}
 </div>
@@ -84,5 +89,9 @@
     display: inline-block;
     border: 1px solid #fff;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+  .shapes {
+    color: #898781;
+    white-space: nowrap;
   }
 </style>

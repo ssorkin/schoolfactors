@@ -18,6 +18,7 @@
     pctColor,
     pctGradient
   } from '$lib/maptypes.js';
+  import { SHAPE_GLYPH, SHAPE_LEVEL_LABEL, levelShape } from '$lib/mapshapes.js';
 
   let items = $state(null);
   let query = $state('');
@@ -386,6 +387,7 @@
         cds: it.cds,
         kind: it.kind,
         type,
+        shape: levelShape(it.level, it.kind),
         color: colorByPct ? pctColor(it.adj_pct) : null,
         popup: popupHtml(it)
       });
@@ -534,6 +536,11 @@
             <span class="ltext">{TYPE_LABEL[t]}</span>
           </button>
         {/each}
+        <span class="shapekey" title="Marker shape encodes school level">
+          {#each Object.entries(SHAPE_LEVEL_LABEL) as [shape, label]}
+            <span class="shapeitem">{SHAPE_GLYPH[shape]} {label}</span>
+          {/each}
+        </span>
       </div>
     {/if}
     {#if colorByPct}
@@ -746,6 +753,16 @@
     margin-bottom: 0.5rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #f0ead9;
+  }
+  .shapekey {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    color: #898781;
+  }
+  .shapeitem {
+    margin-right: 0.55rem;
+    white-space: nowrap;
   }
   .colorby {
     display: flex;

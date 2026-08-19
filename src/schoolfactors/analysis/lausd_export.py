@@ -183,6 +183,51 @@ def _lcff(con) -> dict:
     return hist
 
 
+LAUSD_GEOID = "0622710"  # NCES LEAID / ACS school-district GEOID digits
+
+
+def _census_children(con) -> dict[str, dict] | None:
+    """Resident children 6-17 and their <185%-poverty share inside LAUSD's
+    boundary, per ACS vintage (B17024 at the unified-district geography)."""
+    views = {r[0] for r in con.execute("SHOW TABLES").fetchall()}
+    if "census_acs_raw" not in views:
+        return None
+    from schoolfactors.analysis.census_poverty import _labels, p185_variables
+
+    vintages = [
+        r[0]
+        for r in con.execute(
+            "SELECT DISTINCT vintage FROM census_acs_raw "
+            "WHERE table_id = 'B17024' AND geo_type LIKE 'sd_%' ORDER BY 1"
+        ).fetchall()
+    ]
+    out: dict[str, dict] = {}
+    for v in vintages:
+        num, den = p185_variables(_labels(con, v))
+        if not num or not den:
+            continue
+        p185_count, children = con.execute(
+            """
+            SELECT sum(CASE WHEN list_contains(?::VARCHAR[], variable) THEN val END),
+                   sum(CASE WHEN list_contains(?::VARCHAR[], variable) THEN val END)
+            FROM (
+                SELECT variable, TRY_CAST(value AS DOUBLE) AS val
+                FROM census_acs_raw
+                WHERE table_id = 'B17024' AND vintage = ? AND geoid = ?
+                  AND geo_type LIKE 'sd_%'
+            )
+            WHERE val IS NULL OR val >= 0
+            """,
+            [num, den, v, LAUSD_GEOID],
+        ).fetchone()
+        if children:
+            out[v] = {
+                "children": int(children),
+                "p185": _r(p185_count / children),
+            }
+    return out or None
+
+
 def _district_pages() -> set[str]:
     index_path = SITE_DATA / "index.json"
     if not index_path.exists():
@@ -564,6 +609,29 @@ def export_lausd() -> None:
                 "lcff": _lcff(con),
                 "seni": seni_summary,
                 "census": district_row,
+            },
+        )
+
+        # Compact stats for the overview lander's cards (SSR-inlined, so small):
+        # resident school-age children per ACS vintage and their poverty share.
+        children = _census_children(con) or {}
+        vints = sorted(children)
+        latest_v = vints[-1] if vints else None
+        prev_v = vints[0] if len(vints) > 1 else None
+        _write(
+            "overview.json",
+            {
+                "census": {
+                    "vintage": latest_v,
+                    "children": children.get(latest_v, {}).get("children"),
+                    "p185": children.get(latest_v, {}).get("p185"),
+                    "prev_vintage": prev_v,
+                    "children_prev": children.get(prev_v, {}).get("children")
+                    if prev_v
+                    else None,
+                }
+                if latest_v
+                else None,
             },
         )
 

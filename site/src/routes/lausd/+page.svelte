@@ -5,6 +5,12 @@
 
   let { data } = $props();
   let d = $derived(data.district);
+  let census = $derived(data.overview?.census ?? null);
+  let childChange = $derived(
+    census?.children && census?.children_prev
+      ? census.children / census.children_prev - 1
+      : null
+  );
 
   let schools = $state([]);
   let loadError = $state(false);
@@ -66,6 +72,24 @@
     <span class="big">{fmtPct(frpmLatest)}</span>
     <span class="lbl">students FRPM-eligible</span>
   </div>
+  {#if census}
+    <div class="card resident">
+      <span class="big">{fmtN(census.children)}</span>
+      <span class="lbl">resident children 6–17 (census, ACS {census.vintage})</span>
+    </div>
+    {#if childChange != null}
+      <div class="card resident">
+        <span class="big">
+          {childChange > 0 ? '+' : ''}{Math.round(childChange * 100)}%
+        </span>
+        <span class="lbl">resident children since ACS {census.prev_vintage}</span>
+      </div>
+    {/if}
+    <div class="card resident">
+      <span class="big">{fmtPct(census.p185)}</span>
+      <span class="lbl">resident children under 185% of poverty (census)</span>
+    </div>
+  {/if}
 </div>
 
 <h2>The map</h2>
@@ -132,6 +156,10 @@
     padding: 0.8rem 1rem;
     display: flex;
     flex-direction: column;
+  }
+  /* census-resident cards: same family, marked as the "who lives here" side */
+  .card.resident {
+    border-left: 3px solid #2a78d6;
   }
   .big {
     font-size: 1.6rem;

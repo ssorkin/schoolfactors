@@ -2,10 +2,12 @@
   import { onMount } from 'svelte';
   import 'leaflet/dist/leaflet.css';
   import { TYPE_COLOR } from '$lib/maptypes.js';
+  import { shapeMarker } from '$lib/mapshapes.js';
 
   /**
    * Leaflet dot map. `points`: [{ll: [lat, lon], cds, kind, name, type, popup,
-   * color?}] — `color` (when set) overrides the school-type fill.
+   * color?, shape?}] — `color` (when set) overrides the school-type fill;
+   * `shape` (circle/square/triangle/diamond) encodes school level.
    * Canvas renderer; redraws are throttled (leading edge) so the map tracks
    * facet sliders live while they're dragged. Marker radius scales with zoom.
    * Auto-fits to the shown points until the user pans/zooms by hand; the Fit
@@ -51,13 +53,18 @@
     if (!layer) return;
     layer.clearLayers();
     for (const p of cur) {
-      const m = L.circleMarker(p.ll, {
-        radius: radius(p.kind),
-        color: '#ffffff',
-        weight: 0.7,
-        fillColor: p.color ?? TYPE_COLOR[p.type] ?? TYPE_COLOR.regular,
-        fillOpacity: 0.85
-      });
+      const m = shapeMarker(
+        L,
+        p.ll,
+        {
+          radius: radius(p.kind),
+          color: '#ffffff',
+          weight: 0.7,
+          fillColor: p.color ?? TYPE_COLOR[p.type] ?? TYPE_COLOR.regular,
+          fillOpacity: 0.85
+        },
+        p.shape
+      );
       m.bindPopup(p.popup, { maxWidth: 300 });
       layer.addLayer(m);
     }

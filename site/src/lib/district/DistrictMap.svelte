@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import 'leaflet/dist/leaflet.css';
   import { TYPE_COLOR, entityType } from '$lib/maptypes.js';
+  import { levelShape, shapeMarker } from '$lib/mapshapes.js';
   import { METRICS, NO_DATA } from './choropleth.js';
   import { getBoundaries } from './lausdData.js';
   import MapLegend from './MapLegend.svelte';
@@ -37,9 +38,15 @@
   let fitting = false;
 
   let schoolByCds = $derived(new Map(schools.map((s) => [s.cds, s])));
-  let shownSchools = $derived(
-    showSchools ? (schoolFilter ? schools.filter(schoolFilter) : schools) : []
-  );
+  // Markers follow the boundary toggle: the Elementary view shows elementary
+  // schools, High shows high schools, etc. Schools spanning levels (K-12
+  // combos, "other") show in every view, drawn as diamonds.
+  let shownSchools = $derived.by(() => {
+    if (!showSchools) return [];
+    let out = schools.filter((s) => s.level === level || s.level === 'other');
+    if (schoolFilter) out = out.filter(schoolFilter);
+    return out;
+  });
 
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
@@ -132,13 +139,18 @@
     markerLayer.clearLayers();
     for (const s of shownSchools) {
       if (!s.ll) continue;
-      const m = L.circleMarker(s.ll, {
-        radius: markerRadius(),
-        color: '#ffffff',
-        weight: 0.7,
-        fillColor: TYPE_COLOR[entityType({ kind: 'school', flags: s.flags })],
-        fillOpacity: 0.85
-      });
+      const m = shapeMarker(
+        L,
+        s.ll,
+        {
+          radius: markerRadius(),
+          color: '#ffffff',
+          weight: 0.7,
+          fillColor: TYPE_COLOR[entityType({ kind: 'school', flags: s.flags })],
+          fillOpacity: 0.85
+        },
+        levelShape(s.level)
+      );
       m.bindPopup(markerPopup(s), { maxWidth: 300 });
       markerLayer.addLayer(m);
     }
@@ -231,7 +243,7 @@
   </button>
 </div>
 
-<MapLegend {metric} {showSchools} />
+<MapLegend {metric} {showSchools} {level} />
 
 <style>
   .controls {
