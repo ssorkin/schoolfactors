@@ -71,7 +71,7 @@
   function chg(rows, key) {
     const vals = rows.map(([, d]) => d[key]).filter((v) => v != null);
     if (vals.length < 2) return null;
-    return Math.round((vals[vals.length - 1] / vals[0] - 1) * 100);
+    return { from: vals[0], to: vals[vals.length - 1] };
   }
   let deltas = $derived({
     children: chg(residence, 'total'),
@@ -82,7 +82,24 @@
     aff: chg(byClass, 'affiliated'),
     ind: chg(byClass, 'independent')
   });
-  const sgn = (v) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`);
+  const fmtKk = (v) => `${Math.round(v / 1000)}k`;
+  // Absolute levels beside the percentage: a small category can grow a lot
+  // and sound enormous without them.
+  const sgn = (d) => {
+    if (d == null) return '—';
+    const p = Math.round((d.to / d.from - 1) * 100);
+    return `${fmtKk(d.from)} → ${fmtKk(d.to)} (${p > 0 ? '+' : ''}${p}%)`;
+  };
+
+  let gap = $derived(enrollment?.public_gap ?? []);
+  let notAges = $derived.by(() => {
+    const rows = residence.filter(([, d]) => d.by_age);
+    if (rows.length < 2) return null;
+    const first = rows[0][1].by_age.not_enrolled;
+    const last = rows[rows.length - 1][1].by_age.not_enrolled;
+    return { first, last, y0: rows[0][0], y1: rows[rows.length - 1][0] };
+  });
+  const fmtK1 = (v) => `${(v / 1000).toFixed(1)}k`;
 
   let closures = $derived(
     [...(enrollment?.closures ?? [])].sort(
@@ -232,6 +249,17 @@
     <li>Affiliated charter enrollment: <b>{sgn(deltas.aff)}</b></li>
     <li>Independent charter enrollment: <b>{sgn(deltas.ind)}</b></li>
   </ul>
+  {#if notAges}
+    <p>
+      The rise in "not enrolled" is a <b>young-child phenomenon, not a dropout
+      story</b>: ages 5–9 went {fmtK1(notAges.first['5_9'])} → {fmtK1(notAges.last['5_9'])}
+      and 10–14 went {fmtK1(notAges.first['10_14'])} → {fmtK1(notAges.last['10_14'])},
+      while 16–17-adjacent ages 15–17 were flat
+      ({fmtK1(notAges.first['15_17'])} → {fmtK1(notAges.last['15_17'])},
+      ACS {notAges.y0}→{notAges.y1}) — a pattern more consistent with delayed
+      kindergarten entry and homeschooling than with teens leaving school.
+    </p>
+  {/if}
   <p class="method">
     Reading it: the resident child population shrank modestly and private-school
     share held roughly flat, while traditional LAUSD schools shrank far faster than
@@ -239,6 +267,44 @@
     different windows (ACS vintages vs school years) and different universes, so
     ratios between them are <em>apparent</em>, not student-level origin/destination
     measures. "Not enrolled" includes homeschooling and census reporting error.
+  </p>
+
+  {#if gap.length}
+    <h3>The unaccounted-for public-school children</h3>
+    <p>
+      Subtracting LAUSD-associated enrollment (traditional + both charter sectors)
+      from the census count of resident children attending <em>public school</em>
+      leaves a residual: public-school enrollment not accounted for by
+      LAUSD-associated schools. It has grown from
+      ~{fmtKk(gap[0][3])} to ~{fmtKk(gap[gap.length - 1][3])} —
+      candidates include inter-district enrollment, non-LAUSD charters inside the
+      boundary, and universe mismatches (the census counts children 5–17 by
+      residence; CDE counts K–12 enrollment wherever students live). This residual
+      is the next number to explain — not a measured flow.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Year</th><th>Resident children in public school</th>
+          <th>LAUSD-associated enrollment</th><th>Residual</th></tr>
+      </thead>
+      <tbody>
+        {#each gap as [y, pub, lausd, resid]}
+          <tr>
+            <td>{y}</td><td>{pub.toLocaleString()}</td>
+            <td>{lausd.toLocaleString()}</td><td>{resid.toLocaleString()}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  {/if}
+
+  <p>
+    Neighborhood by neighborhood, the same subtraction becomes <b>enrollment
+    divergence</b> — how much faster each zoned school shrank than its own
+    attendance area's children (2010→2020 census blocks vs 2010-11→2020-21
+    enrollment). See the divergence panel on the
+    <a href="/lausd/map">map page</a> to separate demographic shrinkage from
+    enrollment flight.
   </p>
 {:else}
   <p class="pending">The decomposition appears once the census B14003 series is exported.</p>

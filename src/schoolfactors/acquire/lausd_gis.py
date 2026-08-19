@@ -70,6 +70,20 @@ LAYERS: list[tuple[str, str, str, dict]] = [
             "returnGeometry": "false",
         },
     ),
+    # 2010 census blocks (TIGERweb): internal points let 2010 P.L. counts be
+    # assigned to attendance polygons, giving resident-child CHANGE 2010->2020.
+    (
+        "la_blocks_2010",
+        "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/"
+        "tigerWMS_Census2010/MapServer/18",
+        "json",
+        {
+            "where": "STATE='06' AND COUNTY='037'",
+            "outFields": "GEOID,INTPTLAT,INTPTLON,POP100",
+            "returnGeometry": "false",
+            "page_size": 50000,
+        },
+    ),
 ]
 
 
@@ -89,8 +103,14 @@ def fetch_layer(
     extra: dict | None = None,
     page_size: int = 2000,
 ) -> Path | None:
-    """Page a full layer through /query and write one merged file + manifest entry."""
-    layer_url = f"{ORG}/{layer_path}"
+    """Page a full layer through /query and write one merged file + manifest entry.
+
+    `layer_path` is relative to the LAUSD org, or an absolute ArcGIS layer URL
+    (e.g. TIGERweb). `extra` may override `page_size`.
+    """
+    extra = dict(extra or {})
+    page_size = int(extra.pop("page_size", page_size))
+    layer_url = layer_path if layer_path.startswith("http") else f"{ORG}/{layer_path}"
     dest_dir = RAW_DIR / DATASET
     dest_dir.mkdir(parents=True, exist_ok=True)
     suffix = "geojson" if fmt == "geojson" else "json"

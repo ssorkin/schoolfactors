@@ -191,10 +191,11 @@ def ingest_capacity() -> None:
 
 def ingest_blocks() -> None:
     path = RAW / "la_blocks_2020.json"
-    if not path.exists():
-        return
-    df = _snake(_esri_attributes(path))
-    _write("la_blocks", path.name, df)
+    if path.exists():
+        _write("la_blocks", path.name, _snake(_esri_attributes(path)))
+    path10 = RAW / "la_blocks_2010.json"
+    if path10.exists():
+        _write("la_blocks10", path10.name, _snake(_esri_attributes(path10)))
 
 
 def ingest_all() -> None:

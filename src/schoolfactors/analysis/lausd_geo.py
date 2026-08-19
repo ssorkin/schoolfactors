@@ -304,6 +304,75 @@ def polygon_demographics(
             con.close()
 
 
+def child_change_by_area(con: duckdb.DuckDBPyConnection | None = None) -> pl.DataFrame:
+    """Resident under-18 population per MP25 polygon, 2010 and 2020 decennials.
+
+    Exact P.L. 94-171 block counts (no sampling error): under-18 = total − 18+.
+    2020 blocks reuse the stored crosswalk; 2010 blocks (different geography) are
+    assigned by their own internal points. Returns [p_key, kids10, kids20].
+    """
+    import numpy as np
+    from shapely import STRtree, points
+
+    own = con is None
+    if own:
+        con = _con()
+    try:
+        if not XWALK_PARQUET.exists():
+            build_block_crosswalk(con)
+        xw20 = pl.read_parquet(XWALK_PARQUET)
+        kids = con.execute(
+            """
+            SELECT year, geoid,
+                   TRY_CAST(pop AS BIGINT) - TRY_CAST(pop18 AS BIGINT) AS kids
+            FROM dec_pl_raw
+            """
+        ).pl()
+        k20 = (
+            xw20.join(kids.filter(pl.col("year") == "2020"), left_on="geoid20",
+                      right_on="geoid")
+            .group_by("p_key")
+            .agg(pl.col("kids").sum().alias("kids20"))
+        )
+
+        b10 = con.execute(
+            """
+            SELECT geoid,
+                   TRY_CAST(replace(intptlat, '+', '') AS DOUBLE) AS lat,
+                   TRY_CAST(replace(intptlon, '+', '') AS DOUBLE) AS lon
+            FROM la_blocks10_raw
+            WHERE geoid IS NOT NULL AND intptlat IS NOT NULL
+            """
+        ).pl()
+        p_keys, geoms = load_mp25_geometries()
+        pts = points(np.column_stack([b10["lon"].to_numpy(), b10["lat"].to_numpy()]))
+        tree = STRtree(pts)
+        poly_idx, pt_idx = tree.query(np.asarray(geoms, dtype=object), predicate="contains")
+        xw10 = pl.DataFrame(
+            {
+                "geoid": b10["geoid"].gather(pt_idx),
+                "p_key": pl.Series([p_keys[i] for i in poly_idx]),
+            }
+        ).unique(subset=["geoid"], keep="first", maintain_order=True)
+        k10 = (
+            xw10.join(kids.filter(pl.col("year") == "2010"), on="geoid")
+            .group_by("p_key")
+            .agg(pl.col("kids").sum().alias("kids10"))
+        )
+        out = k10.join(k20, on="p_key", how="full", coalesce=True)
+        path = PARQUET_DIR / "analysis" / "lausd_child_change.parquet"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        out.write_parquet(path)
+        print(
+            f"  child change: {len(out):,} polygons, "
+            f"{int(out['kids10'].sum()):,} kids (2010) -> {int(out['kids20'].sum()):,} (2020)"
+        )
+        return out
+    finally:
+        if own:
+            con.close()
+
+
 def dissolve_by_level(
     resolved: pl.DataFrame, level: str
 ) -> tuple[list[str], list, dict[str, dict]]:

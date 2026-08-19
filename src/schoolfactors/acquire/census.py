@@ -178,3 +178,16 @@ def acquire(vintage: int = LATEST_VINTAGE) -> None:
                 )
         else:  # pragma: no cover - registry validation
             raise ValueError(f"unknown geo kind {spec['geo']!r} for {table}")
+
+    # Decennial P.L. 94-171 block counts (exact, no MOE): total and 18+ per block
+    # for LA County, both censuses — under-18 change per attendance area comes
+    # from these (2010 blocks are assigned to polygons via TIGERweb internal
+    # points, acquired with the lausd_gis family).
+    for year, variables in (("2010", "P001001,P003001"), ("2020", "P1_001N,P3_001N")):
+        _fetch_json(
+            f"dec{year}_pl_blocks_06037.json",
+            f"{ACS_BASE}/{year}/dec/pl?get={variables}"
+            f"&for=block:*&in=state:{STATE_FIPS}%20county:037",
+            note=f"{year} decennial P.L. blocks, LA County: total and 18+ population",
+            key=key,
+        )

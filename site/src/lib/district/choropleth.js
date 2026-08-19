@@ -52,6 +52,16 @@ export const METRICS = {
     color: (v) => pctColor(v),
     fmt: pctile
   },
+  diverge: {
+    label: 'Enrollment divergence: school vs neighborhood children (2011→2021)',
+    short: 'Divergence',
+    legend: 'diverging',
+    gradient: pctGradient,
+    ends: ['school shrank faster', 'school outgrew area'],
+    value: (props) => props.diverge ?? null,
+    color: (v) => (v == null ? NO_DATA : pctColor(50 + v)),
+    fmt: (v) => (v == null ? 'no data' : `${v > 0 ? '+' : ''}${v} pp`)
+  },
   p185: {
     label: 'Resident child poverty (under 185% of poverty)',
     short: 'Child poverty',

@@ -98,6 +98,7 @@
         lines.push(`Also serves: ${others}`);
       }
       lines.push(metricLine(props, school));
+      const spct = (v) => (v == null ? null : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`);
       lines.push(
         statRows([
           ['Enrolled', school?.enrollment?.toLocaleString()],
@@ -105,7 +106,9 @@
             props.ages ? `Residents ${props.ages[0]}–${props.ages[1]}` : null,
             props.students != null ? `~${Number(props.students).toLocaleString()}` : null
           ],
-          ['All residents', props.pop != null ? Number(props.pop).toLocaleString() : null]
+          ['All residents', props.pop != null ? Number(props.pop).toLocaleString() : null],
+          ['School ’11→’21', spct(props.sch_chg)],
+          ['Children ’10→’20', spct(props.kid_chg)]
         ])
       );
       lines.push(`<a href="/school/${props.cds}">School page →</a>`);

@@ -267,12 +267,22 @@ def _residence_enrollment(con) -> dict[str, dict] | None:
         cat = cats.get(parts[3])
         if cat is None:
             continue
-        acc = out.setdefault(vintage, {"public": 0, "private": 0, "not_enrolled": 0})
+        acc = out.setdefault(
+            vintage,
+            {"public": 0, "private": 0, "not_enrolled": 0,
+             "by_age": {c: {"5_9": 0, "10_14": 0, "15_17": 0} for c in cats.values()}},
+        )
         acc[cat] += v
+        band = parts[4].replace(" to ", "_").replace(" years", "").replace(" ", "_")
+        acc["by_age"][cat][band] += v
     for acc in out.values():
         acc["total"] = acc["public"] + acc["private"] + acc["not_enrolled"]
-        for k in list(acc):
+        for k in ("public", "private", "not_enrolled", "total"):
             acc[k] = int(round(acc[k]))
+        acc["by_age"] = {
+            c: {b: int(round(v)) for b, v in bands.items()}
+            for c, bands in acc["by_age"].items()
+        }
     return out or None
 
 
@@ -452,12 +462,15 @@ def _closures(con) -> list[dict]:
             """
             SELECT cds, spring, enr FROM (
                 SELECT cds,
-                       TRY_CAST(substr(academic_year, 3, 2) AS INT)
-                         + CASE WHEN TRY_CAST(substr(academic_year, 3, 2) AS INT) > 50
-                                THEN 1900 ELSE 2000 END AS spring,
+                       CASE WHEN length(academic_year) = 7
+                            THEN TRY_CAST(substr(academic_year, 1, 4) AS INT) + 1
+                            ELSE TRY_CAST(substr(academic_year, 3, 2) AS INT)
+                              + CASE WHEN TRY_CAST(substr(academic_year, 3, 2) AS INT) > 50
+                                     THEN 1900 ELSE 2000 END
+                       END AS spring,
                        sum(TRY_CAST(enr_total AS BIGINT)) AS enr
                 FROM enrollment_hist_raw
-                WHERE enr_type = 'C' AND cds LIKE '1964733%'
+                WHERE (enr_type = 'C' OR enr_type IS NULL) AND cds LIKE '1964733%'
                 GROUP BY 1, 2
                 UNION ALL
                 SELECT cds, TRY_CAST(substr(academic_year, 1, 4) AS INT) + 1,
@@ -574,6 +587,37 @@ def export_lausd() -> None:
             )
         _write("schools.json", schools_payload)
 
+        # Enrollment divergence ingredients: resident under-18 change per polygon
+        # (decennial 2010->2020, exact counts) and each zoned school's census
+        # enrollment over the matching school years (2010-11 -> 2020-21).
+        child_by_key: dict[tuple[str, str], list] = {}
+        try:
+            child = lausd_geo.child_change_by_area(con)
+            segd = {"E": (0, 5), "M": (5, 10), "H": (10, 15)}
+            for row in child.to_dicts():
+                for lvl, (a, b) in segd.items():
+                    acc = child_by_key.setdefault((lvl, row["p_key"][a:b]), [0, 0])
+                    acc[0] += row["kids10"] or 0
+                    acc[1] += row["kids20"] or 0
+        except Exception as exc:  # noqa: BLE001 - divergence is optional
+            print(f"  child change unavailable: {exc}")
+        # Historical files use '2010-11'-style years from 2007-08 on (with the
+        # census/cumulative C/P split starting 2014-15) and '8182'-style before.
+        spring_enr: dict[str, dict[str, int]] = {}
+        for cds, ay, enr in con.execute(
+            """
+            SELECT cds, academic_year, sum(TRY_CAST(enr_total AS BIGINT))
+            FROM enrollment_hist_raw
+            WHERE cds LIKE '1964733%'
+              AND (enr_type = 'C' OR enr_type IS NULL)
+              AND academic_year IN ('2010-11', '2020-21')
+            GROUP BY 1, 2
+            """
+        ).fetchall():
+            if enr:
+                spring_enr.setdefault(cds, {})[ay] = int(enr)
+        diverge_pairs: list[tuple[float, float]] = []  # (divergence, adj_pct), E areas
+
         # Boundaries per level, with resident demographics when available.
         demo = lausd_geo.polygon_demographics(con)
         demo_by_key: dict[tuple[str, str], dict] = {}
@@ -650,6 +694,23 @@ def export_lausd() -> None:
                     props["students"] = round(
                         sum(ages.get(age, 0) for age in range(a0, a1 + 1))
                     )
+                # Enrollment divergence: how much faster the zoned school shrank
+                # than its neighborhood's children (percentage points). NOT a
+                # capture rate — schools import/export students across zones.
+                ck = child_by_key.get((level, k))
+                if ck and ck[0] >= 100:
+                    kid_chg = ck[1] / ck[0] - 1
+                    props["kids10"], props["kids20"] = ck
+                    props["kid_chg"] = _r(kid_chg)
+                    se = spring_enr.get(meta.get("cds") or "", {})
+                    if se.get("2010-11", 0) >= 50 and se.get("2020-21"):
+                        sch_chg = se["2020-21"] / se["2010-11"] - 1
+                        props["sch_chg"] = _r(sch_chg)
+                        props["diverge"] = round((sch_chg - kid_chg) * 100)
+                        if level == "E":
+                            pct = index_rows.get(meta["cds"], {}).get("adj_pct")
+                            if pct is not None:
+                                diverge_pairs.append((props["diverge"], pct))
                 features.append(
                     {"type": "Feature", "properties": props, "geometry": mapping(g)}
                 )
@@ -713,12 +774,37 @@ def export_lausd() -> None:
             if district_payload_path.exists()
             else {}
         )
+        divergence_corr = None
+        if len(diverge_pairs) >= 30:
+            import numpy as np
+
+            arr = np.array(diverge_pairs, dtype=float)
+            divergence_corr = {
+                "n": len(arr),
+                "r_adj_pct": round(float(np.corrcoef(arr[:, 0], arr[:, 1])[0, 1]), 2),
+            }
+            print(
+                f"  divergence vs Similar Schools %ile (E areas): "
+                f"r={divergence_corr['r_adj_pct']} (n={divergence_corr['n']})"
+            )
+
         closures = _closures(con)
         for c in closures:
             c["has_page"] = c["cds"] in index_rows
         children_by_vintage = _census_children(con) or {}
         residence = _residence_enrollment(con) or {}
         by_class = _school_enrollment_by_class(con)
+        # Public-school enrollment not accounted for by LAUSD-associated schools:
+        # resident public-school children (census, ages 5-17) minus LEA-based
+        # enrollment (K-12, includes TK and 18+ seniors and non-resident students),
+        # for the years both series cover. A residual, not a flow measure.
+        public_gap = []
+        for v, r in sorted(residence.items()):
+            y = int(v)
+            cls = by_class.get(y)
+            if cls:
+                total = sum(cls.values())
+                public_gap.append([y, r["public"], total, r["public"] - total])
         _write(
             "enrollment.json",
             {
@@ -734,6 +820,8 @@ def export_lausd() -> None:
                 # universes by design; they should not reconcile exactly.
                 "residence": [[int(v), d] for v, d in sorted(residence.items())],
                 "by_class": [[y, d] for y, d in sorted(by_class.items())],
+                "public_gap": public_gap,
+                "divergence_corr": divergence_corr,
                 "closures": closures,
                 "capacity_years": sorted(
                     {y for rows in capacity.values() for y, _, _ in rows}

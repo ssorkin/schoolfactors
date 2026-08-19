@@ -35,6 +35,15 @@
     "downloaded_at": "2026-08-19T16:04:21+00:00",
     "note": "257 features in 1 page(s), f=json"
   },
+  "la_blocks_2010.json": {
+    "dataset": "lausd_gis",
+    "filename": "la_blocks_2010.json",
+    "url": "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Census2010/MapServer/18/query",
+    "sha256": "7dbec3571c7a5f406f4e996a073011cb2d4829c3e826b8da89fdecb34921f863",
+    "size": 12594716,
+    "downloaded_at": "2026-08-19T21:34:28+00:00",
+    "note": "109582 features in 3 page(s), f=json"
+  },
   "la_blocks_2020.json": {
     "dataset": "lausd_gis",
     "filename": "la_blocks_2020.json",

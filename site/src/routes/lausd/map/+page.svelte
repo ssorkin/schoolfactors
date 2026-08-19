@@ -78,6 +78,17 @@
 
 {#if hasDemo}
   <MapMultiples {schools} {level} {showSchools} schoolFilter={filter} />
+  <p class="divnote">
+    The <b>divergence</b> panel subtracts each attendance area's change in resident
+    children (2010→2020 census blocks) from its zoned school's enrollment change
+    (2010-11→2020-21): rust areas lost students much faster than they lost children
+    (enrollment flight), gray shrank with their neighborhood (demographic
+    shrinkage), blue outgrew their area (magnets and choice programs drawing from
+    elsewhere). It is not a capture rate — students cross boundaries in both
+    directions. Divergence correlates only weakly with the Similar Schools
+    percentile, consistent with our earlier finding that enrollment tracks raw
+    scores (which track demographics) more than school contribution.
+  </p>
 {:else}
   <DistrictMap
     {schools}
@@ -167,6 +178,11 @@
     border: 1px dashed #d7cfc0;
     border-radius: 8px;
     padding: 0.6rem 0.9rem;
+  }
+  .divnote {
+    font-size: 0.88rem;
+    color: #52514e;
+    margin-top: 0.8rem;
   }
   .typelist {
     columns: 2;

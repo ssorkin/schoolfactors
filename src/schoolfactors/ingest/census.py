@@ -25,6 +25,31 @@ FAMILY = "census_acs"
 
 # acs5_<vintage>_<table>_<geo...>.json (data) vs acs5_<vintage>_groups_<table>.json (meta)
 _DATA_RE = re.compile(r"^acs5_(\d{4})_([a-z]\d{5}[a-z]?)_(sd_[a-z]+|bg_\d+)\.json$")
+_DEC_RE = re.compile(r"^dec(\d{4})_pl_blocks_(\d+)\.json$")
+
+
+def ingest_dec_file(path: Path) -> pl.DataFrame | None:
+    """Decennial P.L. block counts → wide rows (year, 15-digit geoid, pop, pop18)."""
+    m = _DEC_RE.match(path.name)
+    if not m:
+        return None
+    year = m.group(1)
+    arrays = json.loads(path.read_text())
+    header, data = arrays[0], arrays[1:]
+    idx = {c: i for i, c in enumerate(header)}
+    pop_col = idx.get("P001001", idx.get("P1_001N"))
+    adult_col = idx.get("P003001", idx.get("P3_001N"))
+    rows = [
+        {
+            "year": year,
+            "geoid": row[idx["state"]] + row[idx["county"]] + row[idx["tract"]]
+            + row[idx["block"]],
+            "pop": row[pop_col],
+            "pop18": row[adult_col],
+        }
+        for row in data
+    ]
+    return pl.DataFrame(rows, schema={c: pl.Utf8 for c in ("year", "geoid", "pop", "pop18")})
 
 
 def _load_labels(vintage: str, table: str) -> dict[str, str]:
@@ -97,3 +122,12 @@ def ingest_all() -> None:
         out.mkdir(parents=True, exist_ok=True)
         df.write_parquet(out / "data.parquet")
         print(f"  {FAMILY}/{path.name}: {len(df):,} rows")
+    for path in sorted(raw_dir.glob("dec*_pl_blocks_*.json")):
+        df = ingest_dec_file(path)
+        if df is None:
+            continue
+        df = df.with_columns(pl.lit(path.name).alias("source_file"))
+        out = PARQUET_DIR / "dec_pl" / f"file={path.stem}"
+        out.mkdir(parents=True, exist_ok=True)
+        df.write_parquet(out / "data.parquet")
+        print(f"  dec_pl/{path.name}: {len(df):,} rows")
