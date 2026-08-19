@@ -49,14 +49,20 @@
   });
   let capLatest = $derived(capYears.length ? capYears[capYears.length - 1] : null);
 
-  // Closures grouped by year.
-  let closuresByYear = $derived.by(() => {
-    const by = new Map();
-    for (const c of enrollment?.closures ?? []) {
-      by.set(c.year, [...(by.get(c.year) ?? []), c]);
-    }
-    return [...by.entries()].sort((a, b) => b[0] - a[0]);
-  });
+  let closures = $derived(
+    [...(enrollment?.closures ?? [])].sort(
+      (a, b) => b.year - a.year || (b.last_enr ?? 0) - (a.last_enr ?? 0)
+    )
+  );
+  let nCharterClosed = $derived(closures.filter((c) => c.charter).length);
+  const EIL_SHORT = {
+    Elementary: 'Elementary',
+    'Intermediate/Middle/Junior High': 'Middle',
+    'High School': 'High',
+    'Elementary-High Combination': 'K-12',
+    'Preschool/Early Learning': 'Preschool',
+    Adult: 'Adult'
+  };
 </script>
 
 <svelte:head>
@@ -125,6 +131,10 @@
     {fmtN(capLatest[1].opcap)} seats —
     <b>{Math.round((capLatest[1].enr / capLatest[1].opcap) * 100)}% utilization</b>,
     with {capLatest[1].under50.toLocaleString()} campuses under half full.
+    The district's public GIS layer carries operational capacity only through
+    {capLatest[0]}; later years exist only in LAUSD's Fingertip Facts PDFs, so the
+    table below ends where the machine-readable record does. Enrollment has kept
+    falling since, so current utilization is likely lower than the last row shows.
   </p>
   <table>
     <thead><tr><th>Year</th><th>Seats</th><th>Enrolled</th><th>Utilization</th><th>Campuses &lt;50% full</th></tr></thead>
@@ -146,23 +156,42 @@
 
 <h2>Closures</h2>
 <p>
-  {enrollment?.closures?.length ?? '…'} LAUSD schools in the state directory closed
-  since 2015. Closures cluster where enrollment fell hardest; each links to its
-  school page and history.
+  {closures.length || '…'} LAUSD schools in the state directory closed since 2015 —
+  {nCharterClosed} of them charters, whose closures reflect authorization and
+  finances as much as enrollment. Closures cluster where enrollment fell hardest;
+  schools with a page link to their full history. "Last enrollment" is the most
+  recent census count on record before closure.
 </p>
-{#each closuresByYear as [year, list]}
-  <details>
-    <summary><b>{year}</b> — {list.length} school{list.length === 1 ? '' : 's'}</summary>
-    <ul>
-      {#each list as c}
-        <li>
-          {#if c.has_page}<a href="/school/{c.cds}">{c.name}</a>{:else}{c.name}{/if}
-          <span class="eil">{c.eil}</span>
-        </li>
-      {/each}
-    </ul>
-  </details>
-{/each}
+{#if closures.length}
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Closed</th><th>School</th><th>Level</th><th>Type</th>
+          <th>Opened</th><th>Last enrollment</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each closures as c}
+          <tr>
+            <td>{c.year}</td>
+            <td>
+              {#if c.has_page}<a href="/school/{c.cds}">{c.name}</a>{:else}{c.name}{/if}
+            </td>
+            <td>{EIL_SHORT[c.eil] ?? c.eil ?? '—'}</td>
+            <td>{c.charter ? 'Charter' : c.magnet ? 'Magnet' : 'District'}</td>
+            <td>{c.opened ?? '—'}</td>
+            <td>
+              {c.last_enr != null
+                ? `${c.last_enr.toLocaleString()} (${c.last_enr_year})`
+                : '—'}
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+{/if}
 
 <p class="crosslink">
   Related: <a href="/insights/lausd-enrollment-choice">Which LAUSD elementaries
@@ -206,10 +235,6 @@
   td:first-child {
     text-align: left;
   }
-  .eil {
-    color: #898781;
-    font-size: 0.8rem;
-  }
   .pending {
     color: #6f6a61;
     font-size: 0.88rem;
@@ -217,13 +242,17 @@
   .crosslink {
     margin-top: 1.5rem;
   }
-  details ul {
-    columns: 2;
-    font-size: 0.88rem;
+  .tablewrap {
+    overflow-x: auto;
+    max-height: 32rem;
+    overflow-y: auto;
+    border: 1px solid #eee7da;
+    border-radius: 8px;
+    padding: 0 0.6rem;
   }
-  @media (max-width: 680px) {
-    details ul {
-      columns: 1;
-    }
+  .tablewrap thead th {
+    position: sticky;
+    top: 0;
+    background: #faf7f2;
   }
 </style>

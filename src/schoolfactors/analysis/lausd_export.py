@@ -120,6 +120,7 @@ def _seni(con) -> dict[str, dict]:
     rank_col = col(r"seni_rank_for_\d{4}(_\d{2})?_allocation")
     quint_col = col(r"seni_(\d{4}(_\d{2})?_)?quintile")
     alloc_col = col(r"seni_total_allocation_dollars?")
+    enr_col = col(r"total_enrollment_\d{4}(_\d{2})?")
     out: dict[str, dict] = {}
     for row in seni.to_dicts():
         num = lambda v: None if v in (None, "") else float(str(v).replace(",", ""))
@@ -132,6 +133,9 @@ def _seni(con) -> dict[str, dict]:
             "rank": num(row.get(rank_col)) if rank_col else None,
             "quintile": quintile,
             "alloc": num(row.get(alloc_col)) if alloc_col else None,
+            # SENI file's own enrollment (the allocation cohort) — used for the
+            # per-pupil summary, stripped from per-school payloads.
+            "enr": num(row.get(enr_col)) if enr_col else None,
         }
     return out
 
@@ -263,10 +267,48 @@ def _enrolled_race(con) -> dict | None:
     }
 
 
+def _year_of(date_str) -> int | None:
+    for tok in str(date_str or "").replace("/", "-").split("-"):
+        if len(tok) == 4 and tok.isdigit():
+            return int(tok)
+    return None
+
+
 def _closures(con) -> list[dict]:
+    """Closed LAUSD schools since 2015, with the last enrollment on record.
+
+    Last enrollment stitches the historical census files (enr_type 'C', through
+    2022-23) with FRPM K-12 enrollment (2017-18+), taking each school's most
+    recent year.
+    """
+    last_enr = {
+        cds: (int(spring), int(enr))
+        for cds, spring, enr in con.execute(
+            """
+            SELECT cds, spring, enr FROM (
+                SELECT cds,
+                       TRY_CAST(substr(academic_year, 3, 2) AS INT)
+                         + CASE WHEN TRY_CAST(substr(academic_year, 3, 2) AS INT) > 50
+                                THEN 1900 ELSE 2000 END AS spring,
+                       sum(TRY_CAST(enr_total AS BIGINT)) AS enr
+                FROM enrollment_hist_raw
+                WHERE enr_type = 'C' AND cds LIKE '1964733%'
+                GROUP BY 1, 2
+                UNION ALL
+                SELECT cds, TRY_CAST(substr(academic_year, 1, 4) AS INT) + 1,
+                       sum(TRY_CAST(enrollment_k_12 AS DOUBLE))
+                FROM frpm_raw
+                WHERE cds LIKE '1964733%' AND school_code <> '0000000'
+                GROUP BY 1, 2
+            )
+            WHERE enr IS NOT NULL AND enr > 0
+            QUALIFY row_number() OVER (PARTITION BY cds ORDER BY spring DESC) = 1
+            """
+        ).fetchall()
+    }
     rows = con.execute(
         """
-        SELECT cds, school AS name, eilname, closeddate
+        SELECT cds, school AS name, eilname, charter, magnet, opendate, closeddate
         FROM directory_raw
         WHERE cds LIKE '1964733%' AND substr(cds, 8, 7) <> '0000000'
           AND statustype = 'Closed' AND closeddate IS NOT NULL
@@ -275,13 +317,24 @@ def _closures(con) -> list[dict]:
         """
     ).fetchall()
     out = []
-    for cds, name, eilname, closed in rows:
-        year = None
-        for tok in str(closed).replace("/", "-").split("-"):
-            if len(tok) == 4 and tok.isdigit():
-                year = int(tok)
-        if year and year >= 2015:
-            out.append({"cds": cds, "name": name, "eil": eilname, "year": year})
+    for cds, name, eilname, charter, magnet, opened, closed in rows:
+        year = _year_of(closed)
+        if not year or year < 2015:
+            continue
+        enr = last_enr.get(cds)
+        out.append(
+            {
+                "cds": cds,
+                "name": name,
+                "eil": eilname,
+                "year": year,
+                "charter": charter == "Y",
+                "magnet": magnet == "Y",
+                "opened": _year_of(opened),
+                "last_enr": enr[1] if enr else None,
+                "last_enr_year": enr[0] if enr else None,
+            }
+        )
     return out
 
 
@@ -345,7 +398,13 @@ def export_lausd() -> None:
                     "enrollment": idx.get("enrollment"),
                     "enr": idx.get("enr"),
                     "capacity": capacity.get(cds),
-                    "seni": seni.get(cds),
+                    # drop the SENI file's own enrollment (summary-only; the row
+                    # already carries CDE enrollment)
+                    "seni": (
+                        {k: v for k, v in seni[cds].items() if k != "enr"}
+                        if cds in seni
+                        else None
+                    ),
                 }
             )
         _write("schools.json", schools_payload)
@@ -485,13 +544,15 @@ def export_lausd() -> None:
             by_q: dict[str, dict] = {}
             for v in seni.values():
                 q = v.get("quintile") or "?"
-                acc = by_q.setdefault(q, {"n": 0, "alloc": 0.0})
+                acc = by_q.setdefault(q, {"n": 0, "alloc": 0.0, "enr": 0.0})
                 acc["n"] += 1
                 acc["alloc"] += v.get("alloc") or 0
+                acc["enr"] += v.get("enr") or 0
             seni_summary = {
                 "year": next(iter(seni.values()))["year"],
                 "n": len(seni),
                 "total_alloc": sum(v.get("alloc") or 0 for v in seni.values()),
+                "total_enr": sum(v.get("enr") or 0 for v in seni.values()),
                 "by_quintile": dict(sorted(by_q.items())),
             }
         _write(

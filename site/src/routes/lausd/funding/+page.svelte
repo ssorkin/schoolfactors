@@ -158,10 +158,17 @@
   <p>
     In the {Number(s.year) - 1}–{String(s.year).slice(2)} allocation,
     {s.n.toLocaleString()} schools received
-    ${(s.total_alloc / 1e6).toFixed(0)}M through SENI, concentrated by need:
+    ${(s.total_alloc / 1e6).toFixed(0)}M through SENI
+    {#if s.total_enr}(${Math.round(s.total_alloc / s.total_enr)} per pupil
+      district-wide){/if}, concentrated by need:
   </p>
   <table>
-    <thead><tr><th>SENI quintile</th><th>Schools</th><th>Allocation</th><th>Avg per school</th></tr></thead>
+    <thead>
+      <tr>
+        <th>SENI quintile</th><th>Schools</th><th>Allocation</th>
+        <th>Avg per school</th><th>Avg per pupil</th>
+      </tr>
+    </thead>
     <tbody>
       {#each Object.entries(s.by_quintile).filter(([q]) => q !== '?') as [q, row]}
         <tr>
@@ -169,6 +176,7 @@
           <td>{row.n}</td>
           <td>${(row.alloc / 1e6).toFixed(1)}M</td>
           <td>${Math.round(row.alloc / row.n / 1000)}k</td>
+          <td>{row.enr ? `$${Math.round(row.alloc / row.enr)}` : '—'}</td>
         </tr>
       {/each}
     </tbody>

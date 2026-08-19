@@ -532,21 +532,27 @@ def run_export() -> None:
         for _, scds, lea, pp, mem in rows_y:
             if pp <= 0 or lea in ppe_broken_leas:
                 continue
+            # The student_membership column only exists in recent ESSA files
+            # (2023-24+); census enrollment for the same school-year stands in
+            # for it elsewhere — without this, district/county rollups silently
+            # started in 2024 despite per-pupil figures existing back to 2019.
+            weight = mem or enr_hist.get(scds, {}).get(year)
             if lea in ppe_totals_leas:
-                if not mem:
+                if not weight:
                     continue
-                pp = pp / mem
+                pp = pp / weight
             if not 5_000 <= pp <= 500_000:
                 continue
             ppe_hist.setdefault(scds, {})[year] = round(pp)
-            # District/county figures: reconstruct dollars (pp × membership),
-            # sum, re-divide — never average per-pupil ratios. Charter schools
+            # District/county figures: reconstruct dollars (pp × membership,
+            # or census enrollment when membership wasn't published), sum,
+            # re-divide — never average per-pupil ratios. Charter schools
             # fold into their CDS-prefix district, matching CAASPP rollups.
-            if mem:
+            if weight:
                 for key in (scds[:7] + "0000000", scds[:2] + "000000000000"):
                     agg = ppe_pool.setdefault(key, [0.0, 0.0])
-                    agg[0] += pp * mem
-                    agg[1] += mem
+                    agg[0] += pp * weight
+                    agg[1] += weight
         # Coverage gate: after dropping unusable rows, a district/county
         # aggregate may describe only a sliver of the entity (Mt. Diablo
         # Unified's own schools are all dropped, leaving just co-located
