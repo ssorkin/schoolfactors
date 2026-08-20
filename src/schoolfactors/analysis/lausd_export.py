@@ -315,6 +315,130 @@ def _school_enrollment_by_class(con) -> dict[int, dict]:
     return out
 
 
+_B03002_PATHS = {
+    "his": ("Hispanic or Latino",),
+    "wht": ("Not Hispanic or Latino", "White alone"),
+    "blk": ("Not Hispanic or Latino", "Black or African American alone"),
+    "asn": ("Not Hispanic or Latino", "Asian alone"),
+}
+
+
+def _resident_race_by_vintage(con) -> dict[str, dict] | None:
+    """LAUSD-boundary residents (all ages) by race/ethnicity per ACS vintage."""
+    views = {r[0] for r in con.execute("SHOW TABLES").fetchall()}
+    if "census_acs_raw" not in views:
+        return None
+    rows = con.execute(
+        """
+        SELECT vintage, variable, label, sum(TRY_CAST(value AS DOUBLE)) AS v
+        FROM census_acs_raw
+        WHERE table_id = 'B03002' AND geoid = ? AND geo_type LIKE 'sd_%'
+          AND (TRY_CAST(value AS DOUBLE) IS NULL OR TRY_CAST(value AS DOUBLE) >= 0)
+        GROUP BY 1, 2, 3
+        """,
+        [LAUSD_GEOID],
+    ).fetchall()
+    out: dict[str, dict] = {}
+    for vintage, variable, label, v in rows:
+        if not variable.endswith("E") or not label or v is None:
+            continue
+        parts = tuple(p.rstrip(":") for p in label.split("!!"))[2:]
+        acc = out.setdefault(vintage, {})
+        if parts == ():
+            acc["total"] = int(round(v))
+        for key, path in _B03002_PATHS.items():
+            if parts == path:
+                acc[key] = int(round(v))
+    for acc in out.values():
+        if "total" in acc:
+            acc["oth"] = max(
+                0, acc["total"] - sum(acc.get(k, 0) for k in _B03002_PATHS)
+            )
+    return {v: a for v, a in out.items() if "total" in a} or None
+
+
+# CDE historical enrollment race codes (files through 2022-23).
+_HIST_RACE = {
+    "5": "his",
+    "7": "wht",
+    "6": "blk",
+    "2": "asn",  # Asian
+    "4": "asn",  # Filipino — census counts Filipino under Asian alone
+}
+
+
+def _enrolled_race_hist(con) -> dict[int, dict]:
+    """LAUSD-authorized enrollment by race/ethnicity per spring year.
+
+    Historical census files (by race code, through 2022-23) stitched with the
+    new-format census files (RE_* reporting categories, 2023-24+); Filipino
+    folds into `asn` for census comparability, everything else into `oth`.
+    """
+    out: dict[int, dict] = {}
+    for code, spring, enr in con.execute(
+        """
+        SELECT race_ethnicity,
+               CASE WHEN length(academic_year) = 7
+                    THEN TRY_CAST(substr(academic_year, 1, 4) AS INT) + 1
+                    ELSE TRY_CAST(substr(academic_year, 3, 2) AS INT)
+                      + CASE WHEN TRY_CAST(substr(academic_year, 3, 2) AS INT) > 50
+                             THEN 1900 ELSE 2000 END
+               END AS spring,
+               sum(TRY_CAST(enr_total AS BIGINT))
+        FROM enrollment_hist_raw
+        WHERE (enr_type = 'C' OR enr_type IS NULL) AND cds LIKE '1964733%'
+        GROUP BY 1, 2
+        """
+    ).fetchall():
+        if spring is None or not enr:
+            continue
+        cat = _HIST_RACE.get((code or "").strip(), "oth")
+        acc = out.setdefault(int(spring), {"his": 0, "wht": 0, "blk": 0, "asn": 0, "oth": 0})
+        acc[cat] += int(enr)
+    new_cat = {"RE_H": "his", "RE_W": "wht", "RE_B": "blk", "RE_A": "asn", "RE_F": "asn"}
+    for cat_code, spring, enr in con.execute(
+        """
+        SELECT reportingcategory,
+               TRY_CAST(substr(academicyear, 1, 4) AS INT) + 1 AS spring,
+               sum(TRY_CAST(total_enr AS BIGINT))
+        FROM enrollment_raw
+        WHERE districtcode = '64733' AND aggregatelevel = 'D' AND charter = 'ALL'
+          AND reportingcategory LIKE 'RE_%'
+        GROUP BY 1, 2
+        """
+    ).fetchall():
+        if spring is None or not enr:
+            continue
+        acc = out.setdefault(int(spring), {"his": 0, "wht": 0, "blk": 0, "asn": 0, "oth": 0})
+        acc[new_cat.get(cat_code, "oth")] += int(enr)
+    return out
+
+
+def _sed_hist(con, district: dict, children: dict) -> dict:
+    """Time series for the poverty/SED measures, each with its own definition:
+    FRPM (185% FPL, district-reported), CALPADS UPC (FRPM ∪ EL ∪ foster — the
+    LCFF funding measure), census P185 (resident children 6-17)."""
+    upc = [
+        [int(y[:4]) + 1, _r(share)]
+        for y, share in con.execute(
+            """
+            SELECT academic_year,
+                   sum(TRY_CAST(calpads_unduplicated_pupil_count_upc AS DOUBLE))
+                     / nullif(sum(TRY_CAST(total_enrollment AS DOUBLE)), 0)
+            FROM cupc_raw
+            WHERE cds LIKE '1964733%' AND school_code <> '0000000'
+            GROUP BY 1 ORDER BY 1
+            """
+        ).fetchall()
+        if share is not None
+    ]
+    frpm = sorted(
+        [int(y), v] for y, v in (district.get("frpm_hist") or {}).items()
+    )
+    p185 = [[int(v), d["p185"]] for v, d in sorted(children.items()) if d.get("p185")]
+    return {"frpm": frpm, "upc": upc, "p185": p185}
+
+
 def _district_pages() -> set[str]:
     index_path = SITE_DATA / "index.json"
     if not index_path.exists():
@@ -638,6 +762,8 @@ def export_lausd() -> None:
                     acc["pu"] += d["pov_universe"] or 0
                     acc["p185"] += d["pov_under185"] or 0
                     acc["rt"] += d["race_total"] or 0
+                    acc["et"] = acc.get("et", 0) + (d.get("edu_total") or 0)
+                    acc["eb"] = acc.get("eb", 0) + (d.get("edu_ba") or 0)
                     for x in ("his", "wht", "blk", "asn"):
                         acc[f"r_{x}"] += d[f"race_{x}"] or 0
                     if has_ages:
@@ -657,6 +783,8 @@ def export_lausd() -> None:
                         "pop": acc["pop"],
                         "p185": _r(acc["p185"] / acc["pu"]) if acc["pu"] else None,
                         "race": race,
+                        # adult (25+) educational attainment: bachelor's or higher
+                        "ba": _r(acc["eb"] / acc["et"]) if acc.get("et") else None,
                     }
 
         from shapely.geometry import mapping
@@ -756,6 +884,14 @@ def export_lausd() -> None:
                 else None,
                 "race": race,
             }
+        district_payload_path = SITE_DATA / "districts" / f"{LAUSD_DCDS}.json"
+        district = (
+            json.loads(district_payload_path.read_text())
+            if district_payload_path.exists()
+            else {}
+        )
+        resident_race_hist = _resident_race_by_vintage(con) or {}
+        enrolled_race_hist = _enrolled_race_hist(con)
         _write(
             "demographics.json",
             {
@@ -764,15 +900,19 @@ def export_lausd() -> None:
                 "district": district_row,
                 "resident": resident,
                 "enrolled": _enrolled_race(con),
+                # Composition over time: resident side per ACS vintage (all ages),
+                # enrolled side per spring year (LAUSD-authorized schools).
+                "race_hist": {
+                    "resident": [
+                        [int(v), d] for v, d in sorted(resident_race_hist.items())
+                    ],
+                    "enrolled": [
+                        [y, d] for y, d in sorted(enrolled_race_hist.items()) if y >= 1995
+                    ],
+                },
+                # Three SED/poverty measures, each with its own definition.
+                "sed_hist": _sed_hist(con, district, _census_children(con) or {}),
             },
-        )
-
-        # Enrollment story: district series (index/district payload), capacity, closures.
-        district_payload_path = SITE_DATA / "districts" / f"{LAUSD_DCDS}.json"
-        district = (
-            json.loads(district_payload_path.read_text())
-            if district_payload_path.exists()
-            else {}
         )
         divergence_corr = None
         if len(diverge_pairs) >= 30:

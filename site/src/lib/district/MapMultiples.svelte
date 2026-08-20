@@ -9,7 +9,7 @@
    */
   let {
     schools = [],
-    metrics = ['perf', 'diverge', 'p185', 'his', 'wht', 'blk', 'asn'],
+    metrics = ['perf', 'diverge', 'p185', 'ba', 'his', 'wht', 'blk', 'asn'],
     level = 'e',
     showSchools = true,
     schoolFilter = null,

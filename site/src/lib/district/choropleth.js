@@ -75,6 +75,19 @@ export const METRICS = {
     },
     fmt: pct
   },
+  ba: {
+    label: "Resident adults with a bachelor's degree or higher",
+    short: "BA+ share",
+    legend: 'sequential',
+    gradient: seqGradient,
+    ends: ['0%', '90%'],
+    domain: 0.9,
+    value: (props) => props.ba ?? null,
+    color(v) {
+      return seqColor(v == null ? null : v / this.domain);
+    },
+    fmt: pct
+  },
   his: raceMetric('his', 'Residents Hispanic or Latino (share)', 'Hispanic share'),
   wht: raceMetric('wht', 'Residents white (share)', 'White share'),
   blk: raceMetric('blk', 'Residents Black (share)', 'Black share'),

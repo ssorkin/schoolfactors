@@ -43,6 +43,13 @@ B03002_RACES = {
     "blk": ("Not Hispanic or Latino", "Black or African American alone"),
     "asn": ("Not Hispanic or Latino", "Asian alone"),
 }
+# B15003 (educational attainment, 25+): bachelor's degree or higher.
+B15003_BA_PLUS = (
+    "Bachelor's degree",
+    "Master's degree",
+    "Professional school degree",
+    "Doctorate degree",
+)
 # B01001 (sex by age) school-age bins; single years of age are estimated by
 # splitting each bin uniformly, so grade-span bands (grade g ~ age g+5) can be
 # summed per attendance area — including combined middle/high spans.
@@ -247,6 +254,34 @@ def polygon_demographics(
         for df, groups in ((pov_df, pov_vars), (race_df, race_vars)):
             joined = df.join(shares, on="bg_geoid")
             for name, variables in groups.items():
+                agg = (
+                    joined.filter(pl.col("variable").is_in(variables))
+                    .with_columns((pl.col("v") * pl.col("share")).alias("x"))
+                    .group_by("p_key")
+                    .agg(pl.col("x").sum().alias(name))
+                )
+                out = out.join(agg, on="p_key", how="left")
+
+        # Adult educational attainment (25+) from B15003, when acquired.
+        edu = _bg_values(con, "B15003")
+        if edu is not None:
+            edu_df, edu_labels = edu
+            edu_vars = {
+                "edu_total": [
+                    v for v, lbl in edu_labels.items()
+                    if v.endswith("E") and _label_parts(lbl) == ["Estimate", "Total"]
+                ],
+                "edu_ba": [
+                    v for v, lbl in edu_labels.items()
+                    if v.endswith("E")
+                    and len(_label_parts(lbl)) == 3
+                    and _label_parts(lbl)[2] in B15003_BA_PLUS
+                ],
+            }
+            if len(edu_vars["edu_ba"]) != len(B15003_BA_PLUS):
+                raise ValueError("B15003 label selection drifted")
+            joined = edu_df.join(shares, on="bg_geoid")
+            for name, variables in edu_vars.items():
                 agg = (
                     joined.filter(pl.col("variable").is_in(variables))
                     .with_columns((pl.col("v") * pl.col("share")).alias("x"))

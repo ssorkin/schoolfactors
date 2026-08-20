@@ -53,8 +53,11 @@ ACS_TABLES: dict[str, dict] = {
     # Ratio of income to poverty level (all ages) — B17024 is not published at block
     # group, so attendance-area poverty comes from C17002.
     "C17002": {"geo": "blockgroup", "counties": ["037"]},
-    # Hispanic or Latino origin by race — attendance-area race/ethnicity shares.
-    "B03002": {"geo": "blockgroup", "counties": ["037"]},
+    # Hispanic or Latino origin by race — attendance-area race/ethnicity shares
+    # (block group) and resident composition over time (district, all vintages).
+    "B03002": {"geo": ["blockgroup", "district"], "counties": ["037"]},
+    # Educational attainment (25+) — resident adult attainment per attendance area.
+    "B15003": {"geo": "blockgroup", "counties": ["037"]},
     # Sex by age — resident school-age children per attendance area, banded to
     # each school's grade span (bins 5-9 / 10-14 / 15-17, split per single year).
     "B01001": {"geo": "blockgroup", "counties": ["037"]},
@@ -150,7 +153,8 @@ def acquire(vintage: int = LATEST_VINTAGE) -> None:
             f"{base}/groups/{table}.json",
             note=f"ACS5 {vintage} variable metadata for {table}",
         )
-        if spec["geo"] == "district":
+        geos = spec["geo"] if isinstance(spec["geo"], list) else [spec["geo"]]
+        if "district" in geos:
             for v in sorted({vintage, *DISTRICT_VINTAGES}):
                 vbase = f"{ACS_BASE}/{v}/acs/acs5"
                 if v != vintage:
@@ -167,7 +171,7 @@ def acquire(vintage: int = LATEST_VINTAGE) -> None:
                         note=f"ACS5 {v} {table}, {geo_name}, state {STATE_FIPS}",
                         key=key,
                     )
-        elif spec["geo"] == "blockgroup":
+        if "blockgroup" in geos:
             for county in spec["counties"]:
                 _fetch_json(
                     f"acs5_{vintage}_{t}_bg_{STATE_FIPS}{county}.json",
@@ -176,7 +180,7 @@ def acquire(vintage: int = LATEST_VINTAGE) -> None:
                     note=f"ACS5 {vintage} {table}, block groups, county {STATE_FIPS}{county}",
                     key=key,
                 )
-        else:  # pragma: no cover - registry validation
+        if not set(geos) <= {"district", "blockgroup"}:  # pragma: no cover
             raise ValueError(f"unknown geo kind {spec['geo']!r} for {table}")
 
     # Decennial P.L. 94-171 block counts (exact, no MOE): total and 18+ per block
