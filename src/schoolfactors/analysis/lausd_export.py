@@ -414,6 +414,37 @@ def _enrolled_race_hist(con) -> dict[int, dict]:
     return out
 
 
+def _parent_ed(con) -> dict[str, float]:
+    """Per-school share of tested students whose parents hold a BA or higher.
+
+    CAASPP parent-education groups (latest year, all-grades rollup, ELA):
+    (college graduate + graduate school) / all reported categories, excluding
+    "declined to state". Schools with <30 reported are omitted.
+    """
+    views = {r[0] for r in con.execute("SHOW TABLES").fetchall()}
+    if "caaspp_sb" not in views:
+        return {}
+    rows = con.execute(
+        """
+        SELECT cds,
+               sum(CASE WHEN student_group_id IN (93, 94) THEN students_tested END)
+                   AS ba,
+               sum(CASE WHEN student_group_id IN (90, 91, 92, 93, 94)
+                        THEN students_tested END) AS tot
+        FROM caaspp_sb
+        WHERE test_year = (SELECT max(test_year) FROM caaspp_sb)
+          AND cds LIKE '1964733%' AND grade = 13 AND test_id = 1
+          AND type_id IN (7, 9, 10)
+        GROUP BY 1
+        """
+    ).fetchall()
+    return {
+        cds: round(ba / tot, 3)
+        for cds, ba, tot in rows
+        if tot and tot >= 30 and ba is not None
+    }
+
+
 def _sed_hist(con, district: dict, children: dict) -> dict:
     """Time series for the poverty/SED measures, each with its own definition:
     FRPM (185% FPL, district-reported), CALPADS UPC (FRPM ∪ EL ∪ foster — the
@@ -912,6 +943,9 @@ def export_lausd() -> None:
                 },
                 # Three SED/poverty measures, each with its own definition.
                 "sed_hist": _sed_hist(con, district, _census_children(con) or {}),
+                # Tested students' parent education (BA+ share) per school —
+                # compared on-page against each area's resident adult attainment.
+                "parent_ed": _parent_ed(con),
             },
         )
         divergence_corr = None

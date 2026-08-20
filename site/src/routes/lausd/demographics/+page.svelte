@@ -1,23 +1,41 @@
 <script>
   import { onMount } from 'svelte';
-  import DemoBars from '$lib/district/DemoBars.svelte';
-  import StackedArea from '$lib/district/StackedArea.svelte';
+  import CompositionBars from '$lib/district/CompositionBars.svelte';
   import { getBoundaries, getSchools } from '$lib/district/lausdData.js';
   import { corr, clamp, fmt2 } from '$lib/insights.js';
 
   let { data } = $props();
   let demo = $derived(data.demographics);
 
-  // Race composition over time (stacked counts, matching series colors).
-  const RACE_SERIES = [
-    { key: 'his', label: 'Hispanic or Latino', color: '#2a78d6' },
-    { key: 'wht', label: 'White', color: '#eb6834' },
-    { key: 'blk', label: 'Black', color: '#1baf7a' },
-    { key: 'asn', label: 'Asian', color: '#eda100' },
-    { key: 'oth', label: 'Other / two or more', color: '#d8d4cc' }
+  const RACE_KEYS = [
+    ['his', 'Hispanic or Latino'],
+    ['wht', 'White'],
+    ['blk', 'Black'],
+    ['asn', 'Asian'],
+    ['oth', 'Other / two or more']
   ];
   let residentHist = $derived(demo?.race_hist?.resident ?? []);
   let enrolledHist = $derived(demo?.race_hist?.enrolled ?? []);
+
+  // Then-vs-now composition shares from the count histories, on a matched
+  // window (residents: first/last ACS vintage; enrolled: same start year).
+  function shareRows(rows, y0) {
+    const list = y0 ? rows.filter(([y]) => y >= y0) : rows;
+    if (list.length < 2) return null;
+    const toShares = ([, d]) => {
+      const tot = RACE_KEYS.reduce((s, [k]) => s + (d[k] ?? 0), 0);
+      return Object.fromEntries(RACE_KEYS.map(([k]) => [k, tot ? (d[k] ?? 0) / tot : null]));
+    };
+    const a = toShares(list[0]);
+    const b = toShares(list[list.length - 1]);
+    return {
+      y0: list[0][0],
+      y1: list[list.length - 1][0],
+      rows: RACE_KEYS.map(([k, label]) => ({ label, a: a[k], b: b[k] }))
+    };
+  }
+  let residentBars = $derived(shareRows(residentHist));
+  let enrolledBars = $derived(shareRows(enrolledHist, residentHist[0]?.[0] ?? 2015));
   function raceChg(rows, key) {
     if (rows.length < 2) return null;
     const a = rows[0][1][key];
@@ -69,7 +87,8 @@
           name: s.name,
           ba: p.ba,
           met: (s.pass_ela + s.pass_math) / 2,
-          adj: s.adj_pct
+          adj: s.adj_pct,
+          pe: demo?.parent_ed?.[p.cds] ?? null
         });
       }
       attain = out;
@@ -77,6 +96,14 @@
       /* section degrades to nothing */
     }
   });
+  let peRows = $derived(attain.filter((r) => r.pe != null));
+  let rPe = $derived(corr(peRows.map((r) => r.ba), peRows.map((r) => r.pe)));
+  let peBelow = $derived(
+    peRows.length ? Math.round((peRows.filter((r) => r.pe < r.ba).length / peRows.length) * 100) : null
+  );
+  const px = (v) => AM.left + (v / 0.9) * (AW - AM.left - AM.right);
+  const py = (v) => AM.top + (1 - v / 0.9) * (AH - AM.top - AM.bottom);
+
   let rAttain = $derived(corr(attain.map((r) => r.ba), attain.map((r) => r.met)));
   let rAttainAdj = $derived.by(() => {
     const rows = attain.filter((r) => r.adj != null);
@@ -87,25 +114,6 @@
   const AM = { top: 14, right: 16, bottom: 46, left: 56 };
   const ax = (v) => AM.left + (v / 0.9) * (AW - AM.left - AM.right);
   const ay = (v) => AM.top + (1 - v / 100) * (AH - AM.top - AM.bottom);
-
-  const RACE_LABELS = {
-    his: 'Hispanic or Latino',
-    wht: 'White',
-    blk: 'Black',
-    asn: 'Asian',
-    oth: 'Other / two or more'
-  };
-
-  let raceRows = $derived.by(() => {
-    const enrolled = demo?.enrolled?.race;
-    const resident = demo?.resident?.race;
-    if (!enrolled) return [];
-    return Object.keys(RACE_LABELS).map((k) => ({
-      label: RACE_LABELS[k],
-      a: resident?.[k] ?? null,
-      b: enrolled[k] ?? null
-    }));
-  });
 
   let censusPending = $derived(demo == null || demo.census_pending);
   const pct = (v) => (v == null ? '—' : `${Math.round(v * 100)}%`);
@@ -129,12 +137,34 @@
   below are descriptive: they say who ends up in district schools, not why.
 </p>
 
-{#if raceRows.length}
-  <DemoBars
-    rows={raceRows}
-    aLabel={censusPending ? 'Residents (census — pending)' : 'Residents (census)'}
-    bLabel="Enrolled students ({demo.enrolled.year})"
-  />
+{#if residentBars && enrolledBars}
+  <div class="duo">
+    <CompositionBars
+      title="Residents inside LAUSD, all ages (census)"
+      rows={residentBars.rows}
+      aLabel="ACS {residentBars.y0}"
+      bLabel="ACS {residentBars.y1}"
+      color="#2a78d6"
+      tint="#b9d2ee"
+    />
+    <CompositionBars
+      title="Students in LAUSD-authorized schools (CDE)"
+      rows={enrolledBars.rows}
+      aLabel="{enrolledBars.y0 - 1}–{String(enrolledBars.y0).slice(2)}"
+      bLabel="{enrolledBars.y1 - 1}–{String(enrolledBars.y1).slice(2)}"
+      color="#eb6834"
+      tint="#f6c8ab"
+    />
+  </div>
+  <p>
+    The cross-population gap is much larger than either side's drift: enrolled
+    students are far more Hispanic and far less white and Asian than the residents
+    around them, and both compositions have moved only modestly over this window.
+    The longer arc is starker — since 1995, enrolled Black students went
+    {rc(raceChg(enrolledHist, 'blk'))} and white students
+    {rc(raceChg(enrolledHist, 'wht'))} in absolute counts, alongside the district's
+    overall shrinkage.
+  </p>
 {/if}
 
 {#if censusPending}
@@ -156,32 +186,6 @@
     The difference is how the two measures work, not an error; see
     <a href="/lausd/funding">Funding</a> for the statewide picture.
   </p>
-{/if}
-
-{#if residentHist.length > 1 && enrolledHist.length > 1}
-  <h2>How the composition changed</h2>
-  <p>
-    Both populations are shifting, but not together. Since {enrolledHist[0][0]},
-    enrolled Black students went {rc(raceChg(enrolledHist, 'blk'))}, white students
-    {rc(raceChg(enrolledHist, 'wht'))}, Hispanic students
-    {rc(raceChg(enrolledHist, 'his'))}, and Asian students
-    {rc(raceChg(enrolledHist, 'asn'))} — while the boundary's residents (all ages,
-    ACS {residentHist[0][0]}→{residentHist[residentHist.length - 1][0]}) changed far
-    more slowly. Counts, not shares, so the district's overall shrinkage is visible
-    in the right panel's height.
-  </p>
-  <div class="duo">
-    <StackedArea
-      data={residentHist}
-      series={RACE_SERIES}
-      title="Residents inside LAUSD, all ages (ACS 5-yr vintages)"
-    />
-    <StackedArea
-      data={enrolledHist}
-      series={RACE_SERIES}
-      title="Students enrolled in LAUSD-authorized schools (CDE)"
-    />
-  </div>
 {/if}
 
 {#if sed}
@@ -236,12 +240,67 @@
   </div>
 {/if}
 
+{#if peRows.length > 30}
+  <h2>Do the students' parents match the neighborhood's adults?</h2>
+  <p>
+    Each dot is one of {peRows.length} zoned LAUSD elementaries: the share of adults
+    (25+) in its attendance area holding a bachelor's degree or higher
+    (<b>horizontal</b>, census) against the share of the school's <em>tested
+    students whose parents</em> report a BA or higher (<b>vertical</b>, CAASPP
+    parent-education groups, "declined to state" excluded). On the dashed line, the
+    school's families mirror the neighborhood. They mostly do — the correlation is
+    {rPe == null ? '…' : fmt2(rPe)} — but the misses are one-sided by geography:
+    in low-attainment areas, tested families match or exceed the neighborhood,
+    while in the most-educated areas the dots fan out <b>below</b> the line
+    ({peBelow ?? '…'}% below overall) — exactly where opting out to private,
+    charter, and magnet schools is most available.
+  </p>
+  <div class="chartwrap">
+    <svg viewBox="0 0 {AW} {AH}" role="img" aria-label="School parents' educational attainment vs attendance-area adult attainment">
+      {#each [0, 0.25, 0.5, 0.75] as t}
+        <line x1={px(t)} y1={AM.top} x2={px(t)} y2={AH - AM.bottom} stroke="#e1e0d9" />
+        <text x={px(t)} y={AH - AM.bottom + 18} text-anchor="middle" class="tick">{Math.round(t * 100)}%</text>
+      {/each}
+      {#each [0.25, 0.5, 0.75] as t}
+        <line x1={AM.left} y1={py(t)} x2={AW - AM.right} y2={py(t)} stroke="#e1e0d9" />
+        <text x={AM.left - 8} y={py(t) + 4} text-anchor="end" class="tick">{Math.round(t * 100)}%</text>
+      {/each}
+      <line x1={px(0)} y1={py(0)} x2={px(0.9)} y2={py(0.9)} stroke="#898781" stroke-dasharray="5 4" />
+      <text x={px(0.6)} y={py(0.6) - 8} class="anno" text-anchor="end">families mirror the area</text>
+      {#each peRows as s (s.cds)}
+        <a href="/school/{s.cds}">
+          <circle
+            cx={px(clamp(s.ba, 0, 0.9))}
+            cy={py(clamp(s.pe, 0, 0.9))}
+            r="3.2"
+            fill={s.pe < s.ba ? '#eb6834' : '#2a78d6'}
+            fill-opacity="0.5"
+          >
+            <title>{s.name} — area adults BA+ {Math.round(s.ba * 100)}%; tested students' parents BA+ {Math.round(s.pe * 100)}%</title>
+          </circle>
+        </a>
+      {/each}
+      <text x={(AM.left + AW - AM.right) / 2} y={AH - 8} text-anchor="middle" class="axis">
+        Attendance-area adults with BA or higher →
+      </text>
+      <text x={16} y={(AM.top + AH - AM.bottom) / 2} text-anchor="middle" class="axis"
+        transform="rotate(-90 16 {(AM.top + AH - AM.bottom) / 2})">
+        Tested students' parents with BA or higher
+      </text>
+    </svg>
+  </div>
+  <p class="note">
+    <span class="dotk" style="background:#eb6834"></span> parents less educated than
+    the area · <span class="dotk" style="background:#2a78d6"></span> parents match or
+    exceed it. Parent education is self-reported on CAASPP and measured over tested
+    students only; area attainment covers all resident adults, parents or not.
+  </p>
+{/if}
+
 {#if attain.length > 30}
   <h2>Adult attainment and school outcomes, area by area</h2>
   <p>
-    Each dot is one of {attain.length} zoned LAUSD elementaries, placed by the share
-    of adults (25+) in its own attendance area holding a bachelor's degree or higher
-    (<b>horizontal</b>, census) and the school's current Met+ rate
+    The same area attainment against the school's current Met+ rate
     (<b>vertical</b>). The correlation is {rAttain == null ? '…' : fmt2(rAttain)} —
     raw school outcomes track neighborhood adult attainment tightly. Against the
     <em>demographically adjusted</em> percentile it drops to
@@ -354,6 +413,17 @@
   .note {
     color: #6f6a61;
     font-size: 0.88rem;
+  }
+  .anno {
+    font-size: 11px;
+    fill: #898781;
+  }
+  .dotk {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    vertical-align: -1px;
   }
   a circle {
     cursor: pointer;
