@@ -212,6 +212,43 @@ export const GLOSSARY = [
     def: [
       'California’s standard school identifier: two county digits, five district digits, seven school digits, zero-padded. A school code of 0000000 denotes a district-level row; a district code of 00000 denotes a county-level row. CDS codes are the join key across every dataset on this site and appear in page URLs.'
     ]
+  },
+  {
+    id: 'resident-children',
+    term: 'Resident public-school children',
+    unit: 'children 5–17',
+    tip: 'Census Bureau estimate of children 5–17 living inside a district’s boundary who attend public school — where students LIVE, regardless of where they enroll.',
+    def: [
+      'The American Community Survey’s count of children ages 5–17 living inside a district’s boundary who attend public school (table B14003) — the residence side of the enrollment-flow accounting. Estimates are 5-year survey windows with margins of error; overlapping windows share most of their sample, so window-to-window changes are not annual signal.'
+    ]
+  },
+  {
+    id: 'physical-seats',
+    term: 'Seats (physical schools)',
+    unit: 'students',
+    tip: 'Census-day enrollment attributed to an area: the district’s own schools and affiliated charters (administrative attendance) plus independent charters located there. Converted to resident-children units by a statewide calibration.',
+    def: [
+      'The census-day enrollment the flow model attributes to a district area: the district’s own schools and its affiliated charters (attendance is administrative — a campus built just across a census boundary line still serves its district), plus independent charter schools whose buildings stand inside the area (no attendance area, so location is the draw evidence). Averaged over the five school years overlapping each survey window and scaled by the statewide universe calibration so it is comparable to resident children (the two sources count slightly different populations: TK 4-year-olds, 18+ seniors).'
+    ]
+  },
+  {
+    id: 'net-import-rate',
+    term: 'Net import rate',
+    unit: '% of resident children (est.)',
+    tip: 'Modeled net accounting residual: seats at schools located in an area minus its resident public-school children (after removing virtual enrollment). Positive = net importer. Not observed transfers.',
+    def: [
+      'Seats attributed to an area (in resident units) minus the area’s resident public-school children, after allocating the county’s measured virtual & out-of-county enrollment across its districts by population share — expressed as a share of resident children. Positive means schools there seat more students than the area’s own children account for (a net importer); negative means a net exporter.',
+      'This is a net accounting residual, never a count of observed transfers. Because the allocation removes only the county-average virtual share, a district’s net export mixes in-person enrollment across district lines with above-average use of virtual and other out-of-area options — no public data separates the two, and neither is attributable to a single cause. Estimates carry survey margins; districts whose margin exceeds ±15 points show as gray on maps.'
+    ]
+  },
+  {
+    id: 'virtual-share',
+    term: 'Virtual share',
+    unit: '% of resident children (est.)',
+    tip: 'The share of an area’s resident public-school children modeled as enrolled in virtual charters and statewide programs — allocated from the statewide pool by population share (virtual enrollment crosses county lines). A lower bound.',
+    def: [
+      'Virtual charters enroll students far from where their enrollment is counted, so the flow model removes flagged-virtual schools from the geography entirely and allocates their statewide enrollment to every area in proportion to resident public-school children — virtual enrollment nets out only at the state level, never within a county. Separately, each county’s remaining physical imbalance (enrollment counted administratively outside the county) is redistributed within that county so physical seats and physical resident-students net out exactly per county. The directory’s virtual flag misses some non-classroom-based programs, so this share is a documented lower bound.'
+    ]
   }
 ];
 
@@ -225,6 +262,17 @@ export const COLTIP = {
   pass_math: 'Math — ' + TIP['met-plus'],
   spark: TIP['met-plus-by-year'],
   adj_pct: TIP['adj-percentile'],
+  simstu_pct:
+    'Similar Student %ile: for a student with a fixed demographic profile, how ' +
+    'the expected performance at this school ranks against every other ' +
+    'California school — students like these tend to perform better here than ' +
+    'at this percentage of schools. A conditional association, not a causal ' +
+    'transfer effect. See Methodology.',
+  stu_pct:
+    'Expected Student %ile: where a school serving students like these would be ' +
+    'expected to score statewide — the percentile of the demographic prediction, ' +
+    'before knowing anything about performance relative to expectation. ' +
+    'Expected + residual = observed. See Methodology.',
   growth_eb: TIP['cohort-trajectory'],
   ppe: TIP['ppe'],
   econ: TIP['econ-share'],

@@ -38,6 +38,7 @@ TAB_FAMILIES = [
     "el",
     "dashboard",
     "growth",
+    "doc",
 ]
 XLSX_FAMILIES = ["frpm", "cupc", "ppe", "currentexpense", "lcff"]
 
@@ -86,6 +87,28 @@ def read_tab(path: Path) -> pl.DataFrame:
     )
     df = df.rename({c: snake(c) for c in df.columns})
     return _derive_cds(df)
+
+
+def read_doc(path: Path) -> pl.DataFrame:
+    """District of Choice files: tab-delimited with a 2-line title preamble.
+    The header row is located by its CDCode column, so preamble drift is safe."""
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    start = next(
+        (i for i, line in enumerate(lines[:10]) if "CDCode" in line or "CD Code" in line),
+        None,
+    )
+    if start is None:
+        raise ValueError("no CDCode header row found")
+    df = pl.read_csv(
+        io.BytesIO("\n".join(lines[start:]).encode()),
+        separator="\t",
+        null_values=NULL_TOKENS,
+        infer_schema_length=0,
+        encoding="utf8-lossy",
+        truncate_ragged_lines=True,
+    )
+    df = df.drop([c for c in df.columns if c.startswith("column_")])
+    return df.rename({c: snake(c) for c in df.columns})
 
 
 def read_xlsx(path: Path) -> pl.DataFrame:
@@ -159,7 +182,13 @@ def ingest_family(family: str) -> None:
     paths = sorted(p for p in raw_dir.iterdir() if p.is_file())
     for path in paths:
         try:
-            if is_xlsx and path.suffix.lower() in (".xlsx", ".xls"):
+            if family == "doc":
+                # Only the tab-text transfer files; the family also carries xlsx
+                # duplicates and fiscal sidecars we keep raw-only.
+                if path.suffix.lower() != ".txt" or "transfer" not in path.name.lower():
+                    continue
+                df = read_doc(path)
+            elif is_xlsx and path.suffix.lower() in (".xlsx", ".xls"):
                 df = read_lcff(path) if family == "lcff" else read_xlsx(path)
             elif not is_xlsx and path.suffix.lower() in (".txt", ".csv", ".tsv"):
                 df = read_tab(path)

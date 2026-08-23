@@ -7,7 +7,8 @@
   class="shell"
   class:wide={page.url.pathname === '/' ||
     page.url.pathname === '/compare' ||
-    page.url.pathname.startsWith('/lausd')}
+    page.url.pathname.startsWith('/lausd') ||
+    page.url.pathname.startsWith('/enrollment')}
 >
   <header>
     <a class="brand" href="/">School<span>Factors</span></a>

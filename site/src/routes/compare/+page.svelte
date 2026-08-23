@@ -122,6 +122,16 @@
       cls: (s) =>
         s.effects?.level_adj_eb > 0 ? 'pos' : s.effects?.level_adj_eb < 0 ? 'neg' : ''
     },
+    {
+      label: 'Similar Student %ile',
+      gid: 'similar-student',
+      tip:
+        'For a student with a fixed demographic profile, how expected ' +
+        'performance at this school ranks against every other California ' +
+        'school — the parent decision question. Conditional association, not ' +
+        'a causal transfer effect.',
+      f: (s) => s.simstu_pct ?? '—'
+    },
     { label: 'Similar Schools %ile', gid: 'adj-percentile', tip: 'Where performance-vs-expectation ranks among comparable California schools, using the cautious end of each estimate\'s uncertainty band.', f: (s) => s.adj_pct ?? '—' },
     {
       label: 'Cohort trajectory',

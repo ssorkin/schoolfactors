@@ -419,6 +419,7 @@
     return out;
   });
   const NUM_COLS = [
+    ['simstu_pct', 'Similar Student', '%ile'],
     ['adj_pct', 'Similar Schools', '%ile'],
     ['growth_eb', 'Cohort', 'trajectory'],
     ['ppe', '$/Pupil', ''],
@@ -431,12 +432,12 @@
     return {
       headers: [
         'Name', 'Kind', 'Level', 'District', 'County', 'ELA met+ %', 'Math met+ %',
-        'Similar Schools %ile', 'Cohort trajectory', 'Cohort growth (SD/grade)',
-        '$ per pupil', '% FRPM', 'Enrollment', 'CDS'
+        'Similar Student %ile', 'Similar Schools %ile', 'Cohort trajectory',
+        'Cohort growth (SD/grade)', '$ per pupil', '% FRPM', 'Enrollment', 'CDS'
       ],
       rows: sorted.map((it) => [
         it.name, it.kind, it.level, it.district, it.county, it.pass_ela, it.pass_math,
-        it.adj_pct, it.growth_cat, it.growth_eb, it.ppe,
+        it.simstu_pct, it.adj_pct, it.growth_cat, it.growth_eb, it.ppe,
         it.econ == null ? null : Math.round(it.econ * 100), it.enrollment, it.cds
       ])
     };
@@ -642,6 +643,7 @@
                 <span class="dim">—</span>
               {/if}
             </td>
+            <td class="tnum" class:pos={it.simstu_pct >= 75} class:neg={it.simstu_pct <= 25}>{it.simstu_pct ?? '—'}</td>
             <td class="tnum" class:pos={it.adj_pct >= 75} class:neg={it.adj_pct <= 25}>{it.adj_pct ?? '—'}</td>
             <td
               class="tnum cat"

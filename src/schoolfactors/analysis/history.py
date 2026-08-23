@@ -18,7 +18,10 @@ import polars as pl
 
 from schoolfactors.analysis.model import MIN_YEARS, adjust, eb_shrink, fit_school_models
 
-HISTORY_COLS = ["cds", "as_of_year", "last_year", "level_adj_lcb", "level_reliability"]
+HISTORY_COLS = [
+    "cds", "as_of_year", "last_year", "level_adj_lcb", "level_reliability",
+    "level_pred", "level_eb",
+]
 
 
 def level_history(
@@ -47,6 +50,12 @@ def level_history(
                 pl.col("last_year").cast(pl.Int64),
                 "level_adj_lcb",
                 "level_reliability",
+                # Demographic prediction as of this cutoff (level minus
+                # residual, OLS): the Expected Student chips rank this.
+                (pl.col("level") - pl.col("level_adj")).alias("level_pred"),
+                # Shrunken level as of this cutoff: feeds era-contemporaneous
+                # Similar Student percentiles (level_eb minus era stud_eff).
+                "level_eb",
             )
         )
     return pl.concat(frames) if frames else pl.DataFrame(schema=HISTORY_COLS)

@@ -102,16 +102,18 @@ def fetch_layer(
     fmt: str = "geojson",
     extra: dict | None = None,
     page_size: int = 2000,
+    dataset: str = DATASET,
 ) -> Path | None:
     """Page a full layer through /query and write one merged file + manifest entry.
 
     `layer_path` is relative to the LAUSD org, or an absolute ArcGIS layer URL
-    (e.g. TIGERweb). `extra` may override `page_size`.
+    (e.g. TIGERweb). `extra` may override `page_size`. `dataset` routes the file
+    and manifest entry to another acquisition family (e.g. "tiger").
     """
     extra = dict(extra or {})
     page_size = int(extra.pop("page_size", page_size))
     layer_url = layer_path if layer_path.startswith("http") else f"{ORG}/{layer_path}"
-    dest_dir = RAW_DIR / DATASET
+    dest_dir = RAW_DIR / dataset
     dest_dir.mkdir(parents=True, exist_ok=True)
     suffix = "geojson" if fmt == "geojson" else "json"
     dest = dest_dir / f"{name}.{suffix}"
@@ -126,7 +128,7 @@ def fetch_layer(
     if params.get("returnGeometry") != "false" and fmt == "geojson":
         params["outSR"] = 4326
 
-    manifest = load_manifest(DATASET)
+    manifest = load_manifest(dataset)
     entry = manifest.get(dest.name)
     if entry and dest.exists() and dest.stat().st_size == entry["size"]:
         return dest
@@ -165,7 +167,7 @@ def fetch_layer(
         pass
 
     manifest[dest.name] = ManifestEntry(
-        dataset=DATASET,
+        dataset=dataset,
         filename=dest.name,
         url=f"{layer_url}/query",
         sha256=sha256_file(dest),
@@ -173,7 +175,7 @@ def fetch_layer(
         downloaded_at=datetime.now(UTC).isoformat(timespec="seconds"),
         note=f"{len(features)} features in {pages} page(s), f={fmt}",
     ).__dict__
-    save_manifest(DATASET, manifest)
+    save_manifest(dataset, manifest)
     print(f"  ok {dest.name} ({len(features):,} features, {dest.stat().st_size:,} bytes)")
     return dest
 

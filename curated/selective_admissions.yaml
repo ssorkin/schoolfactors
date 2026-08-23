@@ -60,3 +60,185 @@
   kind: criteria
   note: Application-based specialized program.
   source: https://riversidestem.riversideunified.org/
+
+- cds: "19647250132324"
+  name: Eunice Sato Academy of Math & Science
+  district: Long Beach Unified
+  kind: criteria
+  note: GPA, math, and CAASPP criteria. Community-curated; admission process documented on the school's official site.
+  source: https://www.cde.ca.gov/SchoolDirectory/details?cdscode=19647250132324
+
+- cds: "19645681996131"
+  name: Anderson W. Clark Magnet High
+  district: Glendale Unified
+  kind: lottery+
+  note: GPA/math eligibility, then lottery. Community-curated; admission process documented on the school's official site.
+  source: https://www.cde.ca.gov/SchoolDirectory/details?cdscode=19645681996131
+
+- cds: "19647330102921"
+  name: Dr. Richard A. Vladovic Harbor Teacher Preparation Academy
+  district: Los Angeles Unified
+  kind: criteria
+  note: Admission-criteria school; dual-enrollment assessment. Community-curated; admission process documented on the school's official site.
+  source: https://harborteacherprep.com
+
+- cds: "19647330133603"
+  name: Girls Academic Leadership Academy
+  district: Los Angeles Unified
+  kind: criteria
+  note: SAS eligibility criteria. Community-curated; admission process documented on the school's official site.
+  source: http://www.galacademy.org
+
+- cds: "19647330135996"
+  name: Boys Academic Leadership Academy
+  district: Los Angeles Unified
+  kind: criteria
+  note: SAS eligibility criteria. Community-curated; admission process documented on the school's official site.
+  source: http://boysleadershipacad.lausd.org
+
+- cds: "19647336100069"
+  name: Balboa Gifted/High Ability Magnet Elementary
+  district: Los Angeles Unified
+  kind: criteria
+  note: Gifted/high-ability eligibility. Community-curated; admission process documented on the school's official site.
+  source: http://balboamagnet.lausd.org
+
+- cds: "10621666103832"
+  name: Manchester GATE
+  district: Fresno Unified
+  kind: criteria
+  note: GATE eligibility. Community-curated; admission process documented on the school's official site.
+  source: http://go.fresnou.org/manchestergate
+
+- cds: "10621666103840"
+  name: Edison Computech
+  district: Fresno Unified
+  kind: criteria
+  note: Grades/tests/academic criteria. Community-curated; admission process documented on the school's official site.
+  source: http://go.fresnou.org/computech
+
+- cds: "36679340110064"
+  name: University Preparatory
+  district: Victor Valley Union High
+  kind: criteria
+  note: GPA, attendance, discipline, and test criteria. Community-curated; admission process documented on the school's official site.
+  source: http://www.vvuhsd.k12.ca.us/ups
+
+- cds: "19651361996321"
+  name: Academy of the Canyons
+  district: William S. Hart Union High
+  kind: criteria
+  note: GPA/attendance/behavior eligibility. Community-curated; admission process documented on the school's official site.
+  source: http://www.academyofthecanyons.com
+
+- cds: "43694840114496"
+  name: Dr. TJ Owens Gilroy Early College Academy
+  district: Gilroy Unified
+  kind: criteria
+  note: Grades/tests/recommendations/interview. Community-curated; admission process documented on the school's official site.
+  source: http://geca.gilroyunified.org/
+
+- cds: "43696740135970"
+  name: Mission Early College High
+  district: Santa Clara Unified
+  kind: criteria
+  note: Academic record plus review/interview. Community-curated; admission process documented on the school's official site.
+  source: http://mechs.santaclarausd.org
+
+- cds: "07617960730291"
+  name: Middle College High
+  district: West Contra Costa Unified
+  kind: criteria
+  note: Academic/attendance/behavior screening. Community-curated; admission process documented on the school's official site.
+  source: https://www.cde.ca.gov/SchoolDirectory/details?cdscode=07617960730291
+
+- cds: "36678763631090"
+  name: Middle College High
+  district: San Bernardino City Unified
+  kind: criteria
+  note: Academics/tests/behavior screening. Community-curated; admission process documented on the school's official site.
+  source: http://www.sbcusd.com
+
+- cds: "29663570112367"
+  name: William & Marian Ghidotti Early College High
+  district: Nevada Joint Union High
+  kind: criteria
+  note: GPA/tests/writing/recommendations. Community-curated; admission process documented on the school's official site.
+  source: http://www.njuhsd.com
+
+- cds: "19650940137042"
+  name: Mt. SAC Early College Academy at West Covina
+  district: West Covina Unified
+  kind: criteria
+  note: GPA/readiness/attendance/discipline criteria. Community-curated; admission process documented on the school's official site.
+  source: http://mtsaceca.wcusd.org/
+
+- cds: "30665970111666"
+  name: Early College High
+  district: Newport-Mesa Unified
+  kind: criteria
+  note: Transcript/attendance/behavior/application review. Community-curated; admission process documented on the school's official site.
+  source: http://www.nmusd.us
+
+- cds: "33669930141366"
+  name: Beaumont Middle College High
+  district: Beaumont Unified
+  kind: criteria
+  note: GPA/A-G/attendance/discipline criteria. Community-curated; admission process documented on the school's official site.
+  source: https://bmchs.beaumontusd.us
+
+- cds: "33670330110759"
+  name: John F. Kennedy Middle College High
+  district: Corona-Norco Unified
+  kind: criteria
+  note: GPA/attendance/discipline/application review. Community-curated; admission process documented on the school's official site.
+  source: https://jfk.cnusd.k12.ca.us
+
+- cds: "37681303731536"
+  name: Grossmont Middle College High
+  district: Grossmont Union High
+  kind: criteria
+  note: Academic readiness/application review. Community-curated; admission process documented on the school's official site.
+  source: http://middlecollege.guhsd.net
+
+- cds: "37682960141390"
+  name: Poway to Palomar Middle College High
+  district: Poway Unified
+  kind: criteria
+  note: Application plus interview. Community-curated; admission process documented on the school's official site.
+  source: http://powayusd.com
+
+- cds: "37683380118315"
+  name: East Village Middle College High
+  district: San Diego Unified
+  kind: criteria
+  note: GPA/essay/record plus interview. Community-curated; admission process documented on the school's official site.
+  source: https://eastvillage.sandiegounified.org/
+
+- cds: "43696410142349"
+  name: Palo Alto Middle College High
+  district: Palo Alto Unified
+  kind: criteria
+  note: Essay/recommendations/interview. Community-curated; admission process documented on the school's official site.
+  source: http://mc.pausd.org
+
+- cds: "43733870140673"
+  name: Milpitas Middle College High
+  district: Milpitas Unified
+  kind: criteria
+  note: GPA/attendance/application/interview. Community-curated; admission process documented on the school's official site.
+  source: http://sites.google.com/musd.org/mmchs
+
+- cds: "56725460136804"
+  name: Oxnard Middle College High
+  district: Oxnard Union High
+  kind: criteria
+  note: Academic record/essay/recommendations/interview. Community-curated; admission process documented on the school's official site.
+  source: http://oxnardmiddlecollege.us/
+
+- cds: "39685853930443"
+  name: Middle College High
+  district: Lodi Unified
+  kind: criteria
+  note: Records/recommendations/CAASPP/attendance. Community-curated; admission process documented on the school's official site.
+  source: https://www.cde.ca.gov/SchoolDirectory/details?cdscode=39685853930443

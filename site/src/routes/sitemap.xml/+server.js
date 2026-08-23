@@ -20,6 +20,8 @@ const STATIC_PAGES = [
   { path: '/lausd/funding', priority: '0.7' },
   { path: '/lausd/enrollment', priority: '0.7' },
   { path: '/lausd/demographics', priority: '0.7' },
+  { path: '/enrollment', priority: '0.8' },
+  { path: '/enrollment/methodology', priority: '0.6' },
   { path: '/methodology', priority: '0.8' },
   { path: '/glossary', priority: '0.6' },
   { path: '/data', priority: '0.6' },
@@ -31,13 +33,23 @@ const KIND_PRIORITY = { school: '0.7', district: '0.6', county: '0.5' };
 export function GET() {
   const index = JSON.parse(readFileSync('static/data/index.json', 'utf-8'));
   const today = new Date().toISOString().slice(0, 10);
+  // Enrollment-flow pages come from the same index their entries() read.
+  const enroll = JSON.parse(readFileSync('static/data/enrollment/index.json', 'utf-8'));
+  const eCds = enroll.cols.indexOf('cds');
+  const eType = enroll.cols.indexOf('dtype');
   const urls = [
     ...STATIC_PAGES.map((p) => ({ loc: SITE + p.path, priority: p.priority })),
     ...POSTS.map((p) => ({ loc: `${SITE}/insights/${p.slug}`, priority: '0.7' })),
     ...index.map((e) => ({
       loc: `${SITE}/${e.kind}/${e.cds}`,
       priority: KIND_PRIORITY[e.kind] ?? '0.5'
-    }))
+    })),
+    ...enroll.rows
+      .filter((r) => r[eCds] && (r[eType] === 'c' || r[enroll.cols.indexOf('net_rate')] != null))
+      .map((r) => ({
+        loc: `${SITE}/enrollment/${r[eType] === 'c' ? 'county' : 'district'}/${r[eCds]}`,
+        priority: r[eType] === 'c' ? '0.5' : '0.6'
+      }))
   ];
   const body =
     '<?xml version="1.0" encoding="UTF-8"?>\n' +

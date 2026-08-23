@@ -1,0 +1,29 @@
+id: nces-crosswalk-gaps
+dataset: directory
+years: [2024]
+kind: coverage-limitation
+title: CDE-NCES district crosswalk gaps between census geoids and CDE districts
+description: >
+  The enrollment-flow model joins census school-district geography to CDE
+  districts through the directory's ncesdist (NCES LEAID = ACS geoid). The join
+  has gaps in both directions. (1) 22 current district polygons have no CDE
+  district mapping to their geoid (stale or blank ncesdist in the directory,
+  recently reorganized districts) - these areas appear on the statewide map with
+  accounting values but get no linked district page. (2) 75 CDE geographic
+  districts (doc 52/54/56) carry an ncesdist with no current polygon -
+  predecessor districts from reorganizations; their historical schools are sited
+  by coordinates, so their seats still land in the right area. Separately, 14
+  NCES pseudo secondary districts (GEOID 0699xxx, elementary territory whose
+  high grades a unified district serves) have no CDE LEA by construction; they
+  are modeled as areas but are not crosswalk gaps.
+evidence: >
+  Measured at build by quality check enrollment_siting (counts above, ACS-2024
+  polygons vs the current directory). Directory rows occasionally disagree on
+  ncesdist for the same district; the majority mapping wins
+  (enrollment_flows.district_crosswalk, census_poverty precedent).
+handling: >
+  Gap counts are surfaced in the DQ report on every build. Areas without a CDE
+  crosswalk stay in the accounting and on the map (their names come from TIGER)
+  but are excluded from per-district pages and search routing. No manual geoid
+  patching - fixes belong upstream in the directory data or an explicit curated
+  crosswalk with per-entry sources if it ever becomes necessary.

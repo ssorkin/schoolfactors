@@ -1,8 +1,32 @@
 # Data Quality Report
 
-Generated 2026-08-19 by `sf check`. This report is a first-class artifact of the pipeline: problems in the source data are surfaced here and in `known_issues/`, never silently patched.
+Generated 2026-08-23 by `sf check`. This report is a first-class artifact of the pipeline: problems in the source data are surfaced here and in `known_issues/`, never silently patched.
 
 ## Known issues (documented registry)
+
+### Pre-2010 ACS 1-year estimates overstate LA County children (Census-2000-based controls)
+
+*measurement-bias, affects census 2005, 2006, 2007, 2008, 2009* — id `acs-pre2010-population-controls-la-county`
+
+ACS 1-year estimates for survey years 2005-2009 were weighted to Census-2000-based intercensal population estimates that overstated Los Angeles County. In B14003 (children 5-17 enrolled in public school), LA County's share of the state runs 0.55-1.35 percentage points above the county's share of CDE census-day enrollment in 2005-2009; the gap shrinks monotonically toward the 2010 benchmark and sits within +/-0.1pp for every year 2011-2018 once 2010-census population controls take over. The statewide Census/CDE calibration used in the enrollment analyses cannot absorb a county-specific weighting bias, so pre-2010 county- and district-level residuals (apparent "net administrative export") are inflated by roughly 3-5% of the county's child count - up to ~80k phantom children at the 2006 peak.
+
+**Handling:** Corrected by an explicit, named transform (lausd_export._acs1_control_factors): ACS 1-year levels for survey years 2005-2009 are rescaled by the ratio of the Census Bureau's 2010-census-consistent intercensal county estimate of children 5-17 to the same-year vintage postcensal estimate the ACS actually weighted to - LA County's factor applied to county and LAUSD-boundary levels, California's to state levels. Factors run 0.949 (2005) to 1.003 (2009) for LA County. Inputs are acquired with manifests (data/raw/census/popest_*.csv - the 2000-2010 intercensal county age/sex file and the vintage-2005..2009 CA county age/sex files; vintage year codes map July 1 of year y to code y-1997) and ingested to the popest_raw view. Ages 15-17 in the intercensal file's 5-year bins are approximated as 3/5 of the 15-19 group (<=0.3% effect on the ratio). The correction and its size are disclosed in the article's method notes; 2010+ levels are untouched (2010-census controls onward).
+
+### ACS 5-year windows ending 2009-2013 mix Census-2000 and Census-2010 population controls
+
+*measurement-bias, affects census 2009, 2010, 2011, 2012, 2013* — id `acs5-mixed-population-controls`
+
+Each single survey year inside an ACS 5-year window was weighted to that year's own population controls: years 2005-2009 to Census-2000-based postcensal estimates (which overstated some counties, notably Los Angeles - see acs-pre2010-population-controls-la-county), years 2010+ to Census-2010-based controls. A 5-year window ending 2009-2013 therefore blends the two control regimes: vintage 2009 (window 2005-09) is fully affected, vintage 2013 (window 2009-13) only 1/5. Left uncorrected, early-window resident-children levels are inflated in the affected counties and the statewide enrollment-flow model would read the bias as apparent net export.
+
+**Handling:** Explicit, named transform (enrollment_flows.apply_control_correction with enrollment_flows._window_factor): each acs5 observation is multiplied by the mean of its window's per-year factors, where a year's factor is the county's intercensal/postcensal children-5-17 ratio for years <= 2009 (from enrollment_flows.control_factors, the all-county generalization of lausd_export._acs1_control_factors) and exactly 1.0 for years >= 2010. County factors are applied to district areas through each district's administrative county - a per-district proxy, documented as a bias term in analysis/enrollment_flow_model.md. MOEs are scaled by the same factor. The applied factor is carried per row (residence and flows parquets, `factor`/`cf` in the site export) so corrected points are labelable on-page.
+
+### ACS 5-year windows containing the 2020 collection year can overstate resident-children declines in small districts
+
+*measurement-bias, affects census 2020, 2021, 2022, 2023, 2024* — id `acs5-pandemic-collection-resident-bias`
+
+The 2020 ACS collection year suffered severe pandemic nonresponse (the Census Bureau withheld the 2020 1-year products entirely and applied experimental weighting to the 5-year files), and the 5-year series switched from Census-2010- to Census-2020-based population controls mid-decade. Every 5-year window that includes 2020 (vintages 2020-2024) carries some of this. In small districts the effect can materially overstate the decline in resident public-school children (B14003-derived); the enrollment-flow model then reads the too-fast resident decline as apparent net IMPORT, since local seats (CDE-observed, accurate) fall more slowly than the mismeasured resident base.
+
+**Handling:** Documented, not patched: no statewide per-district ground truth exists to correct the pandemic windows (district facilities reports like SVUSD's cover only scattered districts). The published MOEs already reflect much of the uncertainty and are shown on district pages and in hover captions; the statewide map's MOE gate (net-rate margin over +-15pp uncolored) suppresses the least reliable districts. Pandemic-window (2020-2023) net flips of order one MOE in small districts should be read as noise unless corroborated; the flow model's district series carries res_moe per row so affected points are identifiable. Site methodology section 9 ("what this cannot say") covers the general ACS-uncertainty caveat.
 
 ### 2015 "number enrolled" counts all-subject eligibility, later years count per-subject
 
@@ -36,6 +60,22 @@ Group 6 ("Fluent English proficient and English only") is the sum of groups 7 (I
 
 **Handling:** Analyses that need "fluent but not English-only" must use groups 7 + 8 directly, never group 6 minus anything.
 
+### Directory virtual flag is present-day and undercounts non-classroom-based enrollment
+
+*coverage-limitation, affects directory 2005, 2026* — id `cde-virtual-flag-lower-bound`
+
+The statewide enrollment-flow model classifies a school as virtual when the CDE directory currently flags it fully or primarily virtual (virtual in F/V). Two limitations follow. (1) The flag is a present-day attribute applied to the whole 1981-2026 enrollment history: schools that changed model, or closed before the flag existed, are classified by their last-known state. (2) Non-classroom-based charters that CDE does not flag virtual (independent-study, hybrid, resource-center models) are treated as physical schools at their directory coordinates even though their students need not live nearby. Both push in the same direction: the statewide virtual pool is a LOWER BOUND, and the flow model attributes some genuinely-remote enrollment to the school's host area, biasing that area toward apparent net import (and the students' home areas toward apparent export).
+
+**Handling:** Documented in analysis/enrollment_flow_model.md and on the site methodology page; remote-pool quantities are labeled estimates and the flag's lower-bound nature is stated wherever the remote share is shown. The flag is complemented by an arithmetic criterion (enrollment_flows NC_RATIO): charters whose geographic authorizer's administered charter enrollment exceeds 1.5x the authorizer's own resident children are classified non-classroom statewide-draw and pooled with flagged-virtual seats (allocated over the authorizer county + adjacent counties, the Ed Code enrollment footprint; audited per vintage in the DQ report). The criterion is itself a lower bound: non-classroom programs under large authorizers pass the ratio test and remain in measured cross-county flows. No name-matching heuristics are applied - that would silently patch data. A future improvement is CDE's non-classroom-based funding determination list, which is not currently acquired.
+
+### Current (ACS-2024) district polygons applied to all vintages 2009-2024
+
+*coverage-limitation, affects tiger 2009, 2024* — id `district-boundary-vintage-mismatch`
+
+The statewide enrollment-flow model sites schools and draws maps with one set of district polygons - TIGERweb's ACS-2024 school-district layers - while ACS residence attributes are keyed by as-of-vintage geoids. Districts that reorganized during 2009-2024 (unifications, consolidations, boundary transfers) therefore have residence rows in early vintages with no matching current polygon, and their territory's seats are attributed to the successor district's area for every vintage. Early-vintage series for affected areas mix predecessor and successor geography; the model's per-vintage closure absorbs the mismatch as a small residual rather than hiding it.
+
+**Handling:** v1 accepts the mismatch: series rows exist only where the as-of-vintage geoid matches a current polygon; uncovered areas show no estimate (never zero) and their seats are absorbed by their county's pool. Coverage is reported per vintage in the DQ report. Documented in analysis/enrollment_flow_model.md ("boundary vintage" section) and on the site methodology page. A future version could carry per-vintage TIGER boundaries and a predecessor/successor crosswalk.
+
 ### One MP25 attendance-area key (E 11017) resolves to no school
 
 *coverage_gap, affects lausd_gis 2025* — id `lausd-mp25-key-11017-unresolved`
@@ -60,6 +100,14 @@ unresolved set.
 CDE reports a comprehensive school and its co-located magnet program(s) as a single CDS, so school-level results blend a neighborhood population with a selectively admitted one. North Hollywood Senior High (19647331936350) is the canonical case: its Highly Gifted Magnet admits by gifted identification citywide, inflating both the school's raw level and every student group's rates (the magnet's students appear inside each group row), while the demographic adjustment cannot observe the academic selection. The school types as "magnet", but flagging it "selective" would misclassify its majority neighborhood enrollment. This is a boundary of school-level data, not a correctable error.
 
 **Handling:** Documented, not patched. Candidate improvement (roadmap): ingest LAUSD's GATE annual school reports (ssr.lausd.net, GATE_AnnualSchoolReport), which count gifted-identified students per school and could support disaggregating or at least flagging magnet-within-school populations for LAUSD entities.
+
+### CDE-NCES district crosswalk gaps between census geoids and CDE districts
+
+*coverage-limitation, affects directory 2024* — id `nces-crosswalk-gaps`
+
+The enrollment-flow model joins census school-district geography to CDE districts through the directory's ncesdist (NCES LEAID = ACS geoid). The join has gaps in both directions. (1) 22 current district polygons have no CDE district mapping to their geoid (stale or blank ncesdist in the directory, recently reorganized districts) - these areas appear on the statewide map with accounting values but get no linked district page. (2) 75 CDE geographic districts (doc 52/54/56) carry an ncesdist with no current polygon - predecessor districts from reorganizations; their historical schools are sited by coordinates, so their seats still land in the right area. Separately, 14 NCES pseudo secondary districts (GEOID 0699xxx, elementary territory whose high grades a unified district serves) have no CDE LEA by construction; they are modeled as areas but are not crosswalk gaps.
+
+**Handling:** Gap counts are surfaced in the DQ report on every build. Areas without a CDE crosswalk stay in the accounting and on the map (their names come from TIGER) but are excluded from per-district pages and search routing. No manual geoid patching - fixes belong upstream in the directory data or an explicit curated crosswalk with per-entry sources if it ever becomes necessary.
 
 ### Central-cost allocation conventions vary by LEA and can shift between years
 
@@ -129,8 +177,8 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
   - Elk Grove Unified (cds 3467314…): parent=33,878 vs children 67,756
 - 🔴 **2021** gender (male 3 + female 4 = all students): 3 district(s) violate the identity by more than 2%
   - Shasta County Office of Education (cds 4510454…): parent=95 vs children 93
-  - Monte Rio Union Elementary (cds 4970813…): parent=48 vs children 47
   - Yolo County Office of Education (cds 5710579…): parent=48 vs children 47
+  - Monte Rio Union Elementary (cds 4970813…): parent=48 vs children 47
 - 🔴 **2022** gender (male 3 + female 4 = all students): 4 district(s) violate the identity by more than 2%
   - Humboldt County Office of Education (cds 1210124…): parent=62 vs children 59
   - Imperial County Office of Education (cds 1310132…): parent=49 vs children 48
@@ -140,17 +188,20 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
   - West Sonoma County Union High (cds 4970607…): parent=419 vs children 409
   - Sebastopol Union Elementary (cds 4970938…): parent=293 vs children 286
   - Humboldt County Office of Education (cds 1210124…): parent=73 vs children 71
-  - Peninsula Union (cds 1262984…): parent=38 vs children 37
   - Dunsmuir Elementary (cds 4770243…): parent=46 vs children 45
+  - Peninsula Union (cds 1262984…): parent=38 vs children 37
 - 🔴 **2024** gender (male 3 + female 4 = all students): 2 district(s) violate the identity by more than 2%
   - SBE - Latitude 37.8 High (cds 0177180…): parent=93 vs children 91
   - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=36 vs children 35
 - 🔴 **2025** gender (male 3 + female 4 = all students): 5 district(s) violate the identity by more than 2%
-  - Contra Costa County Office of Education (cds 0710074…): parent=90 vs children 87
   - Leggett Valley Unified (cds 2375218…): parent=68 vs children 65
+  - Contra Costa County Office of Education (cds 0710074…): parent=90 vs children 87
   - SBE - Altus Schools East County (cds 3777099…): parent=76 vs children 74
-  - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=46 vs children 45
   - Monte Rio Union Elementary (cds 4970813…): parent=44 vs children 43
+  - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=46 vs children 45
+### enrollment_remote
+
+- 🟡 **2024** classification churn vs prior vintage: ['4570169', '4970730', '5572413'] — check whether a borderline authorizer crossed the ratio cut
 ### entity_continuity
 
 - 🟡 **2016** 18 schools report in 2015 and 2017 but not 2016 (closures/reopenings, code changes, or reporting gaps)
@@ -174,6 +225,26 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
 ### census_frpm
 
 - ℹ️ ACS 2023 B17024 vs FRPM 2025-2026: 905/936 districts matched (97%), median FRPM/P185 rate ratio 1.86x (PPIC benchmark ~1.8x)
+### enrollment_closure
+
+- ℹ️ per-county netting exact: every county's district nets sum to <1 student across all 16 vintages
+- ℹ️ county-level netting exact: county nets sum to <1 student statewide across all 16 vintages
+- ℹ️ **2009** closure +0.000% of state enrollment (tolerance ±0.5%), m=5.43%, 923/974 areas covered
+- ℹ️ **2010** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.59%, 935/974 areas covered
+- ℹ️ **2011** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.27%, 935/974 areas covered
+- ℹ️ **2012** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.30%, 941/974 areas covered
+- ℹ️ **2013** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.77%, 941/974 areas covered
+- ℹ️ **2014** closure +0.000% of state enrollment (tolerance ±0.5%), m=4.46%, 953/974 areas covered
+- ℹ️ **2015** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.82%, 953/974 areas covered
+- ℹ️ **2016** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.06%, 958/974 areas covered
+- ℹ️ **2017** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.48%, 958/974 areas covered
+- ℹ️ **2018** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.80%, 973/974 areas covered
+- ℹ️ **2019** closure +0.000% of state enrollment (tolerance ±0.5%), m=5.97%, 973/974 areas covered
+- ℹ️ **2020** closure -0.000% of state enrollment (tolerance ±0.5%), m=6.51%, 973/974 areas covered
+- ℹ️ **2021** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.83%, 973/974 areas covered
+- ℹ️ **2022** closure +0.000% of state enrollment (tolerance ±0.5%), m=5.80%, 973/974 areas covered
+- ℹ️ **2023** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.95%, 973/974 areas covered
+- ℹ️ **2024** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.89%, 974/974 areas covered
 ### enrollment_definition
 
 - ℹ️ **2016** subgroup enrollment varies normally (0.0% of 877 districts constant)
@@ -185,6 +256,40 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
 - ℹ️ **2023** subgroup enrollment varies normally (0.0% of 864 districts constant)
 - ℹ️ **2024** subgroup enrollment varies normally (0.0% of 871 districts constant)
 - ℹ️ **2025** subgroup enrollment varies normally (0.0% of 865 districts constant)
+### enrollment_doc_validation
+
+- ℹ️ **2023** observed DOC transfers: 7,920 students in matched pairs, 69% between ADJACENT districts — supports the nearby-draw premise
+- ℹ️ **2023** model-vs-observed sign agreement: 22/24 DOC districts (>20 transfers) match the model's net direction (or sit within the model's margin); disagreements are expected where DOC is a small share of a district's total movement
+- ℹ️ **2023** largest DOC importer: observed net +2,434 transfers vs model net +5,013 (model includes permits and charter draw beyond the DOC program)
+### enrollment_lausd_regression
+
+- ℹ️ **2014** resident public 651,638 vs LAUSD page 651,638 (+0; tolerance ±6,516)
+- ℹ️ **2015** resident public 644,075 vs LAUSD page 644,075 (+0; tolerance ±6,441)
+- ℹ️ **2016** resident public 642,388 vs LAUSD page 642,388 (+0; tolerance ±6,424)
+- ℹ️ **2017** resident public 639,413 vs LAUSD page 639,413 (+0; tolerance ±6,394)
+- ℹ️ **2018** resident public 633,618 vs LAUSD page 633,618 (+0; tolerance ±6,336)
+- ℹ️ **2019** resident public 628,432 vs LAUSD page 628,432 (+0; tolerance ±6,284)
+- ℹ️ **2020** resident public 617,918 vs LAUSD page 617,918 (+0; tolerance ±6,179)
+- ℹ️ **2021** resident public 608,436 vs LAUSD page 608,436 (+0; tolerance ±6,084)
+- ℹ️ **2022** resident public 584,275 vs LAUSD page 584,275 (+0; tolerance ±5,843)
+- ℹ️ **2023** resident public 576,435 vs LAUSD page 576,435 (+0; tolerance ±5,764)
+### enrollment_remote
+
+- ℹ️ **2024** 22 geographic authorizers classified non-classroom (criterion: charter seats > 1.5x resident base, >= 50 seats); pooled seats 35,682
+- ℹ️ **2024** authorizer 3675051: 5,944 charter seats vs 1,222 resident children (ratio 4.9)
+- ℹ️ **2024** authorizer 3667827: 5,580 charter seats vs 89 resident children (ratio 62.6)
+- ℹ️ **2024** authorizer 1975309: 5,246 charter seats vs 1,200 resident children (ratio 4.4)
+- ℹ️ **2024** authorizer 3767983: 2,546 charter seats vs 147 resident children (ratio 17.3)
+- ℹ️ **2024** authorizer 5171407: 2,509 charter seats vs 117 resident children (ratio 21.4)
+- ℹ️ **2024** authorizer 3667736: 2,204 charter seats vs 835 resident children (ratio 2.6)
+- ℹ️ **2024** authorizer 3968627: 1,348 charter seats vs 345 resident children (ratio 3.9)
+- ℹ️ **2024** authorizer 4569948: 1,240 charter seats vs 780 resident children (ratio 1.6)
+### enrollment_siting
+
+- ℹ️ crosswalk gaps: 22 current polygons with no CDE district, 75 CDE geographic districts with no current polygon (reorganizations; see known_issues)
+- ℹ️ **2026** UNSITED (import-only pool): 2,152 students (0.04%)
+- ℹ️ **2026** admin: 5,231,539 students (91.28%)
+- ℹ️ **2026** pip: 497,569 students (8.68%)
 ### lausd_resolution
 
 - ℹ️ 985 MP25 polygons; 0 P_KEY/segment mismatches

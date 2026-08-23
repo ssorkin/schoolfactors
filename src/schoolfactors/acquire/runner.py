@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from schoolfactors.acquire import caaspp, cde, census, dashboard, lausd_gis, lausd_seni
+from schoolfactors.acquire import caaspp, cde, census, dashboard, lausd_gis, lausd_seni, tiger
 
 CAASPP_SETS = {"caaspp"}
 DASHBOARD_SETS = {"dashboard", "growth"}
 # Families with their own acquirers, which must not fall through to the CDE scraper.
-NON_CDE_SETS = {"census", "lausd_gis", "lausd_seni"}
+NON_CDE_SETS = {"census", "lausd_gis", "lausd_seni", "tiger"}
 
 
 def run_acquire(dataset: str = "all", year: int | None = None) -> None:
@@ -29,6 +29,8 @@ def run_acquire(dataset: str = "all", year: int | None = None) -> None:
             lausd_gis.acquire()
         if dataset in ("all", "lausd_seni"):
             lausd_seni.acquire()
+        if dataset in ("all", "tiger"):
+            tiger.acquire()
         if dataset == "all" or dataset not in (CAASPP_SETS | DASHBOARD_SETS | NON_CDE_SETS):
             cde.acquire(dataset=dataset)
     except WafBlocked as exc:

@@ -1,0 +1,32 @@
+id: district-boundary-vintage-mismatch
+dataset: tiger
+years: [2009, 2024]
+kind: coverage-limitation
+title: Current (ACS-2024) district polygons applied to all vintages 2009-2024
+description: >
+  The statewide enrollment-flow model sites schools and draws maps with one set of
+  district polygons - TIGERweb's ACS-2024 school-district layers - while ACS
+  residence attributes are keyed by as-of-vintage geoids. Districts that
+  reorganized during 2009-2024 (unifications, consolidations, boundary transfers)
+  therefore have residence rows in early vintages with no matching current
+  polygon, and their territory's seats are attributed to the successor district's
+  area for every vintage. Early-vintage series for affected areas mix predecessor
+  and successor geography; the model's per-vintage closure absorbs the mismatch as
+  a small residual rather than hiding it.
+evidence: >
+  Measured at build (quality check enrollment_closure / enrollment_siting):
+  vintage 2009 has ACS residence data for 923 of 974 current areas (51 uncovered,
+  shrinking to ~1 by vintage 2024); 75 CDE geographic districts have no current
+  polygon (reorganized or renumbered since). ACS 5-year vintage 2009 publishes
+  560 elementary districts vs 517 current polygons - the gap is real district
+  reorganization, mostly elementary-district unification. (Accounting closure is
+  exact by construction of the per-county pool allocation, so the mismatch shows
+  as reduced coverage, not as a closure residual.)
+handling: >
+  v1 accepts the mismatch: series rows exist only where the as-of-vintage geoid
+  matches a current polygon; uncovered areas show no estimate (never zero) and
+  their seats are absorbed by their county's pool. Coverage is reported per
+  vintage in the DQ report. Documented in analysis/enrollment_flow_model.md
+  ("boundary vintage" section) and on the site methodology page. A future
+  version could carry per-vintage TIGER boundaries and a predecessor/successor
+  crosswalk.

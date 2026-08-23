@@ -125,8 +125,8 @@
     if (type !== 'regular') badges.push(type);
     if (!s.has_boundary) badges.push('no attendance area');
     lines.push(badges.join(' · '));
-    if (s.adj_pct != null) {
-      lines.push(`${METRICS.perf.short}: <b>${ordinal(s.adj_pct)}</b>`);
+    if (s.simstu_pct != null) {
+      lines.push(`${METRICS.perf.short}: <b>${ordinal(s.simstu_pct)}</b>`);
     }
     lines.push(statRows([['Enrolled', s.enrollment?.toLocaleString()]]));
     lines.push(`<a href="/school/${s.cds}">School page →</a>`);
@@ -198,7 +198,7 @@
     markerLayer.clearLayers();
     for (const s of shownSchools) {
       if (!s.ll) continue;
-      // Fill = Similar Schools %ile (same ramp as the perf choropleth), so
+      // Fill = Similar Student %ile (same ramp as the perf choropleth), so
       // choice schools with no attendance area show their score too; shape
       // still encodes level; type stays in the popup.
       const m = shapeMarker(
@@ -208,7 +208,7 @@
           radius: markerRadius(),
           color: '#ffffff',
           weight: 0.9,
-          fillColor: s.adj_pct == null ? NO_PCT_COLOR : pctColor(s.adj_pct),
+          fillColor: s.simstu_pct == null ? NO_PCT_COLOR : pctColor(s.simstu_pct),
           fillOpacity: 0.95
         },
         levelShape(s.level)

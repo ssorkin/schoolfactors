@@ -278,15 +278,21 @@ def run_export() -> None:
         "SPEC": "special-ed",
     }
     flags_map: dict[str, list[str]] = {}
-    for cds_, magnet, charter, edops in con_dir.execute(
-        "SELECT cds, any_value(magnet), any_value(charter), any_value(edopscode) "
-        "FROM directory_raw GROUP BY cds"
+    for cds_, magnet, charter, edops, virt in con_dir.execute(
+        "SELECT cds, any_value(magnet), any_value(charter), any_value(edopscode), "
+        "any_value(trim(virtual)) FROM directory_raw GROUP BY cds"
     ).fetchall():
         fl = []
         if magnet == "Y":
             fl.append("magnet")
         if charter == "Y":
             fl.append("charter")
+        # CDE directory Virtual flag: F = exclusively virtual, V = primarily
+        # virtual. Scores at these schools describe students who may live far
+        # from the school's (or authorizer's) location, so the flag travels
+        # with the name like the admission flags do.
+        if virt in ("F", "V"):
+            fl.append("virtual")
         if edops in EDOPS_FLAG:
             fl.append(EDOPS_FLAG[edops])
         if fl:
@@ -299,6 +305,44 @@ def run_export() -> None:
                 flags_map[entry["cds"]].insert(0, "selective")
     school_type_map = {c: school_type(fl) for c, fl in flags_map.items()}
 
+    # Similar Student inputs: within-school student-level composition effects
+    # (analysis/similar_student.py). simstu = level_eb - stud_eff ranks, for a
+    # fixed student profile, the conditional expectation at each entity — the
+    # parent decision question. Profile-invariant under the additive model.
+    from schoolfactors.analysis.similar_student import student_effects
+
+    print("estimating similar-student composition effects …")
+    stud_eff_map, _stud_deltas = student_effects()
+    print(f"  student effects for {len(stud_eff_map):,} entities")
+
+
+    # Districts that authorize fully/primarily-virtual charters: school count
+    # and enrollment at the latest census-day year, plus the district's own
+    # associated total for a share. Surfaced as a notice on district pages —
+    # such a district's numbers describe students who may live far outside it.
+    virt_auth: dict[str, dict] = {}
+    try:
+        latest_ay = con_dir.execute(
+            "SELECT max(academicyear) FROM enrollment_raw"
+        ).fetchone()[0]
+        rows_va = con_dir.execute(
+            "WITH virt AS (SELECT cds FROM directory_raw WHERE trim(charter) = 'Y' AND trim(virtual) IN ('F', 'V') GROUP BY cds), cur AS (SELECT cds, sum(TRY_CAST(total_enr AS DOUBLE)) AS v FROM enrollment_raw WHERE aggregatelevel = 'S' AND reportingcategory = 'TA' AND academicyear = ? GROUP BY cds) SELECT substr(virt.cds, 1, 7), count(*) FILTER (WHERE coalesce(cur.v, 0) > 0), sum(coalesce(cur.v, 0)) FROM virt LEFT JOIN cur ON virt.cds = cur.cds GROUP BY 1", [latest_ay]
+        ).fetchall()
+        dist_tot = dict(con_dir.execute(
+            "SELECT substr(cds, 1, 7), sum(TRY_CAST(total_enr AS DOUBLE)) FROM enrollment_raw WHERE aggregatelevel = 'S' AND reportingcategory = 'TA' AND academicyear = ? GROUP BY 1", [latest_ay]
+        ).fetchall())
+        for d7, n_va, enr_va in rows_va:
+            if n_va and enr_va:
+                tot = dist_tot.get(d7)
+                virt_auth[d7] = {
+                    "year": latest_ay,
+                    "n": int(n_va),
+                    "enr": int(enr_va),
+                    "share": round(enr_va / tot, 3) if tot else None,
+                }
+    except Exception as exc:  # noqa: BLE001 - the notice is optional
+        print(f"  virtual-authorizer map skipped: {exc}")
+
     # Out-of-sample percentile history: for each cutoff year, rank entities the
     # way the live percentile does (lower bound of the 95% band, reliability
     # >= 0.70, data current through the cutoff, and — for schools — alternative
@@ -307,7 +351,9 @@ def run_export() -> None:
     # entity page shows for 2024 is the percentile a reader entering 2024 would
     # have seen, computed before 2024's scores existed. The current all-data
     # percentile (adj_pct) is the "now" chip; no history row duplicates it.
-    def pct_history(stem: str, cls_of) -> dict[str, list[list[int]]]:
+    def pct_history(
+        stem: str, cls_of, src: str = "level_adj_lcb"
+    ) -> dict[str, list[list[int]]]:
         from itertools import pairwise
 
         out: dict[str, list[list[int]]] = {}
@@ -315,16 +361,18 @@ def run_export() -> None:
         if not hist_path.exists():
             return out
         hist = pl.read_parquet(hist_path)
+        if src not in hist.columns:  # older history parquet without the column
+            return out
         hist_years = sorted(hist["as_of_year"].unique().to_list())
         for cut, nxt in pairwise(hist_years):
             sub = hist.filter(
                 (pl.col("as_of_year") == cut)
                 & (pl.col("last_year") == cut)
-                & pl.col("level_adj_lcb").is_not_null()
+                & pl.col(src).is_not_null()
                 & (pl.col("level_reliability") >= 0.7)
             )
             by_cls: dict[str, list[tuple[str, float]]] = {}
-            for cds_, lcb in sub.select("cds", "level_adj_lcb").rows():
+            for cds_, lcb in sub.select("cds", src).rows():
                 by_cls.setdefault(cls_of(cds_), []).append((cds_, lcb))
             for members in by_cls.values():
                 pool = sorted(lcb for _, lcb in members)
@@ -349,9 +397,25 @@ def run_export() -> None:
         "districts": pct_history("district_effects", lambda c: ""),
         "counties": pct_history("county_effects", lambda c: ""),
     }
+    # Expected Student chips: same out-of-sample cutoffs, ranking the
+    # demographic prediction instead of the residual band.
+    stu_hist_by_kind = {
+        "schools": pct_history(
+            "school_effects",
+            lambda c: (
+                "alternative"
+                if school_type_map.get(c, "standard") == "alternative"
+                else "general"
+            ),
+            src="level_pred",
+        ),
+        "districts": pct_history("district_effects", lambda c: "", src="level_pred"),
+        "counties": pct_history("county_effects", lambda c: "", src="level_pred"),
+    }
     for kind_, m in pct_hist_by_kind.items():
         print(f"  percentile history: {len(m):,} {kind_} "
-              f"({sum(len(v) for v in m.values()):,} chips)")
+              f"({sum(len(v) for v in m.values()):,} chips; "
+              f"{sum(len(v) for v in stu_hist_by_kind[kind_].values()):,} expected)")
 
     from schoolfactors.analysis.neighbors import build_neighbors
 
@@ -754,6 +818,8 @@ def run_export() -> None:
             }
             if cds in pct_hist_by_kind[kind]:
                 payload["pct_hist"] = pct_hist_by_kind[kind][cds]
+            if cds in stu_hist_by_kind[kind]:
+                payload["stu_hist"] = stu_hist_by_kind[kind][cds]
             if kind == "schools":
                 payload["address"] = addr_map.get(cds)
                 nb = neighbors.get(cds, {})
@@ -770,6 +836,8 @@ def run_export() -> None:
             elif kind == "districts":
                 district_pages.add(cds)
                 payload["county_has_page"] = payload["county_cds"] in county_pages
+                if cds[:7] in virt_auth:
+                    payload["virtual_auth"] = virt_auth[cds[:7]]
             else:
                 payload["district_has_page"] = payload["district_cds"] in district_pages
                 payload["county_has_page"] = payload["county_cds"] in county_pages
@@ -861,6 +929,33 @@ def run_export() -> None:
                     "_mrel": eff.get("move_reliability"),
                     "_trel": full_eff.get("trend_reliability"),
                     "_ly": eff.get("last_year"),
+                    # Similar Student level: the demographic prediction from
+                    # the adjustment regression (level minus residual, OLS —
+                    # deterministic given composition). Its percentile says
+                    # where students with this entity's demographic profile
+                    # would be expected to score statewide; prediction +
+                    # residual = observed level, so the three percentiles
+                    # (similar-student, raw, similar-schools) decompose.
+                    # Similar Student: fitted level minus the WITHIN-school
+                    # student-composition effect, ranked at its shrunken-band
+                    # lower bound like the other percentiles.
+                    "_simstu": (
+                        round(
+                            eff["level_eb"] - stud_eff_map[cds]
+                            - 1.96
+                            * ((eff.get("level_reliability") or 1) ** 0.5)
+                            * (full_eff.get("level_se") or 0),
+                            3,
+                        )
+                        if eff.get("level_eb") is not None and cds in stud_eff_map
+                        else None
+                    ),
+                    "_ssl": (
+                        round(full_eff["level"] - full_eff["level_adj"], 3)
+                        if full_eff.get("level") is not None
+                        and full_eff.get("level_adj") is not None
+                        else None
+                    ),
                     # Full-population FRPM share (all enrolled students). No
                     # fallback to the tested-SED share: the two definitions
                     # disagree by ±5pp at ~30% of high schools (see known issue
@@ -978,6 +1073,12 @@ def run_export() -> None:
             for src, rel_key, out in (
                 ("adj_lcb", "_lrel", "adj_pct"),
                 ("growth_lcb", "_grel", "growth_pct"),
+                # Similar Student %ile: expected-outcome ranking for a fixed
+                # student profile (peer composition credited to the school).
+                ("_ssl", "_lrel", "stu_pct"),
+                # Similar Student %ile: conditional expectation for a fixed
+                # student profile — the parent decision ranking.
+                ("_simstu", "_lrel", "simstu_pct"),
             ):
                 def eligible(
                     e, kind_=kind_, cls=cls, src=src, rel_key=rel_key, latest=latest
@@ -1236,7 +1337,7 @@ def run_export() -> None:
     for e in index:
         updates = {
             k: e[k]
-            for k in ("adj_pct", "growth_pct", "growth_cat")
+            for k in ("adj_pct", "growth_pct", "growth_cat", "stu_pct", "simstu_pct")
             if e.get(k) is not None
         }
         key = peer_key(e)
@@ -1290,6 +1391,8 @@ def run_export() -> None:
         e.pop("_mrel", None)
         e.pop("_trel", None)
         e.pop("_ly", None)
+        e.pop("_ssl", None)
+        e.pop("_simstu", None)
 
     (SITE_DATA / "index.json").write_text(json.dumps(index))
     print(f"  wrote {written['schools']:,} school pages, {written['districts']:,} district pages")
@@ -1317,3 +1420,10 @@ def run_export() -> None:
 
     print("exporting /lausd data story …")
     export_lausd()
+
+    # Statewide enrollment import/export exports (reads index.json + the
+    # enrollment_flows parquets; stamps `enroll` on entity payloads above).
+    from schoolfactors.analysis.enrollment_export import export_enrollment
+
+    print("exporting /enrollment data …")
+    export_enrollment()

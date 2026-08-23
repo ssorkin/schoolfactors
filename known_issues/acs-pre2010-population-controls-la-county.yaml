@@ -1,0 +1,44 @@
+id: acs-pre2010-population-controls-la-county
+dataset: census
+years: [2005, 2006, 2007, 2008, 2009]
+kind: measurement-bias
+title: Pre-2010 ACS 1-year estimates overstate LA County children (Census-2000-based controls)
+description: >
+  ACS 1-year estimates for survey years 2005-2009 were weighted to Census-2000-based
+  intercensal population estimates that overstated Los Angeles County. In B14003
+  (children 5-17 enrolled in public school), LA County's share of the state runs
+  0.55-1.35 percentage points above the county's share of CDE census-day enrollment
+  in 2005-2009; the gap shrinks monotonically toward the 2010 benchmark and sits
+  within +/-0.1pp for every year 2011-2018 once 2010-census population controls take
+  over. The statewide Census/CDE calibration used in the enrollment analyses cannot
+  absorb a county-specific weighting bias, so pre-2010 county- and district-level
+  residuals (apparent "net administrative export") are inflated by roughly 3-5% of
+  the county's child count - up to ~80k phantom children at the 2006 peak.
+evidence: >
+  Computed from census_acs_raw (B14003, survey acs1) against CDE census-day
+  enrollment: LA County ACS share of state public-school children 28.19% in 2006 vs
+  a CDE enrollment share of 26.84% (+1.35pp); the gap declines to +0.09pp by 2011
+  and stays within +/-0.1pp through 2018, then reopens after 2019 (the genuine
+  out-of-county shift documented in the LAUSD enrollment article). Actual
+  flagged-virtual charter enrollment in LA County in 2005-2009 was only 3.6k-9.5k
+  (Opportunities for Learning, CAVA @ Los Angeles), far below the 46k-81k residual.
+  Background: the Census Bureau documents that 2009-and-earlier ACS 1-year estimates
+  were weighted to Census-2000-based postcensal population estimates while the 2010
+  ACS switched to 2010-census-based controls, and warns that population-size
+  estimates are not comparable across that boundary ("Population Controls for the
+  2010 ACS", user note 2011-05):
+  https://www.census.gov/programs-surveys/acs/technical-documentation/user-notes/2011-05.html
+handling: >
+  Corrected by an explicit, named transform (lausd_export._acs1_control_factors):
+  ACS 1-year levels for survey years 2005-2009 are rescaled by the ratio of the
+  Census Bureau's 2010-census-consistent intercensal county estimate of children
+  5-17 to the same-year vintage postcensal estimate the ACS actually weighted to -
+  LA County's factor applied to county and LAUSD-boundary levels, California's to
+  state levels. Factors run 0.949 (2005) to 1.003 (2009) for LA County. Inputs are
+  acquired with manifests (data/raw/census/popest_*.csv - the 2000-2010 intercensal
+  county age/sex file and the vintage-2005..2009 CA county age/sex files; vintage
+  year codes map July 1 of year y to code y-1997) and ingested to the popest_raw
+  view. Ages 15-17 in the intercensal file's 5-year bins are approximated as 3/5 of
+  the 15-19 group (<=0.3% effect on the ratio). The correction and its size are
+  disclosed in the article's method notes; 2010+ levels are untouched (2010-census
+  controls onward).

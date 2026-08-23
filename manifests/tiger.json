@@ -1,0 +1,29 @@
+{
+  "tiger_sd_elementary_acs2024.geojson": {
+    "dataset": "tiger",
+    "filename": "tiger_sd_elementary_acs2024.geojson",
+    "url": "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/School/MapServer/12/query",
+    "sha256": "9b09acf52c93eeac5f5ff14e48e3b225ad278c45727ef3e054655268c8d9200b",
+    "size": 9826030,
+    "downloaded_at": "2026-08-22T21:33:52+00:00",
+    "note": "517 features in 1 page(s), f=geojson"
+  },
+  "tiger_sd_secondary_acs2024.geojson": {
+    "dataset": "tiger",
+    "filename": "tiger_sd_secondary_acs2024.geojson",
+    "url": "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/School/MapServer/11/query",
+    "sha256": "6ab0ee14935f0fd600041c97a064d27b15df84fbe44446dc5e9b544e53c3a864",
+    "size": 4919611,
+    "downloaded_at": "2026-08-22T21:33:40+00:00",
+    "note": "112 features in 1 page(s), f=geojson"
+  },
+  "tiger_sd_unified_acs2024.geojson": {
+    "dataset": "tiger",
+    "filename": "tiger_sd_unified_acs2024.geojson",
+    "url": "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/School/MapServer/10/query",
+    "sha256": "01d33b136c2272d4a017cd3a2baca4e8d2700b4e63f3e686a9b83b199a23a1a7",
+    "size": 10873455,
+    "downloaded_at": "2026-08-22T21:33:35+00:00",
+    "note": "346 features in 1 page(s), f=geojson"
+  }
+}

@@ -1,0 +1,380 @@
+{
+  "5yrdocenroll.txt": {
+    "dataset": "doc",
+    "filename": "5yrdocenroll.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/5yrdocenroll.txt",
+    "sha256": "e3bc054780a4ecb548cb45cf4b7c123a06431c8c0b2047ef08669dcbd396426d",
+    "size": 2718,
+    "downloaded_at": "2026-08-23T00:26:04+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "5yrdocenroll.xlsx": {
+    "dataset": "doc",
+    "filename": "5yrdocenroll.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/5yrdocenroll.xlsx",
+    "sha256": "c707762ea241be6fed3688f5394acf9ff750bc57c651042d3f1de5f6e21f234c",
+    "size": 20707,
+    "downloaded_at": "2026-08-23T00:26:08+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "5yrdocenroll18-22.txt": {
+    "dataset": "doc",
+    "filename": "5yrdocenroll18-22.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/5yrdocenroll18-22.txt",
+    "sha256": "585daff50440fb430d557bb3c90f49271d953f587c75dd7c12e441fb0ef9ff77",
+    "size": 2739,
+    "downloaded_at": "2026-08-23T00:25:56+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "5yrdocenroll18-22.xlsx": {
+    "dataset": "doc",
+    "filename": "5yrdocenroll18-22.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/5yrdocenroll18-22.xlsx",
+    "sha256": "657d6c7f23524c917cea4885c857d6a86a6f8a3d69e7b5fb5c4f4b2d3739f4b5",
+    "size": 19140,
+    "downloaded_at": "2026-08-23T00:26:01+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "cbedsdocs21d.txt": {
+    "dataset": "doc",
+    "filename": "cbedsdocs21d.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/cbedsdocs21d.txt",
+    "sha256": "c4a0a468f62af65c82a804c04d698a77eeba24b71f1bc4c697e7620200154d04",
+    "size": 4449,
+    "downloaded_at": "2026-08-23T00:24:32+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "cbedsdocs21d.xlsx": {
+    "dataset": "doc",
+    "filename": "cbedsdocs21d.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/cbedsdocs21d.xlsx",
+    "sha256": "c7526b4d9c68a6a53d1201d5b8c043975ed223105afe353bc74cc370cfe4b21d",
+    "size": 22273,
+    "downloaded_at": "2026-08-23T00:24:35+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "cbedsdocs21t.txt": {
+    "dataset": "doc",
+    "filename": "cbedsdocs21t.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/cbedsdocs21t.txt",
+    "sha256": "23e92444b1f1e6d9c01f14c7c7c3709600504afa547cd5759d96cd701078c3ae",
+    "size": 26100,
+    "downloaded_at": "2026-08-23T00:24:17+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "cbedsdocs21t.xlsx": {
+    "dataset": "doc",
+    "filename": "cbedsdocs21t.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/cbedsdocs21t.xlsx",
+    "sha256": "ab611bdd2b960e034eabeeafd06a667278105af17172afde5058e82e80b0c70e",
+    "size": 25418,
+    "downloaded_at": "2026-08-23T00:24:20+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "cbedsdocs22d.txt": {
+    "dataset": "doc",
+    "filename": "cbedsdocs22d.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/cbedsdocs22d.txt",
+    "sha256": "6aabe4fbac832cb5482710e28b4c5ea5db72149cc1c7aa7ad70ef61dd6fb3465",
+    "size": 5415,
+    "downloaded_at": "2026-08-23T00:24:23+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "cbedsdocs22d.xlsx": {
+    "dataset": "doc",
+    "filename": "cbedsdocs22d.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/cbedsdocs22d.xlsx",
+    "sha256": "2dae7716ad37d7bd0e831c15976c57202bf7db52b66ecc603bb730869c02684c",
+    "size": 22272,
+    "downloaded_at": "2026-08-23T00:24:27+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "cbedsdocs22t.txt": {
+    "dataset": "doc",
+    "filename": "cbedsdocs22t.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/cbedsdocs22t.txt",
+    "sha256": "259e0a92c26f5ae657fd974814c4e19168b14c0775178554b8e80f5e4c971c3c",
+    "size": 28984,
+    "downloaded_at": "2026-08-23T00:24:09+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "cbedsdocs22t.xlsx": {
+    "dataset": "doc",
+    "filename": "cbedsdocs22t.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/cbedsdocs22t.xlsx",
+    "sha256": "1ee69f0b90cc27a33330da5c13e7d2f8a80a220546078fc1c974e51e7050610a",
+    "size": 29669,
+    "downloaded_at": "2026-08-23T00:24:12+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "doctransfers21.xlsx": {
+    "dataset": "doc",
+    "filename": "doctransfers21.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/doctransfers21.xlsx",
+    "sha256": "889d6fdbf699eab34442449a8af00f5ce3479d9f4c8d579842e4186d7fd2eb68",
+    "size": 22793,
+    "downloaded_at": "2026-08-23T00:23:55+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "doctransfers22.xlsx": {
+    "dataset": "doc",
+    "filename": "doctransfers22.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/doctransfers22.xlsx",
+    "sha256": "7eea84b45a6da8fb1c2e9d873f17a5981de8923a8269c1c41f940174671b2c82",
+    "size": 29718,
+    "downloaded_at": "2026-08-23T00:23:35+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "doctransfersinto21.txt": {
+    "dataset": "doc",
+    "filename": "doctransfersinto21.txt",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/doctransfersinto21.txt",
+    "sha256": "3f8158d3f6387c848c6c72ba8deaa244dd4ea5d2f38b6078ea38dea5a7fb013a",
+    "size": 3646,
+    "downloaded_at": "2026-08-23T00:23:47+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "doctransfersinto22.txt": {
+    "dataset": "doc",
+    "filename": "doctransfersinto22.txt",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/doctransfersinto22.txt",
+    "sha256": "663ceafa019d56f18e220d7ea44b83ccbed637f0472f11e41001441c4fe30a00",
+    "size": 3733,
+    "downloaded_at": "2026-08-23T00:23:27+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "doctransfersout21.txt": {
+    "dataset": "doc",
+    "filename": "doctransfersout21.txt",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/doctransfersout21.txt",
+    "sha256": "dd4bf39d06119787886eea9f5f66e017a42717209bb978ca40624e025bc5e162",
+    "size": 3536,
+    "downloaded_at": "2026-08-23T00:23:50+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "doctransfersout22.txt": {
+    "dataset": "doc",
+    "filename": "doctransfersout22.txt",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/doctransfersout22.txt",
+    "sha256": "413756d9179357d43d2483a51a0d201e27a20ec6b27c7b39c4d1cab47f71aaaf",
+    "size": 3569,
+    "downloaded_at": "2026-08-23T00:23:30+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "dortransfer21.txt": {
+    "dataset": "doc",
+    "filename": "dortransfer21.txt",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/dortransfer21.txt",
+    "sha256": "353e725ea283149ba94bd68ea052f0ea160903bd2a0b5232946eadadb66840e3",
+    "size": 32589,
+    "downloaded_at": "2026-08-23T00:23:59+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "dortransfer21.xlsx": {
+    "dataset": "doc",
+    "filename": "dortransfer21.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/dortransfer21.xlsx",
+    "sha256": "6c59bafe8a2283b0fea7863060e55972741950a8d4e6997a93e5c234cfd4e413",
+    "size": 46448,
+    "downloaded_at": "2026-08-23T00:24:04+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "dortransfer22.txt": {
+    "dataset": "doc",
+    "filename": "dortransfer22.txt",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/dortransfer22.txt",
+    "sha256": "180d11f0afa6f26b4337db7a83f5aac4a7ba71378be52a523049d66a42c1a9b6",
+    "size": 31441,
+    "downloaded_at": "2026-08-23T00:23:38+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "dortransfer22.xlsx": {
+    "dataset": "doc",
+    "filename": "dortransfer22.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/dortransfer22.xlsx",
+    "sha256": "93db93ddc8155a22f8a004c1bae166ba281037b7270aba0d2e72212ee1114feb",
+    "size": 51025,
+    "downloaded_at": "2026-08-23T00:23:43+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "elamath21.txt": {
+    "dataset": "doc",
+    "filename": "elamath21.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/elamath21.txt",
+    "sha256": "f172061b28b54879c5b871369d48180831162e7d84f8f5e01bf846942959ef13",
+    "size": 2853,
+    "downloaded_at": "2026-08-23T00:25:49+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "elamath21.xlsx": {
+    "dataset": "doc",
+    "filename": "elamath21.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/elamath21.xlsx",
+    "sha256": "7db4ec854724ce388764af96e0d4c866b749a09e02068e06a9073d0c098c6625",
+    "size": 15280,
+    "downloaded_at": "2026-08-23T00:25:52+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "elamath22.txt": {
+    "dataset": "doc",
+    "filename": "elamath22.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/elamath22.txt",
+    "sha256": "59308a1692f8886d88c7b75b781f17b0013634a14de08b518580408d20ed5c67",
+    "size": 3011,
+    "downloaded_at": "2026-08-23T00:25:41+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "elamath22.xlsx": {
+    "dataset": "doc",
+    "filename": "elamath22.xlsx",
+    "url": "https://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/elamath22.xlsx",
+    "sha256": "d5e8496c34896c90028715b905520e46d143b3ca9bc9240d404ada643ca6d0b5",
+    "size": 23864,
+    "downloaded_at": "2026-08-23T00:25:45+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim1negcert21.txt": {
+    "dataset": "doc",
+    "filename": "interim1negcert21.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim1negcert21.txt",
+    "sha256": "3cac48004a5ecab373c59f05f830248b3f3af4a5ff97bf21dbcec10d452ab661",
+    "size": 368,
+    "downloaded_at": "2026-08-23T00:25:09+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim1negcert21.xlsx": {
+    "dataset": "doc",
+    "filename": "interim1negcert21.xlsx",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim1negcert21.xlsx",
+    "sha256": "c59d49d49484267af82d5e2f13f1dc86bff60123527c4e4822cbe8641d8081c5",
+    "size": 11281,
+    "downloaded_at": "2026-08-23T00:25:12+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim1negcert22.txt": {
+    "dataset": "doc",
+    "filename": "interim1negcert22.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim1negcert22.txt",
+    "sha256": "335ec4a50847c75aede92d4ce40b26eafff55dcecf8ba511055e2236e627610b",
+    "size": 277,
+    "downloaded_at": "2026-08-23T00:24:39+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim1negcert22.xlsx": {
+    "dataset": "doc",
+    "filename": "interim1negcert22.xlsx",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim1negcert22.xlsx",
+    "sha256": "197af9975594281a7c1d29109c8431d6b85b54fad63887f030abb9cdde172f67",
+    "size": 17633,
+    "downloaded_at": "2026-08-23T00:24:42+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim1qualcert21.txt": {
+    "dataset": "doc",
+    "filename": "interim1qualcert21.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim1qualcert21.txt",
+    "sha256": "b0700d824f9b08e40e9119b3b67abb33241267ff3c8d5affd02b3562976b669c",
+    "size": 1199,
+    "downloaded_at": "2026-08-23T00:25:16+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim1qualcert21.xlsx": {
+    "dataset": "doc",
+    "filename": "interim1qualcert21.xlsx",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim1qualcert21.xlsx",
+    "sha256": "9f0a4e3a0fa5c377f0653f88f55c365cc77f7e448ff1a4f2b9882d09b4f4303e",
+    "size": 13240,
+    "downloaded_at": "2026-08-23T00:25:20+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim1qualcert22.txt": {
+    "dataset": "doc",
+    "filename": "interim1qualcert22.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim1qualcert22.txt",
+    "sha256": "4c865990e83b7d40f82cb75e14af104d05eb5fdb949301f8a3d45ac923b39c6c",
+    "size": 700,
+    "downloaded_at": "2026-08-23T00:24:47+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim1qualcert22.xlsx": {
+    "dataset": "doc",
+    "filename": "interim1qualcert22.xlsx",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim1qualcert22.xlsx",
+    "sha256": "c4c1dfb50e68bad8517672fc3db9fc3c7d28e41bd4ac046df66342995d68daad",
+    "size": 18622,
+    "downloaded_at": "2026-08-23T00:24:50+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim2negcert21.txt": {
+    "dataset": "doc",
+    "filename": "interim2negcert21.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim2negcert21.txt",
+    "sha256": "4fe23cbc6b7fd2ebbb21a6b605ff1995bda3b4e05100dba04475cadffb9559d4",
+    "size": 377,
+    "downloaded_at": "2026-08-23T00:25:25+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim2negcert21.xlsx": {
+    "dataset": "doc",
+    "filename": "interim2negcert21.xlsx",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim2negcert21.xlsx",
+    "sha256": "b1db2fffa0621e3c55db278d8bd3b1d22e2709c79c7699e721eb00c375ab72c5",
+    "size": 11280,
+    "downloaded_at": "2026-08-23T00:25:29+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim2negcert22.txt": {
+    "dataset": "doc",
+    "filename": "interim2negcert22.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim2negcert22.txt",
+    "sha256": "8fc6b33934d5325bcfeb20fdd4b983c358f15afbb2ff3067cadf181ff706cae9",
+    "size": 316,
+    "downloaded_at": "2026-08-23T00:24:54+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim2negcert22.xlsx": {
+    "dataset": "doc",
+    "filename": "interim2negcert22.xlsx",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim2negcert22.xlsx",
+    "sha256": "3a9a2cfb03d92b799d6ac2a5095e93646c16b446a9cd01b197cf062d274eb526",
+    "size": 17641,
+    "downloaded_at": "2026-08-23T00:24:58+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim2qualcert21.txt": {
+    "dataset": "doc",
+    "filename": "interim2qualcert21.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim2qualcert21.txt",
+    "sha256": "90b7b96853f354937cb0a5e24fbfed16e680649a1933f3ad2f91efe752c1dd77",
+    "size": 943,
+    "downloaded_at": "2026-08-23T00:25:33+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim2qualcert21.xlsx": {
+    "dataset": "doc",
+    "filename": "interim2qualcert21.xlsx",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim2qualcert21.xlsx",
+    "sha256": "e8db96ad5bfbb000158bf87e2c9e64bcf258f8fcf86b26d6f84c9d5f68fe71ca",
+    "size": 12449,
+    "downloaded_at": "2026-08-23T00:25:37+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim2qualcert22.txt": {
+    "dataset": "doc",
+    "filename": "interim2qualcert22.txt",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim2qualcert22.txt",
+    "sha256": "d644c12b4192061205992b5c38ed0a5a553a29471a0068481f7ac1f16d996c8f",
+    "size": 641,
+    "downloaded_at": "2026-08-23T00:25:02+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  },
+  "interim2qualcert22.xlsx": {
+    "dataset": "doc",
+    "filename": "interim2qualcert22.xlsx",
+    "url": "http://www3.cde.ca.gov/researchfiles/districtofchoice/doc2122/interim2qualcert22.xlsx",
+    "sha256": "216895121b52ef15e0c00053857b2fe08b90d2cbce1c55ac712da87801280d16",
+    "size": 18660,
+    "downloaded_at": "2026-08-23T00:25:06+00:00",
+    "note": "District of Choice program: OBSERVED district-pair transfers (CALPADS, DOC program only, ~8k students/yr) \u2014 validation data for the enrollment flow model"
+  }
+}

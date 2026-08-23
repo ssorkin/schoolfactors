@@ -1,0 +1,34 @@
+id: acs5-mixed-population-controls
+dataset: census
+years: [2009, 2010, 2011, 2012, 2013]
+kind: measurement-bias
+title: ACS 5-year windows ending 2009-2013 mix Census-2000 and Census-2010 population controls
+description: >
+  Each single survey year inside an ACS 5-year window was weighted to that year's
+  own population controls: years 2005-2009 to Census-2000-based postcensal
+  estimates (which overstated some counties, notably Los Angeles - see
+  acs-pre2010-population-controls-la-county), years 2010+ to Census-2010-based
+  controls. A 5-year window ending 2009-2013 therefore blends the two control
+  regimes: vintage 2009 (window 2005-09) is fully affected, vintage 2013 (window
+  2009-13) only 1/5. Left uncorrected, early-window resident-children levels are
+  inflated in the affected counties and the statewide enrollment-flow model would
+  read the bias as apparent net export.
+evidence: >
+  The same B14003-vs-CDE share comparison documented in
+  acs-pre2010-population-controls-la-county, plus the statewide flow model's
+  closure diagnostic: with the fractional correction applied, the state-level
+  universe calibration m stays in a plausible 3.3-6.5% band back to vintage 2009
+  and the per-vintage accounting closure is +0.81% (2009) shrinking to +-0.1%
+  from 2012 on (enrollment_calibration.parquet).
+handling: >
+  Explicit, named transform (enrollment_flows.apply_control_correction with
+  enrollment_flows._window_factor): each acs5 observation is multiplied by the
+  mean of its window's per-year factors, where a year's factor is the county's
+  intercensal/postcensal children-5-17 ratio for years <= 2009 (from
+  enrollment_flows.control_factors, the all-county generalization of
+  lausd_export._acs1_control_factors) and exactly 1.0 for years >= 2010. County
+  factors are applied to district areas through each district's administrative
+  county - a per-district proxy, documented as a bias term in
+  analysis/enrollment_flow_model.md. MOEs are scaled by the same factor. The
+  applied factor is carried per row (residence and flows parquets, `factor`/`cf`
+  in the site export) so corrected points are labelable on-page.

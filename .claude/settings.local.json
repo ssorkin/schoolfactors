@@ -3,7 +3,12 @@
     "allow": [
       "Bash(git --version)",
       "Bash(gh auth *)",
-      "Bash(uv --version)"
+      "Bash(uv --version)",
+      "Bash(uv run *)",
+      "Bash(git -C /home/ssorkin/src/schoolfactors stash -q)",
+      "Bash(git -C /home/ssorkin/src/schoolfactors stash pop -q)",
+      "Bash(npm run *)",
+      "Bash(echo \"build exit: $?\")"
     ]
   }
 }

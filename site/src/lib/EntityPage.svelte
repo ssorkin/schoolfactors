@@ -556,7 +556,34 @@
   </p>
 {/if}
 
+{#if entity.kind === 'district'}
+  <nav class="toc" aria-label="Sections">
+    <span class="toc-title">On this page</span>
+    <a href="#trending">Trending</a>
+    <a href="#compare">Compare</a>
+    <a href="#performance">Performance</a>
+    <a href="#cohorts">Cohorts</a>
+    <a href="#test-takers">Test takers</a>
+    <a href="#enrollment">Enrollment &amp; spending</a>
+    <a href="#sub-items">{subLabel || 'Schools'}</a>
+    <a href="#numbers">Numbers</a>
+  </nav>
+{/if}
 <h1>{entity.name}</h1>
+{#if entity.kind === 'district' && entity.virtual_auth}
+  <p class="vauth">
+    <span class="vauth-badge">virtual charter authorizer</span>
+    This district authorizes {entity.virtual_auth.n} fully- or
+    primarily-virtual charter school{entity.virtual_auth.n === 1 ? '' : 's'}
+    enrolling {entity.virtual_auth.enr.toLocaleString()} students
+    {#if entity.virtual_auth.share != null}({Math.round(
+      entity.virtual_auth.share * 100
+    )}% of district-associated enrollment){/if}
+    in {entity.virtual_auth.year}. Those students may live far outside the
+    district's boundary, so district-level figures here describe an enrollment
+    network, not a neighborhood.
+  </p>
+{/if}
 <p class="sub">
   {entity.kind === 'school' ? `${entity.district} · ` : ''}{entity.county} County
   {#if !chipYears.length}
@@ -564,6 +591,18 @@
     {#if e.last_year}· data through {e.last_year}{/if}
   {/if}
 </p>
+{#if entity.simstu_pct != null}
+  <p class="stu-pct">
+    <span
+      class="stu-label"
+      title="For a student with a fixed demographic profile, how the conditional expectation at this {entity.kind} ranks against every other California {entity.kind === 'school' ? 'school' : 'district'} — the parent decision question. Student-level effects come from within-school race-by-SED subgroup gaps; under the additive model the ranking is the same for every student profile. A conditional association, not the causal effect of transferring a child. See Methodology."
+      >Similar Student %ile</span
+    >
+    <b style:color={pctColor(entity.simstu_pct)}>{ord(entity.simstu_pct)}</b>
+    — students like this {entity.kind}'s tend to perform better here than at
+    {entity.simstu_pct}% of California {KINDS_PLURAL[entity.kind]}
+  </p>
+{/if}
 {#if chipYears.length}
   <div class="pct-years">
     <a
@@ -603,6 +642,12 @@
       </span>
     {/if}
   </div>
+{/if}
+{#if entity.stu_pct != null}
+  <p class="stu-buried">
+    Expected Student %ile (composition only):
+    <a href="/methodology#expected-student" title="Where a {entity.kind} serving students like these would be expected to score statewide, from composition alone — a description of who is served, not of the {entity.kind}. Expected + residual = observed.">{ord(entity.stu_pct)}</a>
+  </p>
 {/if}
 {#if entity.address}
   <p class="addr">{entity.address}</p>
@@ -723,7 +768,7 @@
   </div>
 {/if}
 
-<h2>How results are trending</h2>
+<h2 id="trending">How results are trending</h2>
 {#key restoredFor === entity.cds ? entity.cds : 'pending'}
   <TrendChart
     subgroups={entity.subgroup_results ?? []}
@@ -736,7 +781,7 @@
 {/key}
 
 {#if entity.neighbors && (entity.neighbors.nearby?.length || entity.neighbors.lookalike?.length)}
-  <h2>Compare with</h2>
+  <h2 id="compare">Compare with</h2>
   <div class="compare">
     {#if entity.neighbors.nearby?.length}
       <div class="cmp-card">
@@ -858,7 +903,7 @@
 {/if}
 
 {#if e.level_eb != null}
-  <h2>Performance, growth and trend</h2>
+  <h2 id="performance">Performance, growth and trend</h2>
   <section class="tiles">
     <div class="tile">
       <div class="num">
@@ -896,7 +941,7 @@
   </section>
 {/if}
 
-<h2>Cohorts</h2>
+<h2 id="cohorts">Cohorts</h2>
 <CohortChart scores={entity.cohort_scores ?? []} />
 
 {#if slopes.length}
@@ -941,11 +986,19 @@
   </ul>
 {/if}
 
-<h2>Who takes the tests here</h2>
+<h2 id="test-takers">Who takes the tests here</h2>
 <BlendChart blend={entity.blend ?? []} />
 
 {#if (entity.enr ?? []).some((v) => v != null) || (entity.ppe_hist ?? []).some((v) => v != null)}
-  <h2>Enrollment and spending</h2>
+  <h2 id="enrollment">Enrollment and spending</h2>
+  {#if entity.enroll}
+    <p class="enrolllink">
+      <a href="/enrollment/{entity.kind}/{entity.cds}">
+        Enrollment flows: where this {entity.kind}'s students live vs. where they
+        enroll →
+      </a>
+    </p>
+  {/if}
   {#if entity.lcff_status}
     <p class="lcffnote">
       {#if entity.lcff_status.basic_aid}
@@ -970,7 +1023,7 @@
 {/if}
 
 {#if subItems?.length}
-  <h2>{subLabel}</h2>
+  <h2 id="sub-items">{subLabel}</h2>
   <PerfList items={subItems} kind={subKind} childPath={'/' + subKind} />
   <details>
     <summary>All {subItems.length} {subKind}s</summary>
@@ -1007,7 +1060,7 @@
   </details>
 {/if}
 
-<h2>The underlying numbers</h2>
+<h2 id="numbers">The underlying numbers</h2>
 <ResultsTables
   scores={entity.cohort_scores ?? []}
   subgroups={entity.subgroup_results ?? []}
@@ -1054,6 +1107,31 @@
     color: #898781;
     font-size: 0.85rem;
     margin: -0.4rem 0 0.6rem;
+  }
+  .stu-years {
+    margin-bottom: 0.15rem;
+  }
+  .stu-pct {
+    font-size: 0.98rem;
+    color: #2b2722;
+    margin: 0.3rem 0 0.7rem;
+  }
+  .stu-pct b {
+    font-size: 1.15rem;
+  }
+  .stu-buried {
+    font-size: 0.75rem;
+    color: #8f8a80;
+    margin: 0.1rem 0 0.5rem;
+  }
+  .stu-buried a {
+    color: #8f8a80;
+  }
+  .stu-label {
+    font-weight: 650;
+    color: #2b2722;
+    cursor: help;
+    border-bottom: 1px dotted #b5aea1;
   }
   .pct-years {
     display: flex;
@@ -1167,6 +1245,60 @@
   }
   .dl {
     margin: 0.5rem 0 0;
+  }
+  .vauth {
+    background: #efeafa;
+    border: 1px solid #d6ccf0;
+    border-radius: 8px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.88rem;
+    color: #3c3378;
+    max-width: 46rem;
+  }
+  .vauth-badge {
+    display: inline-block;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: #4a3aa7;
+    color: #fff;
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    margin-right: 0.45rem;
+    vertical-align: 1px;
+  }
+  .toc {
+    display: none;
+  }
+  @media (min-width: 1280px) {
+    .toc {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      position: fixed;
+      top: 7rem;
+      left: max(0.8rem, calc(50vw - 640px));
+      width: 130px;
+      font-size: 0.8rem;
+    }
+    .toc a {
+      color: #6f6a61;
+      text-decoration: none;
+      border-left: 2px solid #e0d6c2;
+      padding-left: 0.5rem;
+    }
+    .toc a:hover {
+      color: #a34317;
+      border-left-color: #a34317;
+    }
+    .toc-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #8f8a80;
+    }
   }
   :global(main) h2 {
     margin: 1.8rem 0 0.6rem;

@@ -1,0 +1,48 @@
+id: acs5-pandemic-collection-resident-bias
+dataset: census
+years: [2020, 2021, 2022, 2023, 2024]
+kind: measurement-bias
+title: ACS 5-year windows containing the 2020 collection year can overstate
+  resident-children declines in small districts
+description: >
+  The 2020 ACS collection year suffered severe pandemic nonresponse (the Census
+  Bureau withheld the 2020 1-year products entirely and applied experimental
+  weighting to the 5-year files), and the 5-year series switched from
+  Census-2010- to Census-2020-based population controls mid-decade. Every 5-year
+  window that includes 2020 (vintages 2020-2024) carries some of this. In small
+  districts the effect can materially overstate the decline in resident
+  public-school children (B14003-derived); the enrollment-flow model then reads
+  the too-fast resident decline as apparent net IMPORT, since local seats
+  (CDE-observed, accurate) fall more slowly than the mismeasured resident base.
+evidence: >
+  Reconciled case: Sonoma Valley Unified (49709530000000), against the
+  district's own address-matched student file as published in its facilities
+  forecast ("Student Population Forecast by Residence, School Year 2021-2022",
+  Davis Demographics & Planning, Feb 16 2022). ACS windows show resident
+  public-school children falling 4,353 (vintage 2019) to 3,404 (vintage 2022),
+  -22%; the district's geocoded resident-student counts fall 3,791 (fall 2018)
+  to 3,273 (fall 2021), -14%, including a real one-time -317 pandemic-year drop
+  (fall 2020). Adding the two in-district charters (~410 CDE seats, mostly
+  resident) and window-averaging, the reconciled resident decline is roughly
+  -10% - about half the ACS-implied drop. Relative to the statewide ACS/CDE
+  calibration (1-m ~ 0.94), the SVUSD ACS series swings from ~5% above the
+  m-consistent level (vintage 2019) to ~8% below (vintage 2022), ~550 students -
+  which matches the model's net swinging from -125 (exporter) to +526/+422
+  (apparent importer) across the pandemic windows. The district's observed gross
+  non-resident inflow was 61 students (1.8% of enrollment), so the importer
+  reading is not real; the swing is ~1x the published MOE (pub_moe +-460-515).
+  CDE seats match the district's enrollment records to within ~1% throughout
+  (e.g. spring 2020 3,746 vs the district's 3,743), so the seats side is not the
+  source.
+handling: >
+  Documented, not patched: no statewide per-district ground truth exists to
+  correct the pandemic windows (district facilities reports like SVUSD's cover
+  only scattered districts). The published MOEs already reflect much of the
+  uncertainty and are shown on district pages and in hover captions; the
+  statewide map's MOE gate (net-rate margin over +-15pp uncolored) suppresses
+  the least reliable districts. Pandemic-window (2020-2023) net flips of order
+  one MOE in small districts should be read as noise unless corroborated;
+  the flow model's district series carries res_moe per row so affected points
+  are identifiable. Site methodology section 9 ("what this cannot say") covers
+  the general ACS-uncertainty caveat.
+source: https://www.census.gov/programs-surveys/acs/technical-documentation/user-notes/2021-02.html

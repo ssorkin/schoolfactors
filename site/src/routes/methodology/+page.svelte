@@ -96,6 +96,77 @@
       longer exist in that form.
     </p>
 
+    <h3 id="expected-student">The Expected Student percentile (supporting)</h3>
+    <p>
+      The adjustment above yields two quantities per entity: a demographic
+      <em>prediction</em> (the level our covariates alone would forecast) and a
+      <em>residual</em> (how far the entity sits from that forecast). The
+      <strong>Expected Student %ile</strong> is the percentile of the
+      prediction: where a school serving students like these would be expected
+      to score statewide, before knowing anything about its performance
+      relative to expectation. It describes <em>who is served</em>, not the
+      school — so it appears as a supporting figure on entity pages and in
+      analyses, not in the headline tables; the parent-facing headline is the
+      Similar Student percentile below. Because
+      <em>prediction + residual = observed level</em>, the percentiles
+      decompose one another and can be read as a sentence:
+    </p>
+    <ul>
+      <li><strong>Expected Student %ile</strong> — who does this school serve?
+        Where would a school with this student composition be expected to
+        score?</li>
+      <li><strong>Raw level</strong> — where do its students actually
+        score?</li>
+      <li><strong>Similar Schools %ile</strong> — how unusual is that result,
+        given who it serves?</li>
+    </ul>
+    <p>
+      A school at the 95th percentile raw and the 92nd expected is performing
+      about as its composition forecasts; the Similar Schools percentile then
+      says whether the small difference is unusually positive or negative. The
+      Expected Student percentile is deterministic given the tested
+      population's composition — it involves no judgment about the school
+      itself — and per-year chips on entity pages rank each year's prediction
+      using only data available before that year, like the Similar Schools
+      chips.
+    </p>
+    <h3 id="similar-student">The Similar Student percentile</h3>
+    <p>
+      The Expected Student percentile describes the population a school serves;
+      it deliberately says nothing about the school. The
+      <strong>Similar Student %ile</strong> answers the parent's question:
+      <em>for a student with a fixed demographic profile, how does expected
+      performance at this school rank against every other California
+      school?</em> A school at the 85th means students like these tend to
+      perform better here than at 85% of schools.
+    </p>
+    <p>
+      It is built by estimating <em>student-level</em> demographic effects from
+      within-school subgroup contrasts — two-way fixed effects over CAASPP's
+      published race-by-economic-status cross-tab, a single genuine partition,
+      so the two dominant axes are counted exactly once — and subtracting only
+      that student-composition effect from the school's fitted level. What
+      remains credits the school everything the student does not bring
+      individually: instruction, program, and peer environment together. Under
+      the additive model, the school ranking is the <em>same for every student
+      profile</em> — the profile shifts the level, not the ordering — which is
+      why one number can serve every reader without asking for their child's
+      characteristics.
+    </p>
+    <p>
+      Caveats, stated plainly: this is a conditional association, not the
+      causal effect of transferring a child — it assumes, in particular, that
+      the school's peer environment as experienced by current students carries
+      to a similar entering student. Within-school subgroup gaps can reflect
+      internal tracking as well as student background. And composition beyond
+      race-by-economic-status (parent education, English learners, disability)
+      is credited to the school rather than the student, making the correction
+      conservative. The Similar Schools percentile remains the accountability
+      view — performance relative to demographic expectation — while Similar
+      Student is the choice view; they answer different questions and the site
+      keeps both.
+    </p>
+
     <h2 id="overlapping-groups">4. Students belong to many groups at once</h2>
     <p>
       The adjustment above is built from <em>separate</em> group shares — the share of

@@ -14,6 +14,11 @@
     },
     magnet: { label: 'magnet', cls: 'mag', tip: 'Magnet program — application-based admission (CDE directory).' },
     charter: { label: 'charter', cls: 'cha', tip: 'Charter school — admission by application, lottery if oversubscribed.' },
+    virtual: {
+      label: 'virtual',
+      cls: 'vir',
+      tip: 'Fully or primarily virtual school (CDE directory) — enrolled students may live far from the school or its authorizing district.'
+    },
     'alt-choice': { label: 'alt', cls: 'alt', tip: 'Alternative school of choice (CDE EdOps).' },
     continuation: { label: 'contin.', cls: 'alt', tip: 'Continuation school — serves students recovering credits; compare with care.' },
     'community-day': { label: 'comm. day', cls: 'alt', tip: 'Community day school — serves referred students; compare with care.' },
@@ -62,5 +67,10 @@
     background: #f3ede2;
     color: #6f6a61;
     border: 1px solid #e0d6c2;
+  }
+  .vir {
+    background: #efeafa;
+    color: #4a3aa7;
+    border: 1px solid #d6ccf0;
   }
 </style>

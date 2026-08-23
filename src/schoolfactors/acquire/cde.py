@@ -98,6 +98,14 @@ SCRAPED_FAMILIES: list[tuple[str, str, str, str]] = [
         "demo-downloads/tamo",
         "teacher assignment/credential alignment (large, ~230MB/yr)",
     ),
+    (
+        "doc",
+        f"{CDE}/sp/eo/dc/docdatafiles1819.asp",
+        "researchfiles/districtofchoice",
+        "District of Choice program: OBSERVED district-pair transfers (CALPADS, "
+        "DOC program only, ~8k students/yr) — validation data for the enrollment "
+        "flow model",
+    ),
 ]
 
 DIRECTORY_FILES = [

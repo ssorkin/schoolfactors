@@ -43,12 +43,12 @@ const pct = (v) => (v == null ? 'no data' : `${Math.round(v * 100)}%`);
 // once census block-group data is exported (feature props carry p185/race).
 export const METRICS = {
   perf: {
-    label: 'School performance (Similar Schools %ile)',
-    short: 'Similar Schools %ile',
+    label: 'School performance (Similar Student %ile)',
+    short: 'Similar Student %ile',
     legend: 'diverging',
     gradient: pctGradient,
-    ends: ['below typical', 'above typical'],
-    value: (props, school) => school?.adj_pct ?? null,
+    ends: ['lower for similar students', 'higher for similar students'],
+    value: (props, school) => school?.simstu_pct ?? null,
     color: (v) => pctColor(v),
     fmt: pctile
   },

@@ -166,6 +166,20 @@ def run_analysis() -> None:
         path = census_poverty.make_figure(census_df)
         print(f"  wrote {path.relative_to(figures.REPO_ROOT)}")
 
+    # Statewide district enrollment import/export accounting (skipped with a
+    # message until the census + tiger families are acquired + ingested).
+    print("statewide enrollment flows …")
+    from schoolfactors.analysis import enrollment_flows
+
+    enrollment_flows.build_all()
+
+    # Similar-Student history for district/county pages (parent-facing measure,
+    # per cutoff year — cheap: ~1s per cutoff).
+    print("similar-student history …")
+    from schoolfactors.analysis.similar_student import simstu_history
+
+    simstu_history()
+
     # Out-of-sample history: refit the level pipeline per cutoff year, prior
     # data only, so the site can show what percentile each year's readers
     # would have seen before that year's scores existed.

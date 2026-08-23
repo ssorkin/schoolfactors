@@ -32,12 +32,25 @@ from schoolfactors.paths import RAW_DIR
 
 DATASET = "census"
 ACS_BASE = "https://api.census.gov/data"
-LATEST_VINTAGE = 2023
-# District tables are acquired for every 5-year release back to 2015 so the
-# site can draw resident-population series (windows overlap; series are labeled
-# by end year). Block groups changed definition at the 2020 census, so BG
+LATEST_VINTAGE = 2024
+# District tables are acquired for every 5-year release back to 2009 — the
+# first ACS 5-year release (window 2005-2009; vintage 2008 does not exist) and
+# it already publishes school-district geography — so the site can draw
+# resident-population series (windows overlap; series are labeled by end year)
+# and walk the enrollment reconciliation back toward LAUSD's 2002-03 peak.
+# Windows ending 2009-2013 mix Census-2000 and Census-2010 population controls;
+# analysis corrects them fractionally (known_issues/acs5-mixed-population-
+# controls.yaml). Block groups changed definition at the 2020 census, so BG
 # tables stay single-vintage.
-DISTRICT_VINTAGES = tuple(range(2015, LATEST_VINTAGE + 1))
+DISTRICT_VINTAGES = tuple(range(2009, LATEST_VINTAGE + 1))
+# ACS 1-year releases run 2005-2024 (2020 was never released as standard
+# tables) and publish school-district geography for districts >= 65k
+# population. They fill the pre-2010 gap AND extend the resident series a year
+# past the latest 5-year window, at single-year precision (noisier — consumers
+# must label them as such). State and county geographies come along for the
+# annual state-calibration and county-leakage series.
+ACS1_VINTAGES = tuple(y for y in range(2005, 2025) if y != 2020)
+ACS1_TABLES = ("B14003",)
 
 # Registry of ACS 5-year tables to acquire. geo "district" fetches all three
 # school-district summary levels for the state; geo "blockgroup" fetches every block
@@ -49,7 +62,10 @@ ACS_TABLES: dict[str, dict] = {
     # public school / private school / not enrolled — the residence-based side of
     # "where did the students go?" (the practical API equivalent of NCES ACS-ED's
     # grade-relevant-children universe, which assigns children by residence).
-    "B14003": {"geo": "district"},
+    # County geography supports the state/county reconciliation of the public-school
+    # residual: inter-district flows net out within a county, so county residuals
+    # separate real cross-boundary enrollment from universe mismatch.
+    "B14003": {"geo": ["district", "county"]},
     # Ratio of income to poverty level (all ages) — B17024 is not published at block
     # group, so attendance-area poverty comes from C17002.
     "C17002": {"geo": "blockgroup", "counties": ["037"]},
@@ -69,6 +85,33 @@ SD_LEVELS = {
     "elementary": "school district (elementary)",
     "secondary": "school district (secondary)",
 }
+
+# Population-estimate control series for correcting pre-2010 ACS 1-year levels
+# (known_issues/acs-pre2010-population-controls-la-county.yaml): the 2000-2010
+# intercensal county age file (2010-census-consistent) plus the vintage-2005..2009
+# postcensal CA county age files — the actual population controls the ACS used in
+# those survey years. Static archive URLs; the popest archive does not repost
+# files under version suffixes.
+POPEST_FILES: tuple[tuple[str, str, str], ...] = (
+    (
+        "popest_co-est00int-agesex-5yr.csv",
+        (
+            "https://www2.census.gov/programs-surveys/popest/datasets/2000-2010/"
+            "intercensal/county/co-est00int-agesex-5yr.csv"
+        ),
+        "Intercensal county population by age/sex, 2000-2010 (2010-census-consistent)",
+    ),
+) + tuple(
+    (
+        f"popest_cc-est{v}-agesex-06.csv",
+        (
+            f"https://www2.census.gov/programs-surveys/popest/datasets/2000-{v}/"
+            f"counties/asrh/cc-est{v}-agesex-06.csv"
+        ),
+        f"Vintage-{v} postcensal CA county population by age/sex (ACS {v} controls)",
+    )
+    for v in range(2005, 2010)
+)
 
 
 def _api_key() -> str:
@@ -138,6 +181,44 @@ def _fetch_json(filename: str, url: str, note: str, key: str | None = None) -> P
     return dest
 
 
+def _fetch_csv(filename: str, url: str, note: str) -> Path | None:
+    """GET a keyless CSV (popest archive) into data/raw/census/ with a manifest
+    entry. Validates the payload looks like a county-estimates CSV (SUMLEV header)
+    so an error page is never recorded as data. Idempotent like _fetch_json."""
+    dest_dir = RAW_DIR / DATASET
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / filename
+
+    manifest = load_manifest(DATASET)
+    entry = manifest.get(filename)
+    if entry and dest.exists() and dest.stat().st_size == entry["size"]:
+        return dest
+
+    try:
+        resp = client().get(url)
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        print(f"  FAILED {url}: {exc}")
+        return None
+    if "SUMLEV" not in resp.text[:200]:
+        print(f"  FAILED {url}: response is not a county-estimates CSV")
+        return None
+
+    dest.write_text(resp.text)
+    manifest[filename] = ManifestEntry(
+        dataset=DATASET,
+        filename=filename,
+        url=url,
+        sha256=sha256_file(dest),
+        size=dest.stat().st_size,
+        downloaded_at=datetime.now(UTC).isoformat(timespec="seconds"),
+        note=note,
+    ).__dict__
+    save_manifest(DATASET, manifest)
+    print(f"  ok {filename} ({dest.stat().st_size:,} bytes)")
+    return dest
+
+
 def _quote(geo: str) -> str:
     return geo.replace(" ", "%20").replace("(", "%28").replace(")", "%29")
 
@@ -171,6 +252,45 @@ def acquire(vintage: int = LATEST_VINTAGE) -> None:
                         note=f"ACS5 {v} {table}, {geo_name}, state {STATE_FIPS}",
                         key=key,
                     )
+        if "district" in geos and table in ACS1_TABLES:
+            for v in ACS1_VINTAGES:
+                vbase = f"{ACS_BASE}/{v}/acs/acs1"
+                _fetch_json(
+                    f"acs1_{v}_groups_{t}.json",
+                    f"{vbase}/groups/{table}.json",
+                    note=f"ACS1 {v} variable metadata for {table}",
+                )
+                _fetch_json(
+                    f"acs1_{v}_{t}_sd_unified.json",
+                    f"{vbase}?get=NAME,group({table})"
+                    f"&for={_quote(SD_LEVELS['unified'])}:*&in=state:{STATE_FIPS}",
+                    note=f"ACS1 {v} {table}, unified school districts, state {STATE_FIPS}",
+                    key=key,
+                )
+                _fetch_json(
+                    f"acs1_{v}_{t}_county.json",
+                    f"{vbase}?get=NAME,group({table})"
+                    f"&for=county:*&in=state:{STATE_FIPS}",
+                    note=f"ACS1 {v} {table}, counties, state {STATE_FIPS}",
+                    key=key,
+                )
+                _fetch_json(
+                    f"acs1_{v}_{t}_state.json",
+                    f"{vbase}?get=NAME,group({table})&for=state:{STATE_FIPS}",
+                    note=f"ACS1 {v} {table}, state {STATE_FIPS}",
+                    key=key,
+                )
+        if "county" in geos:
+            # All counties in the state, same vintage span as districts, so the
+            # county series can be drawn alongside the district ones.
+            for v in sorted({vintage, *DISTRICT_VINTAGES}):
+                vbase = f"{ACS_BASE}/{v}/acs/acs5"
+                _fetch_json(
+                    f"acs5_{v}_{t}_county.json",
+                    f"{vbase}?get=NAME,group({table})&for=county:*&in=state:{STATE_FIPS}",
+                    note=f"ACS5 {v} {table}, counties, state {STATE_FIPS}",
+                    key=key,
+                )
         if "blockgroup" in geos:
             for county in spec["counties"]:
                 _fetch_json(
@@ -180,8 +300,12 @@ def acquire(vintage: int = LATEST_VINTAGE) -> None:
                     note=f"ACS5 {vintage} {table}, block groups, county {STATE_FIPS}{county}",
                     key=key,
                 )
-        if not set(geos) <= {"district", "blockgroup"}:  # pragma: no cover
+        if not set(geos) <= {"district", "blockgroup", "county"}:  # pragma: no cover
             raise ValueError(f"unknown geo kind {spec['geo']!r} for {table}")
+
+    # Population-estimate control files (keyless static CSVs).
+    for filename, url, note in POPEST_FILES:
+        _fetch_csv(filename, url, note)
 
     # Decennial P.L. 94-171 block counts (exact, no MOE): total and 18+ per block
     # for LA County, both censuses — under-18 change per attendance area comes
