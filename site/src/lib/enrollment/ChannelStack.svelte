@@ -34,7 +34,8 @@
     aff: CLASS_COLOR.charter_aff,
     cbm: CLASS_COLOR.charter_bm,
     vooc: CLASS_COLOR.charter_virtual,
-    other: '#8d8880'
+    other: '#8d8880',
+    mis: '#cdc7bb'
   };
   let LABEL = $derived({
     dr: county ? "district-run schools" : "this district's schools",
@@ -43,7 +44,10 @@
     vooc: county
       ? 'virtual & non-classroom (balanced est.)'
       : 'virtual/non-classroom & out-of-county (balanced est.)',
-    other: county ? 'counted in other counties (net, est.)' : 'elsewhere in county (net, est.)'
+    other: county
+      ? 'counted in adjacent counties (net, matched)'
+      : 'elsewhere in county (net, est.)',
+    mis: 'survey–administrative alignment (not students)'
   });
 
   let mMap = $derived(new Map(m));
@@ -53,6 +57,12 @@
       .map((r) => {
         const cal = 1 - (mMap.get(r.v) ?? 0.055);
         const vooc = (r.virt ?? 0) + (r.ooc ?? 0);
+        // County residuals carry the conservation decomposition: the matched
+        // adjacent-county flow first (capped by the residual), the remainder
+        // is the survey-administrative misalignment — not students.
+        const resid = Math.max(-r.net, 0);
+        const flowPart =
+          county && r.flow != null ? Math.min(Math.max(-r.flow, 0), resid) : resid;
         return {
           x: r.v,
           base: r.res.pub,
@@ -63,7 +73,8 @@
             aff: (r.seats?.aff ?? 0) * cal,
             cbm: (r.seats?.cbm ?? 0) * cal,
             vooc: Math.max(vooc, 0),
-            other: Math.max(-r.net, 0)
+            other: flowPart,
+            mis: resid - flowPart
           }
         };
       })
@@ -105,7 +116,9 @@
     return (v) => M.t + (1 - v / yMax) * (height - M.t - M.b);
   });
 
-  const KEYS = ['dr', 'aff', 'cbm', 'vooc', 'other'];
+  let KEYS = $derived(
+    county ? ['dr', 'aff', 'cbm', 'vooc', 'other', 'mis'] : ['dr', 'aff', 'cbm', 'vooc', 'other']
+  );
   let areas = $derived.by(() => {
     // Cumulative stack per band: area path between running lower and upper edges.
     const lows = pts.map(() => 0);
@@ -247,9 +260,9 @@
         {fmtN(hover.bands.vooc)} virtual/non-classroom &amp; out-of-county (est.) ·
         {#if hover.net < 0}
           {#if county}
-            {fmtN(-hover.net)} counted in other counties — cross-county
-            administrative enrollment and/or above-footprint remote use
-            (net, est. ±{fmtN(hover.moe)})
+            {fmtN(hover.bands.other)} counted in adjacent counties (matched
+            flow) · {fmtN(hover.bands.mis)} survey–administrative alignment —
+            not students (net, est. ±{fmtN(hover.moe)})
           {:else}
             {fmtN(-hover.net)} elsewhere in the county — other districts in
             person and/or above-average remote use (net, est. ±{fmtN(hover.moe)})

@@ -52,8 +52,13 @@
       const frag = norm(q.slice(last.index + last[0].length)).trim();
       const pool = facetPools[key] ?? [];
       if (pool.some((v) => v.n === frag)) return []; // value fully typed
-      return pool
-        .filter((v) => v.n.includes(frag))
+      // Prefix matches first (Enter picks the top row), then the remaining
+      // substring matches; each group keeps the pool's alpha order.
+      const hits = pool.filter((v) => v.n.includes(frag));
+      return [
+        ...hits.filter((v) => v.n.startsWith(frag)),
+        ...hits.filter((v) => !v.n.startsWith(frag))
+      ]
         .slice(0, 8)
         .map((v) => ({ label: v.n, next: head + v.n + ' ' }));
     }

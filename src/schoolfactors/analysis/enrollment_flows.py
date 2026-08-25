@@ -46,6 +46,7 @@ ACS1_PARQUET = ANALYSIS_DIR / "enrollment_acs1_overlay.parquet"
 REMOTE_AUTH_PARQUET = ANALYSIS_DIR / "enrollment_remote_authorizers.parquet"
 REMOTE_PROGRAMS_PARQUET = ANALYSIS_DIR / "enrollment_remote_programs.parquet"
 REMOTE_XCTY_PARQUET = ANALYSIS_DIR / "enrollment_remote_county_matrix.parquet"
+PHYS_FLOWS_PARQUET = ANALYSIS_DIR / "enrollment_county_flow_pairs.parquet"
 
 # Remote-sector classification (virtual & non-classroom statewide-draw seats).
 # CDE's directory virtual flag (F/V) misses non-classroom-based/homeschool
@@ -592,6 +593,75 @@ def _balanced_attribution(
     return out, x
 
 
+def _flow_decomposition(
+    nets: dict[str, float],
+    adj: dict[str, set[str]],
+    iters: int = 200,
+) -> tuple[dict[str, float], dict[tuple[str, str], float]]:
+    """Conservation decomposition of post-attribution county residuals.
+
+    Real cross-county enrollment must have a counterparty in the legal
+    footprint: an exporter's deficit can only be matched by ADJACENT counties'
+    surpluses, single hop, nonnegative, capped by both ends. The maximal such
+    matching (entropy-spread via the usual down-scale/refill iteration) is the
+    flow-consistent component; whatever cannot be matched on either side is,
+    by arithmetic, survey-administrative misalignment — the derived per-county
+    calibration term. Multi-hop relays are structurally excluded, so bias
+    cannot launder into fictitious chained flows.
+
+    Returns ({county: matched flow, signed like net}, {(exporter, importer):
+    matched students})."""
+    deficits = {c: -n for c, n in nets.items() if n < 0}
+    surplus = {c: n for c, n in nets.items() if n > 0}
+    x: dict[tuple[str, str], float] = {}
+    nbrs = {
+        e: [i for i in adj.get(e, set()) if i != e and surplus.get(i)]
+        for e in deficits
+    }
+    for e, d in deficits.items():
+        tot = sum(surplus[i] for i in nbrs[e])
+        for i in nbrs[e]:
+            x[e, i] = d * surplus[i] / tot if tot else 0.0
+    for _ in range(iters):
+        moved = False
+        col: dict[str, float] = {}
+        for (e, i), v in x.items():
+            col[i] = col.get(i, 0.0) + v
+        for i, t in col.items():
+            if t > surplus[i]:
+                f = surplus[i] / t
+                for k in [k for k in x if k[1] == i]:
+                    x[k] *= f
+                moved = True
+        for e, d in deficits.items():
+            rs = sum(x.get((e, i), 0.0) for i in nbrs[e])
+            if rs and abs(rs - d) > d * 1e-9:
+                # refill toward the deficit, but only through columns with
+                # remaining capacity (down-only columns enforce their caps)
+                col2 = {i: sum(x.get((e2, i), 0.0) for e2 in deficits) for i in nbrs[e]}
+                room = [i for i in nbrs[e] if col2[i] < surplus[i] * (1 - 1e-12)]
+                if rs < d and room:
+                    add = d - rs
+                    w = sum(surplus[i] - col2[i] for i in room)
+                    if w > 0:
+                        for i in room:
+                            x[e, i] = x.get((e, i), 0.0) + add * (surplus[i] - col2[i]) / w
+                        moved = True
+                elif rs > d:
+                    f = d / rs
+                    for i in nbrs[e]:
+                        if (e, i) in x:
+                            x[e, i] *= f
+                    moved = True
+        if not moved:
+            break
+    flow: dict[str, float] = {}
+    for (e, i), v in x.items():
+        flow[e] = flow.get(e, 0.0) - v
+        flow[i] = flow.get(i, 0.0) + v
+    return flow, x
+
+
 def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
     own = con is None
     if own:
@@ -610,6 +680,13 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
         cuts = enrollment_geo.area_grade_cuts(geo)
         enrollment_geo.site_schools(con, geo)
         enrollment_geo.district_adjacency(geo)
+        # Pseudo grade-range areas (funcstat F, "District Name (9-12)"): ACS
+        # observation units for a slice of a real district's territory. Their
+        # residents and any pip-sited seats fold into the parent district's
+        # node — kept separate they trade phantom flows with their own parent
+        # (Perris UHSD showed -39%/+158% between its two polygons).
+        pseudo_parents = enrollment_geo.pseudo_parent_map(geo)
+        print(f"  pseudo grade-range areas folded into parents: {len(pseudo_parents)}")
 
         residence = residence_table(con)
         xwalk = district_crosswalk(con)
@@ -648,6 +725,16 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                 node_county[lk, g] = dcds[:2] if dcds else (
                     maj_county[lk, g][0] if (lk, g) in maj_county else None
                 )
+        # Folding a pseudo area into a parent in another county would leak
+        # residents across county closure — flag it loudly if TIGER ever draws
+        # one that way (none as of acs2024).
+        for pg, (plvl, pgeo) in pseudo_parents.items():
+            pc, qc = node_county.get(("h", pg)), node_county.get((plvl, pgeo))
+            if pc and qc and pc != qc:
+                print(
+                    f"  WARNING: pseudo area {pg} (county {pc}) folds into "
+                    f"{plvl}/{pgeo} (county {qc}) — county closure will shift"
+                )
 
         # District prefix -> its own area node (for the authorizer-base test
         # and for reporting remote programs on their authorizer's page).
@@ -677,9 +764,49 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                 county_adj.setdefault(ca, {ca}).add(cb)
                 county_adj.setdefault(cb, {cb}).add(ca)
 
+        # Non-classroom-based by REGULATORY RECORD: every SBE funding-
+        # determination request (any level, approved or denied) certifies the
+        # school operated nonclassroom-based in the covered fiscal years —
+        # requesting a determination is itself the evidence (EC 47612.5). This
+        # is the primary remote-sector criterion; the NC_RATIO arithmetic test
+        # remains as a backstop for gaps in the compilation.
+        ncb_springs: dict[str, set[int]] = {}
+        if "ncb_raw" in views:
+            import re as _re
+
+            for cds_, period in con.execute(
+                "SELECT cds, "
+                "period_of_funding_determination_or_considered_period_if_denied "
+                "FROM ncb_raw"
+            ).fetchall():
+                if not cds_ or not period:
+                    continue
+                yrs = [int(y) for y in _re.findall(r"\b((?:19|20)\d{2})\b", str(period))]
+                if not yrs:
+                    continue
+                span = set(range(min(yrs) + 1, max(yrs) + 2))  # fiscal years -> springs
+                ncb_springs.setdefault(cds_, set()).update(span)
+        print(f"  NCB determinations: {len(ncb_springs):,} schools with covered periods")
+
+        # Curated adult-serving charters (curated/adult_serving_charters.yaml):
+        # students predominantly 18+, outside the ACS resident-children
+        # universe. Loaded once; excluded per vintage above the calibration.
+        import yaml
+
+        from schoolfactors.paths import REPO_ROOT
+
+        adult_cds: list[str] = []
+        adult_file = REPO_ROOT / "curated" / "adult_serving_charters.yaml"
+        if adult_file.exists():
+            adult_cds = [
+                str(e["cds"]) for e in yaml.safe_load(adult_file.read_text()) or []
+            ]
+        print(f"  adult-serving charters (curated): {len(adult_cds)} schools excluded")
+
         remote_auth_rows: list[dict] = []
         remote_prog_rows: list[dict] = []
         remote_xcty_rows: list[dict] = []
+        phys_pair_rows: list[dict] = []
 
         sec_cut = dict(
             cuts.filter(pl.col("level") == "secondary").select("geoid", "cut").iter_rows()
@@ -701,8 +828,6 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
             state_pub = res_v.filter(pl.col("geo_type") == "county")["pub"].sum()
             if not state_pub or not cde5:
                 continue
-            m = (cde5 - state_pub) / cde5
-
             sv = (
                 seats.filter(pl.col("spring").is_in(springs))
                 .group_by(
@@ -715,6 +840,13 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                     (pl.col("upper").sum() / n_springs).alias("upper"),
                 )
             )
+            # Adult-serving charters (curated, per-entry sources) sit outside
+            # the resident-children universe: excluded from physical seats,
+            # from the remote pool, AND from the universe calibration — their
+            # seats must not be counted against child residents anywhere.
+            pool_adult = sv.filter(pl.col("cds").is_in(adult_cds))["total"].sum()
+            sv = sv.filter(~pl.col("cds").is_in(adult_cds))
+            m = (cde5 - pool_adult - state_pub) / (cde5 - pool_adult)
             # (Seat aggregation happens after the remote-sector split below —
             # the non-classroom criterion needs this vintage's resident bases.)
             res_map: dict[tuple[str, str], dict] = {
@@ -756,14 +888,32 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
 
             # District node set = current geometry; ACS rows keyed by as-of-vintage
             # geoid, so reorganized districts show null residents in old vintages.
+            # Pseudo grade-range areas are not nodes: their residents (computed
+            # with the pseudo area's OWN cut) fold into the parent district.
             nodes: list[tuple[str, str]] = (
                 [("u", g) for g in geo["unified"][0]]
                 + [("e", g) for g in geo["elementary"][0]]
-                + [("h", g) for g in geo["secondary"][0]]
+                + [("h", g) for g in geo["secondary"][0] if g not in pseudo_parents]
             )
             bases = {}
             for level, g in nodes:
                 bases[level, g] = resident_base(level, g)
+            # (parent node -> summed pseudo upper-band base, MOE^2)
+            pseudo_add: dict[tuple[str, str], tuple[float, float]] = {}
+            for pg, parent in pseudo_parents.items():
+                pb, pmoe, _prow = resident_base("h", pg)
+                if pb is None:
+                    continue
+                ab, am2 = pseudo_add.get(parent, (0.0, 0.0))
+                pseudo_add[parent] = (ab + pb, am2 + (pmoe or 0.0) ** 2)
+            for parent, (ab, am2) in pseudo_add.items():
+                b0, m0, row0 = bases.get(parent, (None, None, None))
+                if b0 is None:
+                    bases[parent] = (ab, math.sqrt(am2), row0)
+                else:
+                    bases[parent] = (
+                        b0 + ab, math.sqrt((m0 or 0.0) ** 2 + am2), row0
+                    )
 
             # --- remote sector: flagged-virtual plus non-classroom ----------
             # statewide-draw charters (NC_RATIO criterion, see module top):
@@ -772,7 +922,7 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
             # children — the excess is arithmetic. COE and other
             # non-geographic authorizers are exempt (no base to compare).
             cbm_auth = dict(
-                sv.filter(pl.col("class") == "charter_bm")
+                sv.filter(pl.col("class").is_in(["charter_bm", "charter_aff"]))
                 .with_columns(pl.col("cds").str.slice(0, 7).alias("dcds"))
                 .group_by("dcds")
                 .agg(pl.col("total").sum().alias("s"))
@@ -790,11 +940,24 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                         {"vintage": v, "dcds": dcds, "cbm_seats": s,
                          "res_base": b, "ratio": s / b}
                     )
+            ncb_now = [
+                c for c, sp in ncb_springs.items() if sp.intersection(springs)
+            ]
+            # An SBE NCB determination reclassifies regardless of the
+            # directory-derived class: determinations only exist for charter
+            # schools, so a "district_run" class there is always an artifact of
+            # a missing/stale directory row (e.g. Pivot Charter - North Bay's
+            # successor CDS, absent from the directory, defaulted to
+            # district_run and its 9-12 seats inflated West Sonoma County
+            # Union High's net import). The NC_RATIO criterion stays gated to
+            # charter classes: it reasons about authorizers, and must not
+            # sweep in a district's own schools.
             sv = sv.with_columns(
                 (
                     (pl.col("class") == "charter_virtual")
+                    | pl.col("cds").is_in(ncb_now)
                     | (
-                        (pl.col("class") == "charter_bm")
+                        pl.col("class").is_in(["charter_bm", "charter_aff"])
                         & pl.col("cds").str.slice(0, 7).is_in(nc_auth)
                     )
                 ).alias("remote")
@@ -802,7 +965,7 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
             remote_sv = sv.filter(pl.col("remote"))
             phys = sv.filter(~pl.col("remote"))
             pool_virtual = remote_sv.filter(pl.col("class") == "charter_virtual")["total"].sum()
-            pool_nc = remote_sv.filter(pl.col("class") == "charter_bm")["total"].sum()
+            pool_nc = remote_sv.filter(pl.col("class") != "charter_virtual")["total"].sum()
             pool_unsited = (
                 phys.filter(pl.col("sited").is_null())["total"].sum()
                 + phys.filter(
@@ -816,12 +979,17 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                     & pl.col("elem_geoid").is_null()
                 )["lower"].sum()
             )
+            ncb_now_set = set(ncb_now)
             for cds_, cls_, cc_, tot_ in remote_sv.select(
                 "cds", "class", "county_code", "total"
             ).iter_rows():
+                kind = (
+                    "virtual" if cls_ == "charter_virtual"
+                    else "ncb" if cds_ in ncb_now_set
+                    else "nonclassroom"
+                )
                 remote_prog_rows.append(
-                    {"vintage": v, "cds": cds_, "county": cc_, "seats": tot_,
-                     "kind": "virtual" if cls_ == "charter_virtual" else "nonclassroom"}
+                    {"vintage": v, "cds": cds_, "county": cc_, "seats": tot_, "kind": kind}
                 )
 
             def seat_agg(
@@ -844,6 +1012,20 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
             # diagnostic (elementary/secondary areas are single-band already).
             seats_u_lo = seat_agg("unified_geoid", pl.col("lower"))
             seats_u_up = seat_agg("unified_geoid", pl.col("upper"))
+            # Seats pip-sited inside a pseudo grade-range polygon (independent
+            # charters there) belong to the parent district's node, like its
+            # residents.
+            for pg, (plvl, pgeo) in pseudo_parents.items():
+                sm_p = seats_h.pop(pg, None)
+                if not sm_p:
+                    continue
+                tgt = (seats_u if plvl == "u" else seats_h).setdefault(pgeo, {})
+                for cls_p, s_p in sm_p.items():
+                    tgt[cls_p] = tgt.get(cls_p, 0.0) + s_p
+                if plvl == "u":
+                    up_t = seats_u_up.setdefault(pgeo, {})
+                    for cls_p, s_p in sm_p.items():
+                        up_t[cls_p] = up_t.get(cls_p, 0.0) + s_p
             # Remote programs BASED in each area, grouped by AUTHORIZER (cds
             # prefix, whose county sets the legal footprint) — observed seats,
             # excluded from the local physical accounting but reported so
@@ -966,6 +1148,39 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
             remote_alloc_up, x_up = _balanced_attribution(
                 rows_up, county_adj, cty_up, ceil_up
             )
+            # Kind mix per authorizer county: flagged-VIRTUAL programs are
+            # broad-population products (attributed within a county by
+            # population share), while non-classroom/recovery programs
+            # concentrate where outflow is observed (attributed by gap) —
+            # carried through the balance via each authorizer's kind fractions.
+            kindmix: dict[str, tuple[float, float]] = {}
+            for authc, vlo, vup, tlo, tup in (
+                remote_sv.with_columns(
+                    (pl.col("class") == "charter_virtual").alias("isv")
+                )
+                .group_by("county_code")
+                .agg(
+                    pl.col("lower").filter(pl.col("isv")).sum().alias("vlo"),
+                    pl.col("upper").filter(pl.col("isv")).sum().alias("vup"),
+                    pl.col("lower").sum().alias("tlo"),
+                    pl.col("upper").sum().alias("tup"),
+                )
+                .iter_rows()
+            ):
+                kindmix[authc] = (
+                    (vlo or 0.0) / tlo if tlo else 0.0,
+                    (vup or 0.0) / tup if tup else 0.0,
+                )
+            remote_alloc_lo_v: dict[str, float] = {}
+            remote_alloc_up_v: dict[str, float] = {}
+            for (a_, c_), val_ in x_lo.items():
+                remote_alloc_lo_v[c_] = (
+                    remote_alloc_lo_v.get(c_, 0.0) + val_ * kindmix.get(a_, (0, 0))[0]
+                )
+            for (a_, c_), val_ in x_up.items():
+                remote_alloc_up_v[c_] = (
+                    remote_alloc_up_v.get(c_, 0.0) + val_ * kindmix.get(a_, (0, 0))[1]
+                )
             remote_alloc_x: dict[str, float] = {}
             for authc, r in rows_x.items():
                 _spread(r, county_adj.get(authc, {authc}), cty_pub, remote_alloc_x, m=0.0)
@@ -1023,6 +1238,11 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                         bup = (1 - w_c) * row["pub_10_14"] + row["pub_15_17"]
                     else:
                         blo = bup = None
+                    # Folded pseudo-area residents are upper-band by
+                    # construction (the pseudo area exists because the parent
+                    # serves only those grades there).
+                    if (level, g) in pseudo_add:
+                        bup = (bup or 0.0) + pseudo_add[level, g][0]
                 elif level == "e":
                     blo, bup = base, None
                 else:
@@ -1084,23 +1304,34 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                 else:
                     pool_cc = county_base[cc] - county_seats[cc]
                     # District pass-back of the county's balanced remote
-                    # attribution: weighted by each district's own measured
-                    # band gap (residents minus band-calibrated local seats,
-                    # clipped at zero) — remote use is attributed where
-                    # unexplained outflow is observed, and a district with no
-                    # gap receives none. Nodes without age/gap data fall back
-                    # to population share. The remaining county pool (net
-                    # in-person redistribution + unsited) still spreads by
-                    # population, so districts sum exactly to the county.
+                    # attribution, split by program kind: the flagged-VIRTUAL
+                    # part spreads by population share (a base-rate product
+                    # every district's residents use — a district never shows
+                    # zero virtual use just because its measured gap is noisy
+                    # or negative), while the NON-CLASSROOM/recovery part is
+                    # weighted by each district's own measured band gap
+                    # (concentrated where unexplained outflow is observed).
+                    # Nodes without age/gap data fall back to population
+                    # share. The remaining county pool (net in-person
+                    # redistribution + unsited) still spreads by population,
+                    # so districts sum exactly to the county.
                     g_lo, g_up = node_gaps.get((level, g), (0.0, 0.0))
+                    dv_lo = remote_alloc_lo_v.get(cc, 0.0)
+                    dn_lo = remote_alloc_lo.get(cc, 0.0) - dv_lo
+                    dv_up = remote_alloc_up_v.get(cc, 0.0)
+                    dn_up = remote_alloc_up.get(cc, 0.0) - dv_up
+                    if blo and county_blo.get(cc):
+                        ral_lo = dv_lo * blo / county_blo[cc]
                     if county_glo.get(cc):
-                        ral_lo = remote_alloc_lo.get(cc, 0.0) * g_lo / county_glo[cc]
+                        ral_lo = (ral_lo or 0.0) + dn_lo * g_lo / county_glo[cc]
                     elif blo and county_blo.get(cc):
-                        ral_lo = remote_alloc_lo.get(cc, 0.0) * blo / county_blo[cc]
+                        ral_lo = (ral_lo or 0.0) + dn_lo * blo / county_blo[cc]
+                    if bup and county_bup.get(cc):
+                        ral_up = dv_up * bup / county_bup[cc]
                     if county_gup.get(cc):
-                        ral_up = remote_alloc_up.get(cc, 0.0) * g_up / county_gup[cc]
+                        ral_up = (ral_up or 0.0) + dn_up * g_up / county_gup[cc]
                     elif bup and county_bup.get(cc):
-                        ral_up = remote_alloc_up.get(cc, 0.0) * bup / county_bup[cc]
+                        ral_up = (ral_up or 0.0) + dn_up * bup / county_bup[cc]
                     if ral_lo is None and ral_up is None:
                         virt_est = remote_alloc.get(cc, 0.0) * base / county_base[cc]
                     else:
@@ -1146,6 +1377,8 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                         "seats_up": s_up,
                         "ralloc_lo": ral_lo,
                         "ralloc_up": ral_up,
+                        "net_flow": None,
+                        "net_misalign": None,
                     }
                 )
 
@@ -1158,6 +1391,7 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
             # A county's net is thus its measured cross-county administrative
             # flow, and county nets close exactly at the state level (the
             # footprint allocation sums to the full remote pool).
+            county_temp_rows: list[dict] = []
             for r in county_rows:
                 fips = r["geoid"][-3:]
                 code = f"{(int(fips) + 1) // 2:02d}"
@@ -1169,7 +1403,7 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                 valloc = remote_alloc.get(code, 0.0) if base else None
                 seats_adj = (s_dr + s_caff + s_cbm) * (1 - m)
                 net = seats_adj - (base - valloc) if base is not None and valloc is not None else None
-                flow_rows.append(
+                county_temp_rows.append(
                     {
                         "level": "c",
                         "geoid": code,
@@ -1200,6 +1434,27 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                     }
                 )
 
+            # Conservation decomposition of the county residuals: matched
+            # single-hop adjacent flow vs the non-conserved misalignment field
+            # (the derived per-county calibration term). net = flow + misalign.
+            cnets = {
+                r["geoid"]: r["net"] for r in county_temp_rows if r["net"] is not None
+            }
+            cflow, cpairs = _flow_decomposition(cnets, county_adj)
+            for r in county_temp_rows:
+                if r["net"] is None:
+                    r["net_flow"] = r["net_misalign"] = None
+                else:
+                    fl = cflow.get(r["geoid"], 0.0)
+                    r["net_flow"] = fl
+                    r["net_misalign"] = r["net"] - fl
+            flow_rows.extend(county_temp_rows)
+            for (e_, i_), v_ in cpairs.items():
+                if v_ > 0.5:
+                    phys_pair_rows.append(
+                        {"vintage": v, "exporter": e_, "importer": i_, "est": v_}
+                    )
+
             calib_rows.append(
                 {
                     "vintage": v,
@@ -1213,6 +1468,7 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
                     "pool_nc": pool_nc,
                     "n_nc_authorizers": len(nc_auth),
                     "pool_unsited": pool_unsited,
+                    "pool_adult": pool_adult,
                     "closure": closure,
                     "closure_share": closure / cde5,
                     "nodes_covered": covered,
@@ -1221,16 +1477,17 @@ def build_all(con: duckdb.DuckDBPyConnection | None = None) -> None:
             )
             print(
                 f"    vintage {v}: m={m:.3%}, virtual={pool_virtual:,.0f}, "
-                f"non-classroom={pool_nc:,.0f} ({len(nc_auth)} authorizers), "
-                f"unsited={pool_unsited:,.0f}, "
+                f"non-classroom={pool_nc:,.0f} ({len(ncb_now)} NCB-record schools, "
+                f"{len(nc_auth)} ratio authorizers), unsited={pool_unsited:,.0f}, "
                 f"closure={closure / cde5:+.4%} over {covered}/{len(nodes)} areas"
             )
 
-        pl.DataFrame(flow_rows).write_parquet(FLOWS_PARQUET)
+        pl.DataFrame(flow_rows, infer_schema_length=None).write_parquet(FLOWS_PARQUET)
         pl.DataFrame(calib_rows).write_parquet(CALIB_PARQUET)
         pl.DataFrame(remote_auth_rows).write_parquet(REMOTE_AUTH_PARQUET)
         pl.DataFrame(remote_prog_rows).write_parquet(REMOTE_PROGRAMS_PARQUET)
         pl.DataFrame(remote_xcty_rows).write_parquet(REMOTE_XCTY_PARQUET)
+        pl.DataFrame(phys_pair_rows).write_parquet(PHYS_FLOWS_PARQUET)
 
         acs1_overlay(residence, seats)
         print(f"  enrollment flows: {len(flow_rows):,} area-vintage rows, "

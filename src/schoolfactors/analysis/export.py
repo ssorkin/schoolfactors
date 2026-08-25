@@ -238,6 +238,21 @@ def run_export() -> None:
               AND pct_met_and_above IS NOT NULL
         """).fetchall()
     }
+
+    # Participation: tested / enrolled for All Students at grade 13, both
+    # subjects summed. Keyed by (cds, year) so each index row reports the same
+    # year as its Met+ columns; low values flag entities (notably virtual
+    # charters) whose Met+ rates describe only a subset of students.
+    tested_map: dict[tuple[str, int], int] = {}
+    for cds_, yr, tested, enrolled in con_state.execute("""
+        SELECT cds, test_year, sum(students_tested), sum(students_enrolled)
+        FROM caaspp_sb
+        WHERE grade = 13 AND test_id IN (1, 2) AND student_group_id = 1
+          AND students_tested IS NOT NULL AND students_enrolled IS NOT NULL
+        GROUP BY 1, 2
+    """).fetchall():
+        if enrolled:
+            tested_map[(cds_, yr)] = round(100 * tested / enrolled)
     con_state.close()
 
     # School level (elementary/middle/high) from the directory, for table facets.
@@ -915,6 +930,7 @@ def run_export() -> None:
                     "adj_math": adj_math,
                     "pass_ela": g1["pass_ela"],
                     "pass_math": g1["pass_math"],
+                    "tested": tested_map.get((cds, last_year)),
                     "last_year": last_year,
                     "growth_adj_eb": eff.get("growth_adj_eb"),
                     "growth_lcb": eff.get("growth_adj_lcb"),

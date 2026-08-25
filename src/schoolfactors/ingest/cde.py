@@ -40,7 +40,7 @@ TAB_FAMILIES = [
     "growth",
     "doc",
 ]
-XLSX_FAMILIES = ["frpm", "cupc", "ppe", "currentexpense", "lcff"]
+XLSX_FAMILIES = ["frpm", "cupc", "ppe", "currentexpense", "lcff", "ncb"]
 
 
 def snake(name: str) -> str:
@@ -51,7 +51,13 @@ def snake(name: str) -> str:
 
 def _derive_cds(df: pl.DataFrame) -> pl.DataFrame:
     cols = {c.lower(): c for c in df.columns}
-    for key in ("cds_code", "cdscode", "school_cds_code", "lea_cds_code"):
+    for key in (
+        "cds_code",
+        "cdscode",
+        "school_cds_code",
+        "lea_cds_code",
+        "county_district_school_cds_code",
+    ):
         if key in cols:
             return df.with_columns(pl.col(cols[key]).str.zfill(14).alias("cds"))
     county = cols.get("county_code") or cols.get("countycode")
@@ -123,7 +129,10 @@ def read_xlsx(path: Path) -> pl.DataFrame:
         header_row = None
         for i, row in head.iterrows():
             joined = " ".join(str(v) for v in row.tolist())
-            if any(k in joined for k in ("County Code", "CountyCode", "CDS Code", "CDSCode")):
+            if any(
+                k in joined
+                for k in ("County Code", "CountyCode", "CDS Code", "CDSCode", "(CDS) Code")
+            ):
                 header_row = i
                 break
         if header_row is None:
@@ -142,7 +151,10 @@ def read_xlsx(path: Path) -> pl.DataFrame:
 def _find_header_row(head) -> int | None:
     for i, row in head.iterrows():
         joined = " ".join(str(v) for v in row.tolist())
-        if any(k in joined for k in ("County Code", "CountyCode", "CDS Code", "CDSCode")):
+        if any(
+            k in joined
+            for k in ("County Code", "CountyCode", "CDS Code", "CDSCode", "(CDS) Code")
+        ):
             return i
     return None
 

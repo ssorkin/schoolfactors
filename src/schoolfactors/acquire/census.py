@@ -111,6 +111,27 @@ POPEST_FILES: tuple[tuple[str, str, str], ...] = (
         f"Vintage-{v} postcensal CA county population by age/sex (ACS {v} controls)",
     )
     for v in range(2005, 2010)
+) + (
+    # 2010-2020 and 2020s vintages: the county 5-17 verification series for the
+    # enrollment-flow model (DQ check: county ACS children match these controls,
+    # so flow residuals cannot be phantom population). Note the archive's mixed
+    # filename casing between the two directories.
+    (
+        "popest_cc-est2020-agesex-06.csv",
+        (
+            "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/"
+            "counties/asrh/CC-EST2020-AGESEX-06.csv"
+        ),
+        "Vintage-2020 postcensal CA county population by age/sex, July 2010-2020",
+    ),
+    (
+        "popest_cc-est2024-agesex-06.csv",
+        (
+            "https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/"
+            "counties/asrh/cc-est2024-agesex-06.csv"
+        ),
+        "Vintage-2024 postcensal CA county population by age/sex, July 2020-2024",
+    ),
 )
 
 

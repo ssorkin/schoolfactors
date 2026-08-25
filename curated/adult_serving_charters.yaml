@@ -1,0 +1,97 @@
+# Charter schools serving predominantly ADULT (18+) students while reporting
+# census-day enrollment in K-12 grade categories.
+#
+# CDE publishes NO per-school age mix, so these cannot be detected from the
+# data files alone; the statewide enrollment-flow model needs them because
+# their students sit outside the ACS resident-children (5-17) universe — left
+# in, their seats read as phantom net IMPORT at their administrative county
+# (the flow model's conservation decomposition surfaced exactly these
+# counties as unexplained importers). The list is deliberately conservative:
+# only programs whose adult-serving mission is publicly documented, with a
+# source per entry. Corrections and additions welcome via pull request.
+#
+# Treatment in the flow model: excluded from the resident-children accounting
+# entirely (from physical seats, from the remote pool, and from the statewide
+# universe calibration) — not pooled, because pooling would allocate adult
+# seats against child residents.
+
+- cds: "34765050130757"
+  name: Highlands Community Charter
+  district: Twin Rivers Unified
+  note: >
+    Adult-serving charter (students 22+ under EC 47612.1 exemption claims);
+    subject of 2024-25 state audit and legislation (AB 1955 context) over
+    thousands of adult enrollees reported as TK-12.
+  source: https://www.auditor.ca.gov/reports/2024-107/index.html
+
+- cds: "38684780118141"
+  name: Five Keys Independence HS (SF Sheriff's)
+  district: San Francisco Unified
+  note: >
+    In-custody and reentry adult education charter operating in county jails
+    and community sites statewide; students are overwhelmingly adults.
+  source: https://www.fivekeys.org/about
+
+- cds: "38684780101774"
+  name: Five Keys Charter (SF Sheriff's)
+  district: San Francisco Unified
+  note: Sister school of Five Keys Independence; same adult in-custody model.
+  source: https://www.fivekeys.org/about
+
+- cds: "14101400117994"
+  name: YouthBuild Charter School of California
+  district: Inyo County Office of Education
+  note: >
+    Workforce/diploma program for out-of-school youth ages 16-24 at partner
+    sites across Southern California; majority of enrollees are 18+.
+  source: https://youthbuildcharter.org/about-us/
+
+- cds: "53105380125633"
+  name: California Heritage Youthbuild Academy II
+  district: Trinity County Office of Education
+  note: YouthBuild-model charter serving ages 16-24.
+  source: https://chyba.org/
+
+- cds: "29102982930147"
+  name: John Muir Charter
+  district: Nevada County Office of Education
+  note: >
+    Diploma program for California Conservation Corps, local corps, YouthBuild
+    and WIOA members, ages 16-25; most enrollees are 18+.
+  source: https://johnmuircs.com/about/
+
+- cds: "29102980130823"
+  name: EPIC de Cesar Chavez
+  district: Nevada County Office of Education
+  note: Adult-focused charter (Escuela Popular network model) for ages 18+.
+  source: https://www.epicchavez.org/
+
+- cds: "43694270107151"
+  name: Escuela Popular/Center for Training and Careers, Family Learning
+  district: East Side Union High
+  note: Family-learning charter whose enrollment is predominantly adult.
+  source: https://www.escuelapopular.org/
+
+- cds: "43694274330726"
+  name: Escuela Popular Accelerated Family Learning
+  district: East Side Union High
+  note: Sister school of Escuela Popular CTC; same adult family-learning model.
+  source: https://www.escuelapopular.org/
+
+- cds: "15635291530435"
+  name: Kern Workforce 2000 Academy
+  district: Kern High
+  note: Adult workforce-training charter within the Kern High system.
+  source: https://www.kernhigh.org/
+
+- cds: "14101400121301"
+  name: YouthBuild Charter School of California Central
+  district: Inyo County Office of Education
+  note: Second CDS of the YouthBuild Charter network; same 16-24 model.
+  source: https://youthbuildcharter.org/about-us/
+
+- cds: "38684780118133"
+  name: Five Keys Adult School (SF Sheriff's)
+  district: San Francisco Unified
+  note: Third Five Keys CDS; explicitly an adult school.
+  source: https://www.fivekeys.org/about

@@ -361,6 +361,9 @@
   }
   .wrap {
     position: relative;
+    /* Contain Leaflet's internal z-indexes (up to 1000) so page overlays
+       like the search dropdown (z-index 20) paint above the map. */
+    isolation: isolate;
   }
   .map {
     border: 1px solid #e8e1d5;

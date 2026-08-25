@@ -1,0 +1,11 @@
+{
+  "fdresults20260721.xlsx": {
+    "dataset": "ncb",
+    "filename": "fdresults20260721.xlsx",
+    "url": "https://www.cde.ca.gov/sp/ch/documents/fdresults20260721.xlsx",
+    "sha256": "3fd9654d549a7533da2e232a6601bb4013f621f0ab5e14a99b83b5c3175464c0",
+    "size": 241952,
+    "downloaded_at": "2026-08-24T14:30:59+00:00",
+    "note": "SBE nonclassroom-based funding determination results, FY 2002-03 to present \u2014 regulatory record for remote-sector classification"
+  }
+}

@@ -259,7 +259,8 @@
   // Two-line headers ([line1, line2]) keep the numeric columns narrow.
   const PASS_COLS = [
     ['pass_ela', 'ELA', 'met+'],
-    ['pass_math', 'Math', 'met+']
+    ['pass_math', 'Math', 'met+'],
+    ['tested', 'Tested', '%']
   ];
 
   // ---- Map view ----
@@ -432,12 +433,12 @@
     return {
       headers: [
         'Name', 'Kind', 'Level', 'District', 'County', 'ELA met+ %', 'Math met+ %',
-        'Similar Student %ile', 'Similar Schools %ile', 'Cohort trajectory',
+        'Tested %', 'Similar Student %ile', 'Similar Schools %ile', 'Cohort trajectory',
         'Cohort growth (SD/grade)', '$ per pupil', '% FRPM', 'Enrollment', 'CDS'
       ],
       rows: sorted.map((it) => [
         it.name, it.kind, it.level, it.district, it.county, it.pass_ela, it.pass_math,
-        it.simstu_pct, it.adj_pct, it.growth_cat, it.growth_eb, it.ppe,
+        it.tested, it.simstu_pct, it.adj_pct, it.growth_cat, it.growth_eb, it.ppe,
         it.econ == null ? null : Math.round(it.econ * 100), it.enrollment, it.cds
       ])
     };
@@ -631,6 +632,7 @@
             <td class="dim">{it.level}</td>
             <td class="tnum">{it.pass_ela == null ? '—' : it.pass_ela + '%'}</td>
             <td class="tnum">{it.pass_math == null ? '—' : it.pass_math + '%'}</td>
+            <td class="tnum">{it.tested == null ? '—' : it.tested + '%'}</td>
             <td class="spark">
               {#if sparkRuns(it.spark).length}
                 <svg viewBox="0 0 104 24" width="104" height="24" role="img">
@@ -669,11 +671,11 @@
           </tr>
         {/each}
       {:else if loadError}
-        <tr><td colspan="11" class="loading">
+        <tr><td colspan="12" class="loading">
           Couldn't load the dataset — please reload the page.
         </td></tr>
       {:else}
-        <tr><td colspan="11" class="loading">Loading the full dataset…</td></tr>
+        <tr><td colspan="12" class="loading">Loading the full dataset…</td></tr>
       {/if}
     </tbody>
   </table>

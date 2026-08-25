@@ -99,6 +99,16 @@ SCRAPED_FAMILIES: list[tuple[str, str, str, str]] = [
         "teacher assignment/credential alignment (large, ~230MB/yr)",
     ),
     (
+        "ncb",
+        f"{CDE}/sp/ch/nclrbifunddet.asp",
+        "documents/fdresults",
+        (
+            "SBE nonclassroom-based funding determination results, FY 2002-03 to "
+            "present — the regulatory record behind the enrollment flow model's "
+            "remote-sector classification"
+        ),
+    ),
+    (
         "doc",
         f"{CDE}/sp/eo/dc/docdatafiles1819.asp",
         "researchfiles/districtofchoice",

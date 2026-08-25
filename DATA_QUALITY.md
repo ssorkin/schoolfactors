@@ -1,6 +1,6 @@
 # Data Quality Report
 
-Generated 2026-08-23 by `sf check`. This report is a first-class artifact of the pipeline: problems in the source data are surfaced here and in `known_issues/`, never silently patched.
+Generated 2026-08-24 by `sf check`. This report is a first-class artifact of the pipeline: problems in the source data are surfaced here and in `known_issues/`, never silently patched.
 
 ## Known issues (documented registry)
 
@@ -66,7 +66,7 @@ Group 6 ("Fluent English proficient and English only") is the sum of groups 7 (I
 
 The statewide enrollment-flow model classifies a school as virtual when the CDE directory currently flags it fully or primarily virtual (virtual in F/V). Two limitations follow. (1) The flag is a present-day attribute applied to the whole 1981-2026 enrollment history: schools that changed model, or closed before the flag existed, are classified by their last-known state. (2) Non-classroom-based charters that CDE does not flag virtual (independent-study, hybrid, resource-center models) are treated as physical schools at their directory coordinates even though their students need not live nearby. Both push in the same direction: the statewide virtual pool is a LOWER BOUND, and the flow model attributes some genuinely-remote enrollment to the school's host area, biasing that area toward apparent net import (and the students' home areas toward apparent export).
 
-**Handling:** Documented in analysis/enrollment_flow_model.md and on the site methodology page; remote-pool quantities are labeled estimates and the flag's lower-bound nature is stated wherever the remote share is shown. The flag is complemented by an arithmetic criterion (enrollment_flows NC_RATIO): charters whose geographic authorizer's administered charter enrollment exceeds 1.5x the authorizer's own resident children are classified non-classroom statewide-draw and pooled with flagged-virtual seats (allocated over the authorizer county + adjacent counties, the Ed Code enrollment footprint; audited per vintage in the DQ report). The criterion is itself a lower bound: non-classroom programs under large authorizers pass the ratio test and remain in measured cross-county flows. No name-matching heuristics are applied - that would silently patch data. A future improvement is CDE's non-classroom-based funding determination list, which is not currently acquired.
+**Handling:** Documented in analysis/enrollment_flow_model.md and on the site methodology page; remote-pool quantities are labeled estimates and the flag's lower-bound nature is stated wherever the remote share is shown. The flag is complemented by an arithmetic criterion (enrollment_flows NC_RATIO): charters whose geographic authorizer's administered charter enrollment exceeds 1.5x the authorizer's own resident children are classified non-classroom statewide-draw and pooled with flagged-virtual seats (allocated over the authorizer county + adjacent counties, the Ed Code enrollment footprint; audited per vintage in the DQ report). As of 2026-08, the PRIMARY complement is CDE's SBE nonclassroom-based funding determination register (acquired as the `ncb` family from the fiscal-support landing page): any determination request on record, at any level including denied, certifies nonclassroom operation for the covered fiscal years and classifies the school remote by CDS match - classification by regulatory record, ~370-430 schools per recent window vs ~100 flagged virtual. The ratio criterion remains as a backstop for register gaps. No name-matching heuristics are applied - that would silently patch data. The NCB match is applied regardless of the directory-derived school class: NCB-determined schools can be MISSING from the directory outright (successor CDS codes, e.g. Pivot Charter - North Bay 49708390138065), which previously defaulted them to district_run, skipped the remote reclassification, and counted their seats as physical in the host area (inflating West Sonoma County Union High's apparent net import by ~330 seats, nearly the whole residual).
 
 ### Current (ACS-2024) district polygons applied to all vintages 2009-2024
 
@@ -177,13 +177,13 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
   - Elk Grove Unified (cds 3467314…): parent=33,878 vs children 67,756
 - 🔴 **2021** gender (male 3 + female 4 = all students): 3 district(s) violate the identity by more than 2%
   - Shasta County Office of Education (cds 4510454…): parent=95 vs children 93
-  - Yolo County Office of Education (cds 5710579…): parent=48 vs children 47
   - Monte Rio Union Elementary (cds 4970813…): parent=48 vs children 47
+  - Yolo County Office of Education (cds 5710579…): parent=48 vs children 47
 - 🔴 **2022** gender (male 3 + female 4 = all students): 4 district(s) violate the identity by more than 2%
   - Humboldt County Office of Education (cds 1210124…): parent=62 vs children 59
-  - Imperial County Office of Education (cds 1310132…): parent=49 vs children 48
-  - Napa County Office of Education (cds 2810280…): parent=42 vs children 41
   - Monte Rio Union Elementary (cds 4970813…): parent=40 vs children 39
+  - Napa County Office of Education (cds 2810280…): parent=42 vs children 41
+  - Imperial County Office of Education (cds 1310132…): parent=49 vs children 48
 - 🔴 **2023** gender (male 3 + female 4 = all students): 5 district(s) violate the identity by more than 2%
   - West Sonoma County Union High (cds 4970607…): parent=419 vs children 409
   - Sebastopol Union Elementary (cds 4970938…): parent=293 vs children 286
@@ -199,9 +199,22 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
   - SBE - Altus Schools East County (cds 3777099…): parent=76 vs children 74
   - Monte Rio Union Elementary (cds 4970813…): parent=44 vs children 43
   - SBE - Olive Grove Charter - Santa Barbar (cds 4277222…): parent=46 vs children 45
+### enrollment_popest
+
+- 🟡 **2020** county 021: ACS children 5,440 vs popest 5,558 (+2.2%) — investigate control drift
+- 🟡 **2021** county 033: ACS children 10,607 vs popest 10,184 (-4.0%) — investigate control drift
+- 🟡 **2021** county 045: ACS children 14,507 vs popest 13,947 (-3.9%) — investigate control drift
+- 🟡 **2021** county 057: ACS children 13,358 vs popest 12,978 (-2.8%) — investigate control drift
+- 🟡 **2021** county 067: ACS children 273,855 vs popest 268,169 (-2.1%) — investigate control drift
+- 🟡 **2021** county 101: ACS children 19,303 vs popest 18,606 (-3.6%) — investigate control drift
+- 🟡 **2021** county 103: ACS children 11,930 vs popest 11,564 (-3.1%) — investigate control drift
+- 🟡 **2021** county 115: ACS children 16,149 vs popest 15,717 (-2.7%) — investigate control drift
+- 🟡 **2022** county 021: ACS children 5,496 vs popest 5,714 (+4.0%) — investigate control drift
+- 🟡 **2023** county 033: ACS children 11,088 vs popest 10,790 (-2.7%) — investigate control drift
+- 🟡 **2023** county 057: ACS children 13,393 vs popest 13,102 (-2.2%) — investigate control drift
 ### enrollment_remote
 
-- 🟡 **2024** classification churn vs prior vintage: ['4570169', '4970730', '5572413'] — check whether a borderline authorizer crossed the ratio cut
+- 🟡 **2024** classification churn vs prior vintage: ['4469807', '4570169', '4970961'] — check whether a borderline authorizer crossed the ratio cut
 ### entity_continuity
 
 - 🟡 **2016** 18 schools report in 2015 and 2017 but not 2016 (closures/reopenings, code changes, or reporting gaps)
@@ -229,22 +242,22 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
 
 - ℹ️ per-county netting exact: every county's district nets sum to <1 student across all 16 vintages
 - ℹ️ county-level netting exact: county nets sum to <1 student statewide across all 16 vintages
-- ℹ️ **2009** closure +0.000% of state enrollment (tolerance ±0.5%), m=5.43%, 923/974 areas covered
-- ℹ️ **2010** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.59%, 935/974 areas covered
-- ℹ️ **2011** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.27%, 935/974 areas covered
-- ℹ️ **2012** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.30%, 941/974 areas covered
-- ℹ️ **2013** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.77%, 941/974 areas covered
-- ℹ️ **2014** closure +0.000% of state enrollment (tolerance ±0.5%), m=4.46%, 953/974 areas covered
-- ℹ️ **2015** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.82%, 953/974 areas covered
-- ℹ️ **2016** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.06%, 958/974 areas covered
-- ℹ️ **2017** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.48%, 958/974 areas covered
-- ℹ️ **2018** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.80%, 973/974 areas covered
-- ℹ️ **2019** closure +0.000% of state enrollment (tolerance ±0.5%), m=5.97%, 973/974 areas covered
-- ℹ️ **2020** closure -0.000% of state enrollment (tolerance ±0.5%), m=6.51%, 973/974 areas covered
-- ℹ️ **2021** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.83%, 973/974 areas covered
-- ℹ️ **2022** closure +0.000% of state enrollment (tolerance ±0.5%), m=5.80%, 973/974 areas covered
-- ℹ️ **2023** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.95%, 973/974 areas covered
-- ℹ️ **2024** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.89%, 974/974 areas covered
+- ℹ️ **2009** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.41%, 920/938 areas covered
+- ℹ️ **2010** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.56%, 924/938 areas covered
+- ℹ️ **2011** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.23%, 924/938 areas covered
+- ℹ️ **2012** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.25%, 927/938 areas covered
+- ℹ️ **2013** closure -0.000% of state enrollment (tolerance ±0.5%), m=3.71%, 927/938 areas covered
+- ℹ️ **2014** closure +0.000% of state enrollment (tolerance ±0.5%), m=4.38%, 933/938 areas covered
+- ℹ️ **2015** closure +0.000% of state enrollment (tolerance ±0.5%), m=4.72%, 933/938 areas covered
+- ℹ️ **2016** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.95%, 936/938 areas covered
+- ℹ️ **2017** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.35%, 936/938 areas covered
+- ℹ️ **2018** closure -0.000% of state enrollment (tolerance ±0.5%), m=5.67%, 937/938 areas covered
+- ℹ️ **2019** closure +0.000% of state enrollment (tolerance ±0.5%), m=5.83%, 937/938 areas covered
+- ℹ️ **2020** closure -0.000% of state enrollment (tolerance ±0.5%), m=6.36%, 937/938 areas covered
+- ℹ️ **2021** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.68%, 937/938 areas covered
+- ℹ️ **2022** closure +0.000% of state enrollment (tolerance ±0.5%), m=5.63%, 937/938 areas covered
+- ℹ️ **2023** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.75%, 937/938 areas covered
+- ℹ️ **2024** closure -0.000% of state enrollment (tolerance ±0.5%), m=4.67%, 938/938 areas covered
 ### enrollment_definition
 
 - ℹ️ **2016** subgroup enrollment varies normally (0.0% of 877 districts constant)
@@ -259,8 +272,8 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
 ### enrollment_doc_validation
 
 - ℹ️ **2023** observed DOC transfers: 7,920 students in matched pairs, 69% between ADJACENT districts — supports the nearby-draw premise
-- ℹ️ **2023** model-vs-observed sign agreement: 22/24 DOC districts (>20 transfers) match the model's net direction (or sit within the model's margin); disagreements are expected where DOC is a small share of a district's total movement
-- ℹ️ **2023** largest DOC importer: observed net +2,434 transfers vs model net +5,013 (model includes permits and charter draw beyond the DOC program)
+- ℹ️ **2023** model-vs-observed sign agreement: 21/24 DOC districts (>20 transfers) match the model's net direction (or sit within the model's margin); disagreements are expected where DOC is a small share of a district's total movement
+- ℹ️ **2023** largest DOC importer: observed net +2,434 transfers vs model net +5,176 (model includes permits and charter draw beyond the DOC program)
 ### enrollment_lausd_regression
 
 - ℹ️ **2014** resident public 651,638 vs LAUSD page 651,638 (+0; tolerance ±6,516)
@@ -273,17 +286,24 @@ CAASPP student group 31 uses CDE's socioeconomically-disadvantaged (SED) definit
 - ℹ️ **2021** resident public 608,436 vs LAUSD page 608,436 (+0; tolerance ±6,084)
 - ℹ️ **2022** resident public 584,275 vs LAUSD page 584,275 (+0; tolerance ±5,843)
 - ℹ️ **2023** resident public 576,435 vs LAUSD page 576,435 (+0; tolerance ±5,764)
+- ℹ️ **2024** resident public 565,624 vs LAUSD page 565,624 (+0; tolerance ±5,656)
+### enrollment_ledger
+
+- ℹ️ **2024** county 19: export residual 16,846 exceeds its whole footprint's unabsorbed surplus (4,677) — at least 12,168 is measurement, not students
+### enrollment_pairs
+
+- ℹ️ **2024** 9 stable matched pairs (≥3 vintages) totaling 12,626 students; 0 young pair(s) flagged
 ### enrollment_remote
 
-- ℹ️ **2024** 22 geographic authorizers classified non-classroom (criterion: charter seats > 1.5x resident base, >= 50 seats); pooled seats 35,682
+- ℹ️ **2024** 35 geographic authorizers classified non-classroom (criterion: charter seats > 1.5x resident base, >= 50 seats); pooled seats 46,619
 - ℹ️ **2024** authorizer 3675051: 5,944 charter seats vs 1,222 resident children (ratio 4.9)
 - ℹ️ **2024** authorizer 3667827: 5,580 charter seats vs 89 resident children (ratio 62.6)
 - ℹ️ **2024** authorizer 1975309: 5,246 charter seats vs 1,200 resident children (ratio 4.4)
+- ℹ️ **2024** authorizer 4469807: 3,497 charter seats vs 2,223 resident children (ratio 1.6)
+- ℹ️ **2024** authorizer 3667736: 2,666 charter seats vs 835 resident children (ratio 3.2)
 - ℹ️ **2024** authorizer 3767983: 2,546 charter seats vs 147 resident children (ratio 17.3)
 - ℹ️ **2024** authorizer 5171407: 2,509 charter seats vs 117 resident children (ratio 21.4)
-- ℹ️ **2024** authorizer 3667736: 2,204 charter seats vs 835 resident children (ratio 2.6)
-- ℹ️ **2024** authorizer 3968627: 1,348 charter seats vs 345 resident children (ratio 3.9)
-- ℹ️ **2024** authorizer 4569948: 1,240 charter seats vs 780 resident children (ratio 1.6)
+- ℹ️ **2024** authorizer 3968627: 2,389 charter seats vs 345 resident children (ratio 6.9)
 ### enrollment_siting
 
 - ℹ️ crosswalk gaps: 22 current polygons with no CDE district, 75 CDE geographic districts with no current polygon (reorganizations; see known_issues)

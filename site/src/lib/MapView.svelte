@@ -130,6 +130,9 @@
 <style>
   .wrap {
     position: relative;
+    /* Contain Leaflet's internal z-indexes (up to 1000) so page overlays
+       like the search dropdown (z-index 20) paint above the map. */
+    isolation: isolate;
     flex: 1;
     min-width: 0;
     display: flex;

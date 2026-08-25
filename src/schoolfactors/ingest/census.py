@@ -70,12 +70,17 @@ def ingest_popest_file(path: Path) -> pl.DataFrame | None:
                     )
     elif m := _POPEST_VIN_RE.match(path.name):
         vintage = m.group(1)
+        # YEAR-code base differs per file family: 2000s vintages code July years
+        # from 1997+code, the 2010-2020 file from 2007+code, the 2020s files
+        # from 2018+code (with only one April reference row to skip).
+        vy = int(vintage)
+        offset, first_july = (1997, 3) if vy <= 2009 else (2007, 3) if vy == 2020 else (2018, 2)
         with path.open(encoding="latin-1") as fh:
             for r in _csv.DictReader(fh):
                 if r["SUMLEV"] != "050":
                     continue
                 code = int(r.get("YEAR") or r["TIME"])
-                if code < 3:  # April 2000 census count / estimates base
+                if code < first_july:  # April census count / estimates base
                     continue
                 for measure in ("age513_tot", "age1417_tot"):
                     rows.append(
@@ -84,7 +89,7 @@ def ingest_popest_file(path: Path) -> pl.DataFrame | None:
                             "state": r.get("STATE") or r.get("ST"),
                             "county": r.get("COUNTY") or r.get("CTY"),
                             "agegrp": None,
-                            "july_year": str(code + 1997),
+                            "july_year": str(code + offset),
                             "measure": measure,
                             "value": r[measure.upper()],
                         }

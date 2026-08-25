@@ -31,8 +31,18 @@ handling: >
   authorizer's own resident children are classified non-classroom statewide-draw
   and pooled with flagged-virtual seats (allocated over the authorizer county +
   adjacent counties, the Ed Code enrollment footprint; audited per vintage in
-  the DQ report). The criterion is itself a lower bound: non-classroom programs
-  under large authorizers pass the ratio test and remain in measured
-  cross-county flows. No name-matching heuristics are applied - that would
-  silently patch data. A future improvement is CDE's non-classroom-based
-  funding determination list, which is not currently acquired.
+  the DQ report). As of 2026-08, the PRIMARY complement is CDE's SBE
+  nonclassroom-based funding determination register (acquired as the `ncb`
+  family from the fiscal-support landing page): any determination request on
+  record, at any level including denied, certifies nonclassroom operation for
+  the covered fiscal years and classifies the school remote by CDS match -
+  classification by regulatory record, ~370-430 schools per recent window vs
+  ~100 flagged virtual. The ratio criterion remains as a backstop for register
+  gaps. No name-matching heuristics are applied - that would silently patch
+  data. The NCB match is applied regardless of the directory-derived school
+  class: NCB-determined schools can be MISSING from the directory outright
+  (successor CDS codes, e.g. Pivot Charter - North Bay 49708390138065), which
+  previously defaulted them to district_run, skipped the remote
+  reclassification, and counted their seats as physical in the host area
+  (inflating West Sonoma County Union High's apparent net import by ~330
+  seats, nearly the whole residual).

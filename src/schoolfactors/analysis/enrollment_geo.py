@@ -7,13 +7,18 @@ state is tiled two ways by the TIGER/ACS school-district summary levels:
 - elementary-grades partition: unified districts + elementary districts
 - high-school-grades partition: unified districts + secondary districts
 
-Secondary districts include NCES "pseudo" districts (FUNCSTAT F, GEOID 06999xx) for
-elementary territory whose upper grades are served by a neighboring unified district —
-those are real ACS observation units and are KEPT. The only features dropped are the
-"School District Not Defined" placeholder (unified layer) — its territory is exactly
-the elementary/secondary tiling. ACS additionally publishes a Remainder-of-California
-row (0699999) per summary level with no TIGER geometry; closure checks use it,
-displays drop it.
+Secondary districts include NCES "pseudo" districts (FUNCSTAT F, named
+"Parent District (9-12)") for territory where a real district serves only a grade
+range. They are real ACS observation units, but the district's seats all sit on the
+parent's node, so left as standalone nodes they trade phantom flows with their own
+parent (Perris UHSD showed -39%/+158% between its two polygons). pseudo_parent_map()
+resolves each to its parent (exact TIGER-name match, geometric tie-break for
+same-named districts); the flow model folds their residents and seats into the
+parent node, adjacency and web boundaries carry the parent geoid. The only features
+dropped are the "School District Not Defined" placeholder (unified layer) — its
+territory is exactly the elementary/secondary tiling. ACS additionally publishes a
+Remainder-of-California row (0699999) per summary level with no TIGER geometry;
+closure checks use it, displays drop it.
 
 The grade boundary between the two partitions is NOT uniformly K-8/9-12: each
 secondary district's LOGRADE (9, 7, or 6) defines the cut for its territory, and the
@@ -24,6 +29,7 @@ enrollment_flows.py uses the same per-area cut.
 from __future__ import annotations
 
 import json
+import re
 
 import duckdb
 import polars as pl
@@ -34,6 +40,10 @@ TIGER_DIR = RAW_DIR / "tiger"
 SITING_PARQUET = PARQUET_DIR / "analysis" / "enrollment_school_siting.parquet"
 CUTS_PARQUET = PARQUET_DIR / "analysis" / "enrollment_area_cuts.parquet"
 ADJACENCY_PARQUET = PARQUET_DIR / "analysis" / "enrollment_adjacency.parquet"
+PSEUDO_PARQUET = PARQUET_DIR / "analysis" / "enrollment_pseudo_areas.parquet"
+
+# TIGER names pseudo grade-range areas "Parent District Name (9-12)".
+PSEUDO_SUFFIX_RE = re.compile(r"\s*\(\d+[^)]*\)\s*$")
 
 LEVELS = ("unified", "elementary", "secondary")
 NOT_DEFINED = "School District Not Defined"
@@ -75,6 +85,76 @@ def load_district_geometries(level: str) -> tuple[list[str], list, list[dict]]:
             }
         )
     return geoids, geoms, props
+
+
+def pseudo_parent_map(
+    geo: dict[str, tuple[list[str], list, list[dict]]] | None = None,
+) -> dict[str, tuple[str, str]]:
+    """pseudo secondary geoid -> (parent level 'u'|'h', parent geoid).
+
+    FUNCSTAT-F secondary areas are Census pseudo-districts for the slice of a
+    REAL district's territory where it serves only a grade range ("Perris Union
+    High School District (9-12)"). They are genuine ACS observation units, but
+    the district's seats all sit on the parent's node, so left separate they
+    show phantom export (pseudo) / import (parent) between two polygons of the
+    SAME district. The flow model folds each pseudo area's residents and seats
+    into its parent node.
+
+    Parent resolution is an EXACT name match against the same TIGER vintage
+    (suffix stripped), secondary layer first, then unified — never fuzzy.
+    Unmatched or ambiguous names raise: a silent mismatch would reintroduce
+    phantom flows. Persisted to enrollment_pseudo_areas.parquet for exports.
+    """
+    geo = geo or {lvl: load_district_geometries(lvl) for lvl in LEVELS}
+    s_ids, s_geoms, s_props = geo["secondary"]
+    _, _, u_props = geo["unified"]
+    geom_by_geoid = {}
+    for lvl in LEVELS:
+        for gid, gm in zip(geo[lvl][0], geo[lvl][1]):
+            geom_by_geoid.setdefault(gid, gm)
+
+    def by_name(props: list[dict], skip_f: bool) -> dict[str, list[str]]:
+        out: dict[str, list[str]] = {}
+        for p in props:
+            if skip_f and p.get("funcstat") == "F":
+                continue
+            out.setdefault(p["name"], []).append(p["geoid"])
+        return out
+
+    sec_names = by_name(s_props, skip_f=True)
+    uni_names = by_name(u_props, skip_f=False)
+    pseudo_geom = {gid: gm for gid, gm in zip(s_ids, s_geoms)}
+    out: dict[str, tuple[str, str]] = {}
+    rows = []
+    for p in s_props:
+        if p.get("funcstat") != "F":
+            continue
+        base = PSEUDO_SUFFIX_RE.sub("", p["name"] or "")
+        hits = [("h", g) for g in sec_names.get(base, [])] + [
+            ("u", g) for g in uni_names.get(base, [])
+        ]
+        if len(hits) > 1:
+            # Same-named districts exist in different counties (two Washington
+            # Unifieds): the parent is the one whose territory touches the
+            # pseudo polygon — a geometric fact, not a name heuristic.
+            pg = pseudo_geom[p["geoid"]]
+            hits = [
+                (lvl_, g) for lvl_, g in hits
+                if g in geom_by_geoid and geom_by_geoid[g].intersects(pg)
+            ]
+        if len(hits) != 1:
+            raise ValueError(
+                f"pseudo area {p['geoid']} '{p['name']}': expected exactly one "
+                f"parent named '{base}', found {hits}"
+            )
+        out[p["geoid"]] = hits[0]
+        rows.append(
+            {"pseudo_geoid": p["geoid"], "pseudo_name": p["name"],
+             "parent_level": hits[0][0], "parent_geoid": hits[0][1]}
+        )
+    PSEUDO_PARQUET.parent.mkdir(parents=True, exist_ok=True)
+    pl.DataFrame(rows).write_parquet(PSEUDO_PARQUET)
+    return out
 
 
 def _grade_int(value: str | None) -> int | None:
@@ -272,11 +352,14 @@ def district_adjacency(
 
     band 'k8' pairs within unified+elementary, band 'hs' within unified+secondary —
     a district's plausible physical counterparties are the areas it shares a border
-    with in the partition where it enrolls those grades.
+    with in the partition where it enrolls those grades. Pseudo grade-range areas
+    are folded into their parent district's node, so their borders count as the
+    parent's (self-pairs from the fold are dropped).
     """
     from shapely import STRtree
 
     geo = geo or {lvl: load_district_geometries(lvl) for lvl in LEVELS}
+    pseudo = {pg: parent for pg, (_lvl, parent) in pseudo_parent_map(geo).items()}
     rows = []
     for band, levels in (("k8", ("unified", "elementary")), ("hs", ("unified", "secondary"))):
         ids: list[str] = []
@@ -289,7 +372,10 @@ def district_adjacency(
         for i, g in enumerate(geoms):
             for j in tree.query(g, predicate="intersects"):
                 if int(j) != i:
-                    rows.append({"geoid": ids[i], "neighbor": ids[int(j)], "band": band})
+                    a = pseudo.get(ids[i], ids[i])
+                    b = pseudo.get(ids[int(j)], ids[int(j)])
+                    if a != b:
+                        rows.append({"geoid": a, "neighbor": b, "band": band})
     df = pl.DataFrame(rows).unique()
     ADJACENCY_PARQUET.parent.mkdir(parents=True, exist_ok=True)
     df.write_parquet(ADJACENCY_PARQUET)
@@ -304,20 +390,23 @@ def export_boundaries(
     """Simplified web FeatureCollections keyed 'u'/'e'/'h', properties = {"g": geoid}.
 
     Metrics are never baked into the geojson — the site joins values by geoid at
-    render time so map fills and popups cannot disagree with the index.
+    render time so map fills and popups cannot disagree with the index. Pseudo
+    grade-range polygons keep their own geometry but carry the PARENT district's
+    geoid, so the whole district colors and pops up as one entity.
     """
     from shapely.geometry import mapping
 
     from schoolfactors.analysis.lausd_geo import simplify_feature_collection
 
     geo = geo or {lvl: load_district_geometries(lvl) for lvl in LEVELS}
+    pseudo = {pg: parent for pg, (_lvl, parent) in pseudo_parent_map(geo).items()}
     out: dict[str, dict] = {}
     for level, key in (("unified", "u"), ("elementary", "e"), ("secondary", "h")):
         ids, geoms, _ = geo[level]
         fc = {
             "type": "FeatureCollection",
             "features": [
-                {"type": "Feature", "properties": {"g": gid},
+                {"type": "Feature", "properties": {"g": pseudo.get(gid, gid)},
                  "geometry": dict(mapping(geom))}
                 for gid, geom in zip(ids, geoms)
             ],

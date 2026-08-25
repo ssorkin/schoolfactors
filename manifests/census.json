@@ -2744,6 +2744,24 @@
     "downloaded_at": "2026-08-22T14:45:11+00:00",
     "note": "Vintage-2009 postcensal CA county population by age/sex (ACS 2009 controls)"
   },
+  "popest_cc-est2020-agesex-06.csv": {
+    "dataset": "census",
+    "filename": "popest_cc-est2020-agesex-06.csv",
+    "url": "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/counties/asrh/CC-EST2020-AGESEX-06.csv",
+    "sha256": "971ed048f6f3d26e13745c4970eab51f2bcbec2fa209e14b5cce176013821b4a",
+    "size": 432198,
+    "downloaded_at": "2026-08-24T14:31:02+00:00",
+    "note": "Vintage-2020 postcensal CA county population by age/sex, July 2010-2020"
+  },
+  "popest_cc-est2024-agesex-06.csv": {
+    "dataset": "census",
+    "filename": "popest_cc-est2024-agesex-06.csv",
+    "url": "https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/counties/asrh/cc-est2024-agesex-06.csv",
+    "sha256": "7560d4d51eb62c5d17b0bed0de7d9a4fc10261313d844ab628a3bfb58fa2a0a5",
+    "size": 186177,
+    "downloaded_at": "2026-08-24T14:31:02+00:00",
+    "note": "Vintage-2024 postcensal CA county population by age/sex, July 2020-2024"
+  },
   "popest_co-est00int-agesex-5yr.csv": {
     "dataset": "census",
     "filename": "popest_co-est00int-agesex-5yr.csv",
