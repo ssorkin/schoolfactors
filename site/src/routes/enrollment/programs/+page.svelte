@@ -134,9 +134,10 @@
           {#if r[0] % 5 === 0}
             <text x={CX(r[0])} y={CH - 8} text-anchor="middle" class="tick">{r[0]}</text>
           {/if}
-          <circle cx={CX(r[0])} cy={CY(r[1])} r="2.4" class="dot">
-            <title>{r[0] - 1}–{String(r[0]).slice(2)}: {r[1].toLocaleString()} students{r[2] != null ? ` (${(r[2] * 100).toFixed(1)}% of state)` : ''}</title>
+          <circle cx={CX(r[0])} cy={CY(r[1])} r="5" class="hit">
+            <title>{r[0] - 1}–{String(r[0]).slice(2)}: {r[1].toLocaleString()} students in {r[3] ?? '?'} programs{r[2] != null ? ` (${(r[2] * 100).toFixed(1)}% of statewide enrollment)` : ''}</title>
           </circle>
+          <circle cx={CX(r[0])} cy={CY(r[1])} r="2.4" class="dot" />
         {/each}
       </svg>
       <figcaption>
@@ -326,6 +327,14 @@
     fill: #4a3aa7;
     stroke: #fff;
     stroke-width: 0.8;
+    pointer-events: none;
+  }
+  .censusfig .hit {
+    fill: transparent;
+  }
+  .censusfig .hit:hover {
+    fill: #4a3aa7;
+    fill-opacity: 0.25;
   }
   .censusfig figcaption {
     font-size: 0.78rem;

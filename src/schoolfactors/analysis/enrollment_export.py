@@ -408,10 +408,12 @@ def export_enrollment() -> None:
             for s in sorted(seats["spring"].unique().to_list()):
                 cset = cls_by_v.get(min(max(int(s), vmin), vmax), set())
                 sub = seats.filter(pl.col("spring") == s)
-                rem = sub.filter(pl.col("cds").is_in(sorted(cset)))["total"].sum()
+                rsub = sub.filter(pl.col("cds").is_in(sorted(cset)) & (pl.col("total") > 0))
                 tot = sub["total"].sum()
                 remote_census.append(
-                    [int(s), _r(rem), _r(rem / tot, 4) if tot else None]
+                    [int(s), _r(rsub["total"].sum()),
+                     _r(rsub["total"].sum() / tot, 4) if tot else None,
+                     rsub.height]
                 )
 
     # Persistence over three NON-overlapping windows (overlapping windows share
@@ -867,8 +869,9 @@ def export_enrollment() -> None:
                     )
                 },
                 "xfrac": xf_out,
-                # Annual observed remote census (spring, seats, share of state)
-                # for the year-by-year chart; classification per covering window.
+                # Annual observed remote census (spring, seats, share of state,
+                # program count) for the year-by-year chart; classification per
+                # covering window.
                 "census": remote_census,
                 "programs": prog_rows,
                 "nonlocal": {
