@@ -5,12 +5,16 @@
   import ResidentsSeatsChart from '$lib/enrollment/ResidentsSeatsChart.svelte';
   import NetImportChart from '$lib/enrollment/NetImportChart.svelte';
   import ChannelStack from '$lib/enrollment/ChannelStack.svelte';
+  import ModelBadge from '$lib/enrollment/ModelBadge.svelte';
   import { FLOW_METRICS } from '$lib/enrollment/metrics.js';
+  import { COLTIP } from '$lib/glossary.js';
 
   let { data } = $props();
   let d = $derived(data.detail);
   let meta = $derived(d.meta);
   let band = $state('k8');
+  let hoverGeoid = $state(null);
+  let showPerf = $state(false);
 
   const DTYPE_WORD = { u: 'unified', e: 'elementary', h: 'high school' };
   const mNet = FLOW_METRICS.net_import;
@@ -30,6 +34,19 @@
       window: `${latest.v - 4}–${latest.v}`
     };
   });
+  // Conservation decomposition of the latest residual: matched adjacent-county
+  // flow (real students, at most) vs the non-conserved remainder, which has no
+  // counterparty anywhere in the legal footprint and cannot be students.
+  let ledger = $derived.by(() => {
+    if (!latest || latest.net >= 0 || latest.mis == null) return null;
+    const mis = Math.max(-latest.mis, 0);
+    if (mis < 500) return null;
+    return {
+      out: Math.round(-latest.net),
+      flow: Math.round(Math.min(Math.max(-latest.flow, 0), -latest.net)),
+      mis: Math.round(mis)
+    };
+  });
 </script>
 
 <svelte:head>
@@ -45,16 +62,19 @@
   <a href="/county/{meta.cds}">standard county page →</a>
 </p>
 <h1>{meta.name}</h1>
+<p class="subline">Where the county's public enrollment is administratively counted</p>
+<ModelBadge />
 
 {#if headline}
   <p class="headline">
-    In {headline.window}, schools in {meta.name} seated a net
+    Net enrollment balance, {headline.window}:
     <b class:imp={headline.dir === 'importer'} class:exp={headline.dir === 'exporter'}>
-      {headline.dir === 'importer' ? '+' : '−'}{headline.n.toLocaleString()}
+      {headline.dir === 'importer' ? '+' : '−'}{headline.pct}%
     </b>
-    students relative to resident public-school children ({headline.pct}% —
-    largely enrollment counted administratively in other counties or virtual
-    programs, est.).
+    ({headline.dir === 'importer' ? '+' : '−'}{headline.n.toLocaleString()} students,
+    est.) — a modeled net <b>{headline.dir}</b> relative to resident
+    public-school children, largely enrollment counted administratively in
+    other counties or remote programs.
   </p>
 {/if}
 
@@ -68,6 +88,7 @@
       mode="detail"
       bind:band
       neighbors={memberGeoids}
+      highlightGeoid={hoverGeoid}
       showControls={false}
       height="76vh"
     />
@@ -82,20 +103,41 @@
     <section>
       <h2>Residents vs. seats</h2>
       <ResidentsSeatsChart series={d.series} acs1={d.acs1} />
-      <MethodNote extra="County seats are counted by administrative county, matching the county reconciliation in the LAUSD story." />
+      <p class="mapnote">
+        Seats are counted by administrative county, matching the county
+        reconciliation in the LAUSD story.
+      </p>
     </section>
 
     <section>
-      <h2>Net import / export per window</h2>
-      <NetImportChart series={d.series} perf={d.perf} />
-      <MethodNote
-        extra="The green line is the county's Similar Student percentile (right axis) — descriptive co-movement, never cause or effect."
-      />
+      <h2>Net balance per window</h2>
+      <NetImportChart series={d.series} perf={showPerf ? d.perf : []} />
+      <label class="perftoggle">
+        <input type="checkbox" bind:checked={showPerf} />
+        Show Similar Student %ile
+      </label>
+      {#if showPerf}
+        <p class="mapnote">
+          The green line is the county's Similar Student percentile (right axis)
+          — descriptive co-movement, never cause or effect.
+        </p>
+      {/if}
     </section>
 
     <section>
       <h2>Where resident students are counted, by channel</h2>
       <ChannelStack series={d.series} m={d.m} county />
+      {#if ledger}
+        <p class="virtbased">
+          Conservation test: of the −{ledger.out.toLocaleString()} residual,
+          at most ~{ledger.flow.toLocaleString()} can be matched to unabsorbed
+          surpluses in adjacent counties (real cross-border enrollment); the
+          remaining ~{ledger.mis.toLocaleString()} has no counterparty anywhere
+          in this county's <em>legal footprint</em> — it cannot be students,
+          and reflects how the ACS and CDE universes align regionally
+          (measurement, shown as its own band above).
+        </p>
+      {/if}
       {#if latest?.seats?.virt}
         <p class="virtbased">
           Separately, virtual &amp; non-classroom programs authorized in this county
@@ -119,15 +161,25 @@
               <th>Basis</th>
               <th class="num">Students (observed)</th>
               <th class="num">From this county (balanced est.)</th>
+              <th class="num" title={COLTIP.simstu_pct}>Similar Student %ile</th>
             </tr>
           </thead>
           <tbody>
-            {#each d.remote as [name, seats, kind, est]}
+            {#each d.remote as [name, seats, kind, est, cds, pct]}
               <tr>
-                <td>{name}</td>
-                <td class="dtype">{kind === 'virtual' ? 'CDE virtual flag' : 'enrollment ≫ authorizer residents'}</td>
+                <td>
+                  {#if cds}<a href="/school/{cds}">{name}</a>{:else}{name}{/if}
+                </td>
+                <td class="dtype"
+                  >{kind === 'virtual'
+                    ? 'CDE virtual flag'
+                    : kind === 'ncb'
+                      ? 'SBE non-classroom determination'
+                      : 'enrollment ≫ authorizer residents'}</td
+                >
                 <td class="num">{seats?.toLocaleString() ?? '—'}</td>
                 <td class="num">{est != null ? `~${est.toLocaleString()}` : '—'}</td>
+                <td class="num">{pct ?? '—'}</td>
               </tr>
             {/each}
           </tbody>
@@ -137,6 +189,7 @@
           remote pool spread over each program's county footprint. Student
           residence within the footprint is not published; no per-district
           attribution is implied.
+          <a href="/enrollment/programs">All remote programs statewide →</a>
         </p>
       </section>
     {/if}
@@ -151,15 +204,19 @@
               <th>Authorized in</th>
               <th class="num">Students (observed)</th>
               <th class="num">From this county (balanced est.)</th>
+              <th class="num" title={COLTIP.simstu_pct}>Similar Student %ile</th>
             </tr>
           </thead>
           <tbody>
-            {#each d.remote_nearby as [name, seats, kind, cty, est]}
+            {#each d.remote_nearby as [name, seats, kind, cty, est, cds, pct]}
               <tr>
-                <td>{name}</td>
+                <td>
+                  {#if cds}<a href="/school/{cds}">{name}</a>{:else}{name}{/if}
+                </td>
                 <td class="dtype">{cty}</td>
                 <td class="num">{seats?.toLocaleString() ?? '—'}</td>
                 <td class="num">{est != null ? `~${est.toLocaleString()}` : '—'}</td>
+                <td class="num">{pct ?? '—'}</td>
               </tr>
             {/each}
           </tbody>
@@ -187,11 +244,15 @@
             <th>Type</th>
             <th class="num">Resident children</th>
             <th class="num">Net rate (est.)</th>
+            <th class="num" title={COLTIP.simstu_pct}>Similar Student %ile</th>
           </tr>
         </thead>
         <tbody>
-          {#each d.members ?? [] as [geoid, cds, name, dtype, rate, res]}
-            <tr>
+          {#each d.members ?? [] as [geoid, cds, name, dtype, rate, res, pct]}
+            <tr
+              onmouseenter={() => (hoverGeoid = geoid)}
+              onmouseleave={() => (hoverGeoid = null)}
+            >
               <td>
                 {#if cds && rate != null}<a href="/enrollment/district/{cds}">{name}</a>{:else}{name}{/if}
               </td>
@@ -200,11 +261,11 @@
               <td class="num" class:impt={rate > 0} class:expt={rate < 0}>
                 {mNet.fmt(rate)}
               </td>
+              <td class="num">{pct ?? '—'}</td>
             </tr>
           {/each}
         </tbody>
       </table>
-      <MethodNote />
     </section>
   </div>
 </div>
@@ -219,7 +280,25 @@
     text-decoration: none;
   }
   h1 {
-    margin: 0.3rem 0 0.4rem;
+    margin: 0.3rem 0 0.1rem;
+  }
+  .subline {
+    margin: 0 0 0.35rem;
+    color: #6f6a61;
+    font-size: 0.9rem;
+  }
+  .perftoggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    color: #52514e;
+    margin-top: 0.3rem;
+    cursor: pointer;
+  }
+  .mapnote a {
+    color: #1c5cab;
+    text-decoration: none;
   }
   .headline {
     max-width: 62rem;
@@ -296,6 +375,9 @@
   .members td {
     padding: 0.28rem 0.5rem;
     border-bottom: 1px solid #f1ece1;
+  }
+  .members tbody tr:hover td {
+    background: #f3ede2;
   }
   .members .num {
     text-align: right;

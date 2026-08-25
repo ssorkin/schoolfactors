@@ -7,11 +7,13 @@
   import ChannelStack from '$lib/enrollment/ChannelStack.svelte';
   import NeighborList from '$lib/enrollment/NeighborList.svelte';
   import SchoolsTable from '$lib/enrollment/SchoolsTable.svelte';
+  import ModelBadge from '$lib/enrollment/ModelBadge.svelte';
   import EnrollFlow from '$lib/district/EnrollFlow.svelte';
 
   let { data } = $props();
   let d = $derived(data.detail);
   let meta = $derived(d.meta);
+  let showPerf = $state(false);
 
   const DTYPE_WORD = { u: 'Unified district', e: 'Elementary district', h: 'High school district' };
   // The map band a district's own polygon lives in.
@@ -82,30 +84,45 @@
 </p>
 <h1>{meta.name}</h1>
 <p class="subline">
-  {DTYPE_WORD[meta.dtype]}
+  {DTYPE_WORD[meta.dtype]} · movement within the local public-school market
   {#if meta.dtype !== 'u' && meta.cut}
     · grades split at grade {meta.cut} with the overlapping
     {meta.dtype === 'e' ? 'high school' : 'elementary'} district(s)
   {/if}
 </p>
+<ModelBadge />
 
 {#if headline}
   {#if Math.abs(latest?.rate ?? 0) < 0.001}
     <p class="headline">
-      In {headline.window}, schools located here were <b>roughly balanced</b> with
-      resident public-school children within {meta.name}'s county — cross-county
-      and virtual enrollment shows on the
+      Net enrollment balance, {headline.window}: <b>roughly balanced</b> —
+      schools located here seat about as many students as {meta.name}'s
+      resident public-school children account for, within its county.
+      Cross-county and remote enrollment shows on the
       <a href="/enrollment/county/{meta.county}{'0'.repeat(12)}">county page</a>.
     </p>
   {:else}
     <p class="headline">
-      In {headline.window}, schools located here seated a net
+      Net enrollment balance, {headline.window}:
       <b class:imp={headline.dir === 'importer'} class:exp={headline.dir === 'exporter'}>
-        {headline.dir === 'importer' ? '+' : '−'}{headline.n.toLocaleString()}
+        {headline.dir === 'importer' ? '+' : '−'}{headline.pct}%
       </b>
-      students relative to resident public-school children — a net
-      <b>{headline.dir}</b> of {headline.pct}% of its resident base within its
-      county {#if headline.moe}(est., margin ±{headline.moe}pp){/if}.
+      of its resident base
+      ({headline.dir === 'importer' ? '+' : '−'}{headline.n.toLocaleString()} students
+      {#if headline.moe}est., margin ±{headline.moe}pp{/if}) — a modeled net
+      <b>{headline.dir}</b> within its county.
+    </p>
+  {/if}
+  {#if meta.nonlocal}
+    <p class="nonlocal">
+      This district's <b>administrative</b> enrollment is
+      ~{meta.nonlocal.admin.toLocaleString()} students against
+      ~{meta.nonlocal.res.toLocaleString()} resident children
+      (<b>{meta.nonlocal.ratio}×</b>): it authorizes remote programs whose
+      enrollment is counted here but drawn from a wider legal footprint. The
+      figures on this page describe an enrollment network, not just a
+      neighborhood — remote-program seats are excluded from the physical
+      accounting. <a href="/enrollment/programs">Statewide program table →</a>
     </p>
   {/if}
 {/if}
@@ -132,15 +149,27 @@
     <section>
       <h2>Residents vs. seats</h2>
       <ResidentsSeatsChart series={d.series} acs1={d.acs1} />
-      <MethodNote extra="Seats are converted to resident-children units with the statewide calibration." />
+      <p class="mapnote">
+        Seats are converted to resident-children units with the statewide
+        calibration.
+      </p>
     </section>
 
     <section>
-      <h2>Net import / export per window</h2>
-      <NetImportChart series={d.series} perf={d.perf} />
-      <MethodNote
-        extra="The green line is the district's Similar Student percentile (right axis) — how students with a fixed demographic profile tend to do here vs. elsewhere, as parents would have seen it each year. Shown for descriptive co-movement, never as cause or effect of the flows."
-      />
+      <h2>Net balance per window</h2>
+      <NetImportChart series={d.series} perf={showPerf ? d.perf : []} />
+      <label class="perftoggle">
+        <input type="checkbox" bind:checked={showPerf} />
+        Show Similar Student %ile
+      </label>
+      {#if showPerf}
+        <p class="mapnote">
+          The green line is the district's Similar Student percentile (right
+          axis) — how students with a fixed demographic profile tend to do here
+          vs. elsewhere, as parents would have seen it each year. Descriptive
+          co-movement, never cause or effect of the flows.
+        </p>
+      {/if}
     </section>
 
     <section>
@@ -168,7 +197,7 @@
         </p>
       {/if}
       <MethodNote
-        extra="Seats in the district's own schools and local charters are observed; the virtual/non-classroom & out-of-county band is a balanced estimate — the county's remote attribution (programs' observed enrollment spread over legal footprints, capped by each county's measured gap) passed down in proportion to each district's own measured band gap, so districts with no unexplained outflow receive none. It is an estimate, not a residence record: the 'elsewhere in county' residual still mixes in-person enrollment in other in-county districts with any remote use beyond the attributed share (the neighbor list below shows where the surrounding surpluses are)."
+        extra="Seats in the district's own schools and local charters are observed; the virtual/non-classroom & out-of-county band is a balanced estimate — the county's remote attribution (programs' observed enrollment spread over legal footprints, capped by each county's measured gap) passed down by program kind: the flagged-virtual part by population share (every district's residents use some), the non-classroom/recovery part in proportion to each district's own measured band gap (concentrated where outflow is observed). It is an estimate, not a residence record: the 'elsewhere in county' residual still mixes in-person enrollment in other in-county districts with any remote use beyond the attributed share (the neighbor list below shows where the surrounding surpluses are)."
       />
     </section>
 
@@ -181,7 +210,11 @@
           f={flowCells}
           scale={flowScale}
         />
-        <MethodNote extra="The violet band is an accounting residual: resident public-school children not counted at schools located here (other districts, virtual, statewide programs)." />
+        <p class="mapnote">
+          The violet band is an accounting residual: resident public-school
+          children not counted at schools located here (other districts,
+          remote and statewide programs).
+        </p>
       </section>
     {/if}
 
@@ -189,7 +222,10 @@
       <section>
         <h2>Neighboring districts</h2>
         <NeighborList neighbors={d.neighbors} />
-        <MethodNote extra="Shown instead of pairwise flows: no public data observes who exchanges students with whom." />
+        <p class="mapnote">
+          Shown instead of pairwise flows: no public data observes who
+          exchanges students with whom.
+        </p>
       </section>
     {/if}
 
@@ -234,6 +270,28 @@
   }
   .headline .exp {
     color: #9a3412;
+  }
+  .nonlocal {
+    max-width: 62rem;
+    font-size: 0.9rem;
+    color: #2b2722;
+    background: #f4f1fb;
+    border-left: 3px solid #4a3aa7;
+    padding: 0.4rem 0.7rem;
+    border-radius: 0 6px 6px 0;
+  }
+  .nonlocal a {
+    color: #1c5cab;
+    text-decoration: none;
+  }
+  .perftoggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    color: #52514e;
+    margin-top: 0.3rem;
+    cursor: pointer;
   }
   .cols {
     display: grid;

@@ -28,9 +28,11 @@ const getJson = (path) =>
   });
 
 /** The compact statewide join table, reshaped from {cols, rows} into objects.
- *  Resolves to { vintages, rows, byGeoid, byCds } — rows carry geoid, cds, name,
- *  dtype (u/e/h/c), county, ll, net_rate, net_moe, res, seats, virt_share, perf,
- *  spark (per-vintage net rates), res_chg, seats_chg. */
+ *  Resolves to { vintages, rows, byGeoid, byCds, findings } — rows carry geoid,
+ *  cds, name, dtype (u/e/h/c), county, ll, net_rate, net_moe, res, seats,
+ *  virt_share, perf, spark (per-vintage net rates), res_chg, seats_chg, and
+ *  (county rows) flow_rate, mis_rate. `findings` is the computed statewide
+ *  takeaways block for the landing page. */
 export const getIndex = () =>
   memo('index', async () => {
     const raw = await getJson('/data/enrollment/index.json');
@@ -39,11 +41,22 @@ export const getIndex = () =>
       vintages: raw.vintages,
       rows,
       byGeoid: new Map(rows.map((r) => [r.geoid, r])),
-      byCds: new Map(rows.filter((r) => r.cds).map((r) => [r.cds, r]))
+      byCds: new Map(rows.filter((r) => r.cds).map((r) => [r.cds, r])),
+      findings: raw.findings ?? null
     };
   });
 
 /** Statewide simplified polygons for one level: 'u' unified, 'e' elementary,
- *  'h' secondary (high). Properties carry only the join key {g: geoid}. */
+ *  'h' secondary (high), 'c' county. Properties carry only the join key
+ *  {g: geoid}. */
 export const getBoundaries = (level) =>
   memo(`boundaries_${level}`, () => getJson(`/data/enrollment/boundaries_${level}.geojson`));
+
+/** The statewide remote-program dataset (programs.json): program rows with
+ *  classification basis and per-window history, balanced footprint fractions
+ *  per authorizer county, county names, and the district nonlocality table. */
+export const getPrograms = () => memo('programs', () => getJson('/data/enrollment/programs.json'));
+
+/** This build's model-check numbers (validation.json) for the methodology page. */
+export const getValidation = () =>
+  memo('validation', () => getJson('/data/enrollment/validation.json'));

@@ -2,7 +2,9 @@
   import { page } from '$app/state';
 
   const TABS = [
-    { path: '/enrollment', label: 'Statewide map' },
+    { path: '/enrollment', label: 'Statewide' },
+    { path: '/enrollment/districts', label: 'District map' },
+    { path: '/enrollment/programs', label: 'Remote programs' },
     { path: '/enrollment/methodology', label: 'How this is modeled' }
   ];
 

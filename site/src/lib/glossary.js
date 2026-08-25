@@ -233,9 +233,9 @@ export const GLOSSARY = [
   },
   {
     id: 'net-import-rate',
-    term: 'Net import rate',
+    term: 'Net enrollment balance (modeled)',
     unit: '% of resident children (est.)',
-    tip: 'Modeled net accounting residual: seats at schools located in an area minus its resident public-school children (after removing virtual enrollment). Positive = net importer. Not observed transfers.',
+    tip: 'Modeled net accounting residual: seats at schools located in an area minus its resident public-school children (after removing remote enrollment). Positive = net importer, negative = net exporter — interpretive shorthand for the balance. Not observed transfers.',
     def: [
       'Seats attributed to an area (in resident units) minus the area’s resident public-school children, after allocating the county’s measured virtual & out-of-county enrollment across its districts by population share — expressed as a share of resident children. Positive means schools there seat more students than the area’s own children account for (a net importer); negative means a net exporter.',
       'This is a net accounting residual, never a count of observed transfers. Because the allocation removes only the county-average virtual share, a district’s net export mixes in-person enrollment across district lines with above-average use of virtual and other out-of-area options — no public data separates the two, and neither is attributable to a single cause. Estimates carry survey margins; districts whose margin exceeds ±15 points show as gray on maps.'
@@ -260,6 +260,10 @@ export const TIP = Object.fromEntries(GLOSSARY.map((g) => [g.id, g.tip]));
 export const COLTIP = {
   pass_ela: 'ELA — ' + TIP['met-plus'],
   pass_math: 'Math — ' + TIP['met-plus'],
+  tested:
+    'Share of enrolled students who took the CAASPP (ELA and Math combined, ' +
+    'latest year). When participation is low, the Met+ columns describe only ' +
+    'the tested subset of students.',
   spark: TIP['met-plus-by-year'],
   adj_pct: TIP['adj-percentile'],
   simstu_pct:

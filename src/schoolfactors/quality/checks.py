@@ -604,6 +604,196 @@ def check_enrollment_remote_classification() -> list[Finding]:
     return findings
 
 
+def popest_control_stats() -> dict | None:
+    """County ACS child counts vs Census popest controls, ≥5k county-vintages.
+
+    Structured so the DQ check and the site's validation export report the same
+    numbers. Returns None while inputs are missing; otherwise
+    {n, worst_dev, worst_county, worst_vintage, drifts:[{county, vintage, acs,
+    popest}]} where drifts lists deviations over 2%."""
+    from schoolfactors.paths import DUCKDB_PATH, PARQUET_DIR
+
+    res_path = PARQUET_DIR / "analysis" / "enrollment_residence.parquet"
+    if not res_path.exists():
+        return None
+    import duckdb
+    import polars as pl
+
+    con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    try:
+        if "popest_raw" not in {r[0] for r in con.execute("SHOW TABLES").fetchall()}:
+            return None
+        pop: dict[tuple[str, int], float] = {}
+        for s, jy, cty, val in con.execute(
+            """
+            SELECT series, july_year, county, sum(TRY_CAST(value AS DOUBLE))
+            FROM popest_raw
+            WHERE measure IN ('age513_tot', 'age1417_tot')
+              AND series IN ('vintage2020', 'vintage2024')
+            GROUP BY 1, 2, 3
+            """
+        ).fetchall():
+            y = int(jy)
+            if val is None or (s == "vintage2020" and y > 2019):
+                continue  # prefer the 2020-census-based series for 2020+
+            pop[cty, y] = val
+    finally:
+        con.close()
+
+    res = pl.read_parquet(res_path)
+    cw = res.filter((pl.col("survey") == "acs5") & (pl.col("geo_type") == "county"))
+    worst, n_ok, drifts = (0.0, None, None), 0, []
+    for geoid, v, tot, fac in cw.select("geoid", "vintage", "total", "factor").iter_rows():
+        if tot is None or v < 2015:
+            continue
+        cty = geoid[-3:]
+        yrs = [y for y in range(v - 4, v + 1) if (cty, y) in pop]
+        if len(yrs) < 3:
+            continue
+        pw = sum(pop[cty, y] for y in yrs) / len(yrs)
+        raw = tot / (fac or 1)
+        if raw < 5000:
+            continue  # small counties are not controlled at this grain
+        dev = abs(pw / raw - 1)
+        n_ok += 1
+        if dev > worst[0]:
+            worst = (dev, cty, int(v))
+        if dev > 0.02:
+            drifts.append({"county": cty, "vintage": int(v), "acs": raw, "popest": pw})
+    return {
+        "n": n_ok,
+        "worst_dev": worst[0],
+        "worst_county": worst[1],
+        "worst_vintage": worst[2],
+        "drifts": drifts,
+    }
+
+
+def check_enrollment_popest_control() -> list[Finding]:
+    """No phantom population: county ACS 5-year child counts (5-17, all
+    enrollment statuses) must match the Census Bureau's administrative county
+    population estimates, since ACS weighting is controlled to them. A county
+    drifting from popest would mean flow residuals could be phantom students;
+    verified ratios ~1.000 certify that residuals are enrollment-side
+    (universe/share differences or real flows), never population error."""
+    stats = popest_control_stats()
+    if stats is None:
+        return [Finding("enrollment_popest", "info", None, None,
+                        "residence table or popest controls not built yet")]
+    findings = [
+        Finding("enrollment_popest", "warning", d["vintage"], d["county"],
+                f"county {d['county']}: ACS children {d['acs']:,.0f} vs popest "
+                f"{d['popest']:,.0f} ({(d['popest'] / d['acs'] - 1) * 100:+.1f}%) "
+                f"— investigate control drift")
+        for d in stats["drifts"]
+    ]
+    if not findings:
+        findings.append(
+            Finding("enrollment_popest", "info", None, None,
+                    f"county ACS child populations match popest controls across "
+                    f"{stats['n']} county-vintages ≥5k (worst deviation "
+                    f"{stats['worst_dev'] * 100:.2f}%, county {stats['worst_county']} "
+                    f"vintage {stats['worst_vintage']}) — "
+                    "flow residuals cannot be phantom population")
+        )
+    return findings
+
+
+def check_enrollment_footprint_ledger() -> list[Finding]:
+    """Ledger test for measurement-dominated residuals: an exporting county's
+    post-attribution residual can only be real enrollment if its legal
+    footprint (own + adjacent counties) holds matching unabsorbed surpluses.
+    Where the export exceeds the footprint's total positive residuals, the
+    excess cannot be students and is flagged measurement-dominated."""
+    from schoolfactors.paths import PARQUET_DIR
+
+    flows_path = PARQUET_DIR / "analysis" / "enrollment_district_flows.parquet"
+    adj_path = PARQUET_DIR / "analysis" / "enrollment_adjacency.parquet"
+    if not flows_path.exists() or not adj_path.exists():
+        return [Finding("enrollment_ledger", "info", None, None,
+                        "flows/adjacency not built yet — run `sf analyze`")]
+    import polars as pl
+
+    flows = pl.read_parquet(flows_path)
+    v = int(flows.filter(pl.col("net").is_not_null())["vintage"].max())
+    geoid_cty = dict(
+        flows.filter(pl.col("level") != "c").select("geoid", "county").unique().iter_rows()
+    )
+    cadj: dict[str, set[str]] = {}
+    for a, b in pl.read_parquet(adj_path).select("geoid", "neighbor").unique().iter_rows():
+        ca, cb = geoid_cty.get(a), geoid_cty.get(b)
+        if ca and cb:
+            cadj.setdefault(ca, {ca}).add(cb)
+            cadj.setdefault(cb, {cb}).add(ca)
+    nets = {
+        r["geoid"]: r["net"]
+        for r in flows.filter(
+            (pl.col("level") == "c") & (pl.col("vintage") == v) & pl.col("net").is_not_null()
+        ).to_dicts()
+    }
+    findings = []
+    for c, net in sorted(nets.items()):
+        if net >= 0:
+            continue
+        cap = sum(max(nets.get(n, 0.0), 0.0) for n in cadj.get(c, {c}))
+        if -net > cap and -net > 1000:
+            findings.append(
+                Finding("enrollment_ledger", "info", v, c,
+                        f"county {c}: export residual {-net:,.0f} exceeds its whole "
+                        f"footprint's unabsorbed surplus ({cap:,.0f}) — at least "
+                        f"{-net - cap:,.0f} is measurement, not students")
+            )
+    if not findings:
+        findings.append(
+            Finding("enrollment_ledger", "info", v, None,
+                    "every exporting county's residual fits within its footprint's "
+                    "surpluses — no measurement-dominated residuals flagged")
+        )
+    return findings
+
+
+def check_enrollment_flow_pairs() -> list[Finding]:
+    """Stability audit of the conservation decomposition's matched county
+    pairs: real cross-border flows persist across vintages; a pair that
+    appears in only the last vintage or two is more likely matched noise
+    (adjacent-opposite-sign measurement) or an emergent unclassified program,
+    and deserves eyes before being read as students."""
+    from schoolfactors.paths import PARQUET_DIR
+
+    path = PARQUET_DIR / "analysis" / "enrollment_county_flow_pairs.parquet"
+    if not path.exists():
+        return [Finding("enrollment_pairs", "info", None, None,
+                        "flow-pair matrix not built yet — run `sf analyze`")]
+    import polars as pl
+
+    pp = pl.read_parquet(path)
+    if not pp.height:
+        return [Finding("enrollment_pairs", "info", None, None,
+                        "no matched cross-county pairs")]
+    v = int(pp["vintage"].max())
+    counts = pp.group_by("exporter", "importer").agg(
+        pl.len().alias("n"), pl.col("est").last().alias("last_est")
+    )
+    cur = pp.filter((pl.col("vintage") == v) & (pl.col("est") > 400))
+    findings = []
+    for r in cur.join(counts, on=["exporter", "importer"]).to_dicts():
+        if r["n"] < 3:
+            findings.append(
+                Finding("enrollment_pairs", "warning", v, None,
+                        f"pair {r['exporter']}→{r['importer']}: {r['est']:,.0f} matched "
+                        f"but present in only {r['n']} vintage(s) — possibly matched "
+                        "noise or an emergent unclassified program")
+            )
+    stable = cur.join(counts, on=["exporter", "importer"]).filter(pl.col("n") >= 3)
+    findings.append(
+        Finding("enrollment_pairs", "info", v, None,
+                f"{stable.height} stable matched pairs (≥3 vintages) totaling "
+                f"{stable['est'].sum():,.0f} students; "
+                f"{len([f for f in findings])} young pair(s) flagged")
+    )
+    return findings
+
+
 def check_enrollment_siting() -> list[Finding]:
     """Every school's seats must land in a district area (or be counted in the
     import-only pool knowingly): report enrollment share by siting method and the
@@ -684,14 +874,11 @@ def check_enrollment_siting() -> list[Finding]:
     return findings
 
 
-def check_enrollment_lausd_regression() -> list[Finding]:
-    """The statewide model must reproduce the shipped LAUSD page's resident series:
-    acs5 resident public children for the LAUSD area, vintages 2014+ (earlier
-    windows differ by the fractional controls correction the LAUSD page does not
-    apply to 5-year data), within max(1%, the ACS margin). Net import is NOT
-    compared: the LAUSD page allocates the virtual/out-of-county pool from the
-    county ledger while the statewide model allocates a statewide pool — a
-    documented method difference."""
+def lausd_regression_stats() -> dict | None:
+    """Statewide-model LAUSD resident series vs the shipped LAUSD page, per
+    vintage. Structured for the DQ check and the site's validation export.
+    Returns None while inputs are missing; otherwise {rows:[{vintage, model,
+    page, delta, tol, ok}]}."""
     import json
 
     import polars as pl
@@ -701,8 +888,7 @@ def check_enrollment_lausd_regression() -> list[Finding]:
     flows_path = PARQUET_DIR / "analysis" / "enrollment_district_flows.parquet"
     page_path = REPO_ROOT / "site" / "static" / "data" / "lausd" / "enrollment.json"
     if not flows_path.exists() or not page_path.exists():
-        return [Finding("enrollment_lausd_regression", "info", None, None,
-                        "flows or LAUSD page data not built yet")]
+        return None
     flows = pl.read_parquet(flows_path).filter(
         (pl.col("geoid") == "0622710") & (pl.col("vintage") >= 2014)
     )
@@ -712,36 +898,50 @@ def check_enrollment_lausd_regression() -> list[Finding]:
         for y, _total, survey, pub in page["narrative"]["resident_517"]
         if survey == "acs5" and pub
     }
-    findings = []
+    rows = []
     for r in flows.sort("vintage").to_dicts():
         v = int(r["vintage"])
         if v not in acs5_pub or r["res_pub"] is None:
             continue
         delta = r["res_pub"] - acs5_pub[v]
         tol = max(0.01 * acs5_pub[v], r["res_moe"] or 0)
-        sev = "anomaly" if abs(delta) > tol else "info"
-        findings.append(
-            Finding(
-                "enrollment_lausd_regression", sev, v, "LAUSD",
-                f"resident public {r['res_pub']:,.0f} vs LAUSD page "
-                f"{acs5_pub[v]:,.0f} ({delta:+,.0f}; tolerance ±{tol:,.0f})",
-            )
+        rows.append({"vintage": v, "model": r["res_pub"], "page": acs5_pub[v],
+                     "delta": delta, "tol": tol, "ok": abs(delta) <= tol})
+    return {"rows": rows}
+
+
+def check_enrollment_lausd_regression() -> list[Finding]:
+    """The statewide model must reproduce the shipped LAUSD page's resident series:
+    acs5 resident public children for the LAUSD area, vintages 2014+ (earlier
+    windows differ by the fractional controls correction the LAUSD page does not
+    apply to 5-year data), within max(1%, the ACS margin). Net import is NOT
+    compared: the LAUSD page allocates the virtual/out-of-county pool from the
+    county ledger while the statewide model allocates a statewide pool — a
+    documented method difference."""
+    stats = lausd_regression_stats()
+    if stats is None:
+        return [Finding("enrollment_lausd_regression", "info", None, None,
+                        "flows or LAUSD page data not built yet")]
+    findings = [
+        Finding(
+            "enrollment_lausd_regression",
+            "info" if r["ok"] else "anomaly", r["vintage"], "LAUSD",
+            f"resident public {r['model']:,.0f} vs LAUSD page "
+            f"{r['page']:,.0f} ({r['delta']:+,.0f}; tolerance ±{r['tol']:,.0f})",
         )
+        for r in stats["rows"]
+    ]
     if not findings:
         findings.append(Finding("enrollment_lausd_regression", "warning", None, None,
                                 "no overlapping vintages to compare"))
     return findings
 
 
-def check_enrollment_doc_validation() -> list[Finding]:
-    """Validate the enrollment flow model against OBSERVED transfers: the District
-    of Choice program publishes district-pair transfer counts (CALPADS). DOC is a
-    subset of inter-district movement (~8k students/yr, ~50 districts), so this is
-    directional validation, not reconciliation: (1) do observed transfers actually
-    prefer nearby districts (the model's siting premise); (2) do model nets agree
-    in sign with observed DOC nets where DOC volume is material. A hard floor test
-    would be invalid — a DOC importer can simultaneously export more via regular
-    permits."""
+def doc_validation_stats() -> dict | None:
+    """District-of-Choice validation numbers, structured for the DQ check and
+    the site's validation export. Returns None while inputs are missing;
+    otherwise {year, pair_students, adjacent_share, agree_ok, agree_all,
+    biggest: {cd, transfers_in, doc_net, model_net} | None}."""
     import math
 
     import polars as pl
@@ -754,8 +954,7 @@ def check_enrollment_doc_validation() -> list[Finding]:
     try:
         views = {r[0] for r in con.execute("SHOW TABLES").fetchall()}
         if "doc_raw" not in views or not flows_path.exists() or not adj_path.exists():
-            return [Finding("enrollment_doc_validation", "info", None, None,
-                            "district-of-choice data or flows not built yet")]
+            return None
         latest = con.execute(
             "SELECT max(source_file) FROM doc_raw WHERE source_file LIKE 'dortransfer%'"
         ).fetchone()[0]
@@ -804,20 +1003,7 @@ def check_enrollment_doc_validation() -> list[Finding]:
         w_tot += n
         if (gd, gr) in adj_set or (gr, gd) in adj_set:
             w_adj += n
-    findings = []
-    if w_tot:
-        share = w_adj / w_tot
-        findings.append(
-            Finding(
-                "enrollment_doc_validation",
-                "warning" if share < 0.4 else "info", doc_year, None,
-                f"observed DOC transfers: {w_tot:,} students in matched pairs, "
-                f"{share:.0%} between ADJACENT districts — supports the nearby-"
-                f"draw premise" if share >= 0.4 else
-                f"only {share:.0%} of observed DOC transfers are between adjacent "
-                f"districts — the nearby-draw premise deserves scrutiny",
-            )
-        )
+    adjacent_share = w_adj / w_tot if w_tot else None
 
     flows = pl.read_parquet(flows_path)
     live = flows.filter((pl.col("level") != "c") & pl.col("net").is_not_null())
@@ -838,24 +1024,68 @@ def check_enrollment_doc_validation() -> list[Finding]:
         n_ok += ok
         if biggest is None or t_in > biggest[1]:
             biggest = (cd, t_in, doc_net, r["net"])
-    if n_all:
-        rate = n_ok / n_all
+    return {
+        "year": doc_year,
+        "pair_students": w_tot,
+        "adjacent_share": adjacent_share,
+        "agree_ok": n_ok,
+        "agree_all": n_all,
+        "biggest": {
+            "cd": biggest[0], "transfers_in": biggest[1],
+            "doc_net": biggest[2], "model_net": biggest[3],
+        }
+        if biggest and not math.isnan(biggest[3])
+        else None,
+    }
+
+
+def check_enrollment_doc_validation() -> list[Finding]:
+    """Validate the enrollment flow model against OBSERVED transfers: the District
+    of Choice program publishes district-pair transfer counts (CALPADS). DOC is a
+    subset of inter-district movement (~8k students/yr, ~50 districts), so this is
+    directional validation, not reconciliation: (1) do observed transfers actually
+    prefer nearby districts (the model's siting premise); (2) do model nets agree
+    in sign with observed DOC nets where DOC volume is material. A hard floor test
+    would be invalid — a DOC importer can simultaneously export more via regular
+    permits."""
+    stats = doc_validation_stats()
+    if stats is None:
+        return [Finding("enrollment_doc_validation", "info", None, None,
+                        "district-of-choice data or flows not built yet")]
+    findings = []
+    doc_year, share = stats["year"], stats["adjacent_share"]
+    if share is not None:
+        findings.append(
+            Finding(
+                "enrollment_doc_validation",
+                "warning" if share < 0.4 else "info", doc_year, None,
+                f"observed DOC transfers: {stats['pair_students']:,} students in "
+                f"matched pairs, {share:.0%} between ADJACENT districts — supports "
+                f"the nearby-draw premise" if share >= 0.4 else
+                f"only {share:.0%} of observed DOC transfers are between adjacent "
+                f"districts — the nearby-draw premise deserves scrutiny",
+            )
+        )
+    if stats["agree_all"]:
+        rate = stats["agree_ok"] / stats["agree_all"]
         findings.append(
             Finding(
                 "enrollment_doc_validation",
                 "warning" if rate < 0.6 else "info", doc_year, None,
-                f"model-vs-observed sign agreement: {n_ok}/{n_all} DOC districts "
-                f"(>20 transfers) match the model's net direction (or sit within "
-                f"the model's margin); disagreements are expected where DOC is a "
-                f"small share of a district's total movement",
+                f"model-vs-observed sign agreement: {stats['agree_ok']}/"
+                f"{stats['agree_all']} DOC districts (>20 transfers) match the "
+                f"model's net direction (or sit within the model's margin); "
+                f"disagreements are expected where DOC is a small share of a "
+                f"district's total movement",
             )
         )
-    if biggest and not math.isnan(biggest[3]):
+    if stats["biggest"]:
+        b = stats["biggest"]
         findings.append(
             Finding(
-                "enrollment_doc_validation", "info", doc_year, biggest[0],
-                f"largest DOC importer: observed net +{biggest[2]:,} transfers vs "
-                f"model net {biggest[3]:+,.0f} (model includes permits and charter "
+                "enrollment_doc_validation", "info", doc_year, b["cd"],
+                f"largest DOC importer: observed net +{b['doc_net']:,} transfers vs "
+                f"model net {b['model_net']:+,.0f} (model includes permits and charter "
                 f"draw beyond the DOC program)",
             )
         )
@@ -873,6 +1103,9 @@ ALL_CHECKS = [
     check_lausd_resolution,
     check_enrollment_closure,
     check_enrollment_remote_classification,
+    check_enrollment_popest_control,
+    check_enrollment_footprint_ledger,
+    check_enrollment_flow_pairs,
     check_enrollment_siting,
     check_enrollment_lausd_regression,
     check_enrollment_doc_validation,

@@ -18,11 +18,14 @@
    */
   let {
     mode = 'state', // 'state' | 'detail'
+    geo = 'districts', // 'districts' (band-tiled u/e/h) | 'counties' (one layer)
+    metrics = FLOW_METRICS, // registry the metric key indexes (COUNTY_METRICS for geo='counties')
     metric = $bindable('net_import'),
     band = $bindable('k8'), // 'k8' -> u+e, 'hs' -> u+h
     yearIdx = $bindable(-1), // -1 = latest; index into index.vintages otherwise
     focusGeoid = null, // detail mode: highlighted district
     neighbors = [], // detail mode: geoids keeping full choropleth color
+    highlightGeoid = null, // detail mode: transient hover emphasis (e.g. table rows)
     schools = [], // detail mode: [[cds, name, class, lat, lon, enr, spark, sited]]
     showControls = true,
     height = '72vh',
@@ -44,7 +47,7 @@
   let locked = false;
   let fitting = false;
 
-  let m = $derived(FLOW_METRICS[metric]);
+  let m = $derived(metrics[metric]);
   let neighborSet = $derived(new Set(neighbors));
   let vintageLabel = $derived.by(() => {
     if (!index || yearIdx < 0 || !m.series) return null;
@@ -72,6 +75,9 @@
         return { fillColor: fillFor(g), fillOpacity: 0.5, color: '#211d18', weight: 2.5 };
       }
       if (neighborSet.has(g)) {
+        if (g === highlightGeoid) {
+          return { fillColor: fillFor(g), fillOpacity: 0.75, color: '#211d18', weight: 2.5 };
+        }
         return { fillColor: fillFor(g), fillOpacity: 0.5, color: '#ffffff', weight: 1 };
       }
       return { fillColor: NO_DATA, fillOpacity: 0.12, color: '#c9c2b4', weight: 0.7 };
@@ -99,7 +105,7 @@
         ['Resident public-school children', row.res?.toLocaleString()],
         ['Seats at schools located here', row.seats?.toLocaleString()],
         [
-          'Net import rate (latest, est.)',
+          'Net balance (latest, est.)',
           net == null
             ? null
             : `${net > 0 ? '+' : ''}${(net * 100).toFixed(1)}% ± ${((row.net_moe ?? 0) * 100).toFixed(1)}`
@@ -120,7 +126,7 @@
   async function showBand(b) {
     if (!map || !index) return;
     const token = ++showToken;
-    const want = BAND_LEVELS[b];
+    const want = geo === 'counties' ? ['c'] : BAND_LEVELS[b];
     loading = want.some((lvl) => !polyLayers[lvl]);
     for (const lvl of want) {
       layerPromises[lvl] ??= getBoundaries(lvl).then((fc) =>
@@ -240,6 +246,7 @@
   $effect(() => {
     metric;
     yearIdx;
+    highlightGeoid;
     if (ready) {
       for (const layer of Object.values(polyLayers)) {
         if (map.hasLayer(layer)) layer.setStyle(styleFeature);
@@ -254,17 +261,19 @@
 
 {#if showControls}
   <div class="controls">
-    <div class="seg" role="group" aria-label="Grade band">
-      {#each ['k8', 'hs'] as b}
-        <button class:on={band === b} onclick={() => (band = b)}>
-          {BAND_LABEL[b]}
-        </button>
-      {/each}
-    </div>
+    {#if geo !== 'counties'}
+      <div class="seg" role="group" aria-label="Grade band">
+        {#each ['k8', 'hs'] as b}
+          <button class:on={band === b} onclick={() => (band = b)}>
+            {BAND_LABEL[b]}
+          </button>
+        {/each}
+      </div>
+    {/if}
     <label class="metric">
-      Color districts by
+      Color {geo === 'counties' ? 'counties' : 'districts'} by
       <select bind:value={metric}>
-        {#each Object.entries(FLOW_METRICS) as [key, mm]}
+        {#each Object.entries(metrics) as [key, mm]}
           <option value={key}>{mm.label}</option>
         {/each}
       </select>
@@ -360,6 +369,9 @@
   }
   .wrap {
     position: relative;
+    /* Contain Leaflet's internal z-indexes (up to 1000) so page overlays
+       like the search dropdown (z-index 20) paint above the map. */
+    isolation: isolate;
   }
   .map {
     border: 1px solid #e8e1d5;

@@ -1,8 +1,8 @@
 <script>
   import { CLASS_COLOR, CLASS_LABEL, FLOW_METRICS, MOE_GATE, NO_DATA } from './metrics.js';
 
-  let { metric = 'net_import', showClasses = false } = $props();
-  let m = $derived(FLOW_METRICS[metric]);
+  let { metric = 'net_import', metrics = FLOW_METRICS, showClasses = false } = $props();
+  let m = $derived(metrics[metric]);
 </script>
 
 <div class="legend">

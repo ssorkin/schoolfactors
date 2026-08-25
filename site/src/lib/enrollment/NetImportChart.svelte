@@ -46,11 +46,11 @@
 {#if pts.length > 1}
   {#if perfPts.length > 1}
     <p class="key">
-      <span class="k"><span class="sw imp"></span>/<span class="sw exp"></span> net import / export (left)</span>
+      <span class="k"><span class="sw imp"></span>/<span class="sw exp"></span> net balance: import / export (left)</span>
       <span class="k"><span class="perfline"></span> Similar Student %ile (right)</span>
     </p>
   {/if}
-  <svg viewBox="0 0 {W} {height}" role="img" aria-label="Net import rate per window">
+  <svg viewBox="0 0 {W} {height}" role="img" aria-label="Net enrollment balance per window">
     {#each yTicks as t}
       <line x1={M.l} x2={W - M.r} y1={Y(t)} y2={Y(t)} class="grid" class:zero={t === 0} />
       <text x={M.l - 6} y={Y(t) + 3.5} text-anchor="end" class="tick">{fmtPct(t)}</text>

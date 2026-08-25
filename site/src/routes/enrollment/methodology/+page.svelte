@@ -1,20 +1,24 @@
 <script>
   import { onMount } from 'svelte';
+  import { getValidation } from '$lib/enrollment/data.js';
 
   const sections = [
     { id: 'universe', label: 'Who counts as a resident child' },
     { id: 'seats', label: 'Seats and the calibration' },
     { id: 'siting', label: 'Modeling attendance school by school' },
     { id: 'gradebands', label: 'Elementary / high school overlap' },
-    { id: 'virtual', label: 'Virtual enrollment' },
-    { id: 'netimport', label: 'The net import number' },
+    { id: 'virtual', label: 'Remote enrollment' },
+    { id: 'netimport', label: 'The net balance number' },
     { id: 'uncertainty', label: 'Uncertainty' },
+    { id: 'checks', label: 'How we check the model' },
     { id: 'nets-only', label: 'Why nets, not pairwise flows' },
     { id: 'limits', label: 'What this cannot say' }
   ];
   let active = $state(sections[0].id);
+  let val = $state(null);
 
   onMount(() => {
+    getValidation().then((v) => (val = v)).catch(() => {});
     const observer = new IntersectionObserver(
       (entries) => {
         for (const e of entries) if (e.isIntersecting) active = e.target.id;
@@ -116,17 +120,36 @@
     <h2 id="virtual">5. Remote enrollment: virtual &amp; non-classroom, allocated
       over a legal county footprint</h2>
     <p>
+      This sector is why the model is statewide. Once enrollment can be
+      administratively booked to a remote program in another county, no
+      district-only or county-only ledger can close — an earlier LAUSD-only
+      version of this accounting failed for exactly that reason. The state is
+      the smallest boundary at which the books balance.
+    </p>
+    <p>
       A remote program's census-day enrollment is counted wherever its
-      authorizer sits, which says little about where its students live. Two
+      authorizer sits, which says little about where its students live. Three
       classes of schools are therefore removed from the physical geography and
       pooled: schools the state directory flags as fully or primarily
-      <strong>virtual</strong>, and <strong>non-classroom statewide-draw
-      charters</strong> — identified arithmetically, as charters whose
-      geographic authorizer's administered charter enrollment exceeds 1.5× the
-      authorizer's own resident public-school children (the enrollment cannot
-      be local: the local children don't exist; county offices of education,
-      which have no resident base, are exempt from the test). The classified
-      authorizers are listed in the data-quality report. Each pooled program's
+      <strong>virtual</strong>; charters with a <strong>nonclassroom-based
+      funding determination on record</strong> with the State Board of
+      Education (the regulatory register, FY 2002–03 to present — requesting a
+      determination itself certifies the school operates nonclassroom-based,
+      so this is classification by record, matched by CDS code and covered
+      fiscal years); and, as a backstop for gaps in that register,
+      <strong>statewide-draw charters identified arithmetically</strong> —
+      charters whose geographic authorizer's administered charter enrollment
+      exceeds 1.5× the authorizer's own resident public-school children (the
+      enrollment cannot be local: the local children don't exist; county
+      offices of education, which have no resident base, are exempt from the
+      test). The classified set is listed in the data-quality report.
+      Separately, a small curated list of <strong>adult-serving charters</strong>
+      (in-custody, YouthBuild-model and adult family-learning programs whose
+      students are predominantly 18+, each entry with a documented source) is
+      excluded from the accounting entirely — from physical seats, from the
+      remote pool, and from the calibration — because their enrollment sits
+      outside the resident-children universe and would otherwise read as
+      phantom import at their administrative county. Each pooled program's
       seats are attributed over its <em>legal enrollment footprint</em> — the
       authorizer's county plus adjacent counties, per the Education Code limit
       on non-classroom-based enrollment — by a <strong>capacity-constrained
@@ -140,15 +163,29 @@
       total passes down to districts in proportion to each district's own
       measured grade-band gap — a district with no unexplained outflow
       receives none. What a county's ceiling refuses stays in its "counted in
-      other counties" residual. Both classification criteria under-reach:
-      non-classroom programs run by large authorizers pass the ratio test and
-      stay in that measured residual. This is documented, not patched.
+      other counties" residual. At the county level the model treats CDE
+      enrollment counts as the <strong>gold standard</strong> (they are audited
+      administrative records) and census data as <em>relative</em> evidence,
+      via a <strong>conservation decomposition</strong> of each county's
+      remaining residual: real cross-county enrollment must have a counterparty
+      — an exporter's students can only appear as unabsorbed surplus in an
+      adjacent county — so the residual splits into a matched single-hop flow
+      component (capped by both ends, no relay chains) and a non-conserved
+      remainder that arithmetically cannot be students anywhere. That remainder
+      is published as its own "survey–administrative alignment" band, never as
+      enrollment. Safeguards run on every build: county ACS child populations
+      are verified against Census administrative population estimates (so
+      residuals can never be phantom population), and matched county pairs are
+      audited for stability across vintages (real flows persist; matched noise
+      does not). This is documented, not patched.
     </p>
 
-    <h2 id="netimport">6. The net import number</h2>
+    <h2 id="netimport">6. The net balance number</h2>
     <p>
-      For each area and window:
-      <em>net import = seats at physical schools located there (in resident
+      The headline metric is the <strong>net enrollment balance</strong> —
+      "net importer" and "net exporter" are its interpretive shorthand. For
+      each area and window:
+      <em>net balance = seats at physical schools located there (in resident
       units) − (resident public-school children − the remote estimate − the
       county adjustment)</em>. The remote estimate is the area's population
       share of its county's footprint allocation (section 5); the county
@@ -168,14 +205,10 @@
       purely in-person transfers, and no public data separates the two. A
       geographic consistency check helps read it: where a district's export
       exceeds its neighbors' combined surpluses (e.g. Compton), the excess is
-      most consistent with remote-program use above the allocated share. The per-county
-      and statewide closure checks run on every build, alongside a regression
-      test that the model reproduces the LAUSD story's published resident series
-      exactly — and a validation against California's one piece of
-      <em>observed</em> pair-level transfer data, the District of Choice program:
-      69% of its transfer students move between adjacent districts (supporting
-      the nearby-draw premise), and model nets agree in direction with observed
-      program nets for nearly all participating districts.
+      most consistent with remote-program use above the allocated share.
+      Closure, population-control, stability, regression, and observed-transfer
+      checks run on every build — <a href="#checks">section 8</a> shows this
+      build's numbers.
     </p>
 
     <h2 id="uncertainty">7. Uncertainty</h2>
@@ -188,7 +221,83 @@
       zero". Estimated quantities say "est." wherever they appear.
     </p>
 
-    <h2 id="nets-only">8. Why nets, not pairwise flows</h2>
+    <h2 id="checks">8. How we check the model</h2>
+    <p>
+      A conservation model can fail quietly — by inventing students, losing
+      them, or matching noise. These checks run on every build (via the
+      pipeline's data-quality suite); the numbers below are this build's, read
+      from the same computation the report uses.
+    </p>
+    <ul>
+      <li>
+        <strong>Closure.</strong> District nets sum to zero within every county
+        and county nets close statewide, by construction — verified each build.
+        {#if val?.closure_max_share != null}
+          Largest closure error this build:
+          {val.closure_max_share < 1e-9
+            ? 'below one part in a billion'
+            : `${(val.closure_max_share * 100).toFixed(4)}% of statewide enrollment`}.
+        {/if}
+      </li>
+      <li>
+        <strong>No phantom population.</strong> County ACS child counts are
+        verified against the Census Bureau's administrative population
+        estimates, so residuals can never be population error.
+        {#if val?.popest}
+          This build: {val.popest.n} county-vintages compared, worst deviation
+          {(val.popest.worst_dev * 100).toFixed(1)}%{val.popest.n_drift
+            ? ` (${val.popest.n_drift} pandemic-era county-vintages over the 2% watch threshold, documented in the DQ report)`
+            : ''}.
+        {/if}
+      </li>
+      <li>
+        <strong>The LAUSD regression.</strong> The statewide model must
+        reproduce the LAUSD story's published resident series.
+        {#if val?.lausd}
+          This build: {val.lausd.n_ok}/{val.lausd.n} vintages within tolerance
+          (largest deviation {(val.lausd.max_dev_share * 100).toFixed(2)}%).
+        {/if}
+      </li>
+      <li>
+        <strong>Matched pairs persist.</strong> Real cross-county flows should
+        recur window after window; matched noise should not. The longest-running
+        matched pairs this build:
+        {#if val?.pairs?.length}
+          {#each val.pairs.slice(0, 4) as p, i}{i ? '; ' : ' '}{p.exp.replace(' County', '')} →
+            {p.imp.replace(' County', '')} ({p.n_windows} windows{p.latest
+              ? `, ~${p.latest.toLocaleString()} latest`
+              : ''}){/each}.
+        {/if}
+      </li>
+      <li>
+        <strong>Against observed transfers.</strong> California's one piece of
+        observed pair-level data is the District of Choice program.
+        {#if val?.doc}
+          In {val.doc.year - 1}–{String(val.doc.year).slice(2)},
+          {val.doc.pair_students.toLocaleString()} observed transfer students
+          moved in matched district pairs, {Math.round(val.doc.adjacent_share * 100)}%
+          between <em>adjacent</em> districts — supporting the nearby-draw
+          premise — and the model's net direction agrees with the observed
+          program net for {val.doc.agree_ok} of {val.doc.agree_all}
+          participating districts (>20 transfers); disagreements are expected
+          where the program is a small share of a district's total movement.
+        {:else}
+          Observed transfers prefer nearby districts, and model nets agree in
+          direction for nearly all participating districts.
+        {/if}
+      </li>
+      <li>
+        <strong>Refusing to invent students.</strong> When a county's residual
+        exceeds its legal footprint's combined surpluses, the model publishes
+        the excess as survey–administrative alignment — not as enrollment.
+        Placer County is the standing example: a persistent apparent surplus
+        with no counterparty anywhere in its footprint, consistent with ACS
+        growth-lag in fast-building suburbs, is shown as alignment rather than
+        forced into a student-flow channel.
+      </li>
+    </ul>
+
+    <h2 id="nets-only">9. Why nets, not pairwise flows</h2>
     <p>
       We considered publishing "district A exchanges N students with district B"
       style estimates from a distance-based allocation, and rejected it: such an
@@ -213,7 +322,7 @@
       uncertainty, or student-level data that is not public.
     </p>
 
-    <h2 id="limits">9. What this cannot say</h2>
+    <h2 id="limits">10. What this cannot say</h2>
     <ul>
       <li>
         <strong>No causes.</strong> A net export is correlated with inter-district
