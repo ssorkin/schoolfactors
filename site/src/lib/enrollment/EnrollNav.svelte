@@ -4,6 +4,7 @@
   const TABS = [
     { path: '/enrollment', label: 'Statewide' },
     { path: '/enrollment/districts', label: 'District map' },
+    { path: '/enrollment/balance', label: 'Balance table' },
     { path: '/enrollment/programs', label: 'Remote programs' },
     { path: '/enrollment/methodology', label: 'How this is modeled' }
   ];

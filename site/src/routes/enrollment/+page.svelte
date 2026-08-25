@@ -107,6 +107,11 @@
         {win} — about {pct1(remoteLast?.[2])} of statewide enrollment, up from
         {pct1(remoteFirst?.[2])} in {f.remote.series[0][0] - 4}–{f.remote.series[0][0]}
         — and grew through every survey window, even as total enrollment fell.
+        {#if f.remote.current}
+          By census day {f.remote.current[0] - 1}–{String(f.remote.current[0]).slice(2)}
+          it reached ~{nK(f.remote.current[1])} students
+          ({pct1(f.remote.current[2])} of the state).
+        {/if}
         <a href="/enrollment/programs">Browse the programs →</a>
       </li>
       <li>
@@ -116,14 +121,18 @@
         {pct(f.balance.res_within5_share)} of resident public-school children
         live in a district whose modeled balance is within ±5%. Counties are
         tighter still: {f.counties.within2} of {f.counties.n} are within ±2%.
+        <a href="/enrollment/balance">Every district's balance →</a>
       </li>
       <li>
-        <b>Persistent imbalances are real — and asymmetric.</b> Across three
-        non-overlapping survey windows, {f.persistence.importers} of
-        {n(f.persistence.n)} districts show a significant net-importer balance
-        in all three; only {f.persistence.exporters} are persistent exporters
-        (part of measured outflow is absorbed by the remote-sector attribution
-        rather than by neighboring districts).
+        <b>Some imbalances are chronic, not noise.</b> Among the
+        {n(f.persistence.n)} districts estimated reliably across all three
+        non-overlapping survey windows, {f.persistence.importers} were
+        significant net importers in every window and
+        {f.persistence.exporters} significant net exporters — persistent
+        patterns that survive a decade of independent samples. (Many tiny
+        rural districts also chronically seat far more students than their
+        handful of resident children — real, but too small to state as rates.)
+        <a href="/enrollment/balance#f=persist">See who they are →</a>
       </li>
       {#if nlTop}
         <li>

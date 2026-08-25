@@ -16,12 +16,17 @@ net, 68% are within their own survey margin of zero (73% among the 622 with
 district with |net| ≤ 5%. Supports the "mostly balanced" takeaway with
 either framing (count or resident-weighted).
 
-**F2 — Persistent imbalances exist and are asymmetric.** Across three
-non-overlapping windows (2010–14, 2015–19, 2020–24; 933 districts present in
-all three), 87 districts (9%) were significant net importers in all three
-and 30 (3%) significant net exporters. The import-side asymmetry is real in
-the data (exporter outflow is partly absorbed by the remote attribution and
-by below-margin noise).
+**F2 — Persistent imbalances exist; the apparent asymmetry was a
+small-district artifact.** Across three non-overlapping windows (2010–14,
+2015–19, 2020–24; 933 districts present in all three), 87 districts were
+significant net importers in all three and 30 significant net exporters —
+but *(correction, 2026-08-25, found while building the balance table)* the
+87 is dominated by micro-districts (a handful of resident children, schools
+serving far wider areas: +500%-style rates the survey cannot support).
+Requiring the map's ±15pp reliability gate in every window, the base is 368
+districts and the counts are 22 persistent importers vs 24 persistent
+exporters — no asymmetry. The shipped findings and the landing copy use the
+gated numbers; do not write the asymmetry claim.
 
 **F3 — "Giant importers dissolve when virtual is removed" holds only in the
 tail; reframe as administrative vs. physical.** Among districts with ≥500

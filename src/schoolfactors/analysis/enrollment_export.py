@@ -106,6 +106,8 @@ def _findings_block(
     latest_v: int | None,
     names: dict[str, str],
     nonlocal_map: dict[str, dict],
+    persistence: dict | None = None,
+    remote_current: list | None = None,
 ) -> dict | None:
     """Statewide takeaways for the landing page, computed fresh each build so the
     narrative can never drift from the data (see analysis/
@@ -125,28 +127,7 @@ def _findings_block(
     tot_res = d["res_pub"].sum()
     bal_res = d.filter(pl.col("net_rate").abs() <= 0.05)["res_pub"].sum()
 
-    # Persistence over three NON-overlapping ACS windows (overlapping windows
-    # share sample and would overstate persistence).
     vints3 = [latest_v - 10, latest_v - 5, latest_v]
-    p = (
-        live.filter(pl.col("vintage").is_in(vints3))
-        .with_columns((pl.col("res_moe") / pl.col("res_pub")).alias("moe"))
-        .with_columns(
-            pl.when(pl.col("net_rate") > pl.col("moe"))
-            .then(1)
-            .when(pl.col("net_rate") < -pl.col("moe"))
-            .then(-1)
-            .otherwise(0)
-            .alias("sig")
-        )
-        .group_by("geoid")
-        .agg(
-            pl.len().alias("nv"),
-            pl.col("sig").min().alias("smin"),
-            pl.col("sig").max().alias("smax"),
-        )
-        .filter(pl.col("nv") == len(vints3))
-    )
 
     # Remote sector: pool size and share of statewide enrollment per window.
     remote_series = []
@@ -220,11 +201,13 @@ def _findings_block(
         },
         "persistence": {
             "windows": [[v - 4, v] for v in vints3],
-            "n": p.height,
-            "importers": p.filter(pl.col("smin") == 1).height,
-            "exporters": p.filter(pl.col("smax") == -1).height,
+            **(persistence or {}),
         },
-        "remote": {"series": remote_series, **remote_latest},
+        "remote": {
+            "series": remote_series,
+            "current": remote_current,
+            **remote_latest,
+        },
         "counties": {
             "n": c.height,
             "within2": c.filter(pl.col("net_rate").abs() <= 0.02).height,
@@ -409,6 +392,68 @@ def export_enrollment() -> None:
                 "ratio": admin_ru / r["res_pub"],
             }
 
+    # Annual remote census: observed census-day enrollment at classified remote
+    # programs, per spring — the classification comes from the survey window
+    # ending that spring (the latest classification carries forward to newer
+    # springs, so recent years are a mild lower bound: a program newly remote
+    # since the last window would not yet be classified).
+    remote_census: list[list] = []
+    if ef.REMOTE_PROGRAMS_PARQUET.exists():
+        rp_all = pl.read_parquet(ef.REMOTE_PROGRAMS_PARQUET)
+        if rp_all.height:
+            vmin, vmax = int(rp_all["vintage"].min()), int(rp_all["vintage"].max())
+            cls_by_v: dict[int, set[str]] = {}
+            for v_, cds_ in rp_all.select("vintage", "cds").iter_rows():
+                cls_by_v.setdefault(int(v_), set()).add(cds_)
+            for s in sorted(seats["spring"].unique().to_list()):
+                cset = cls_by_v.get(min(max(int(s), vmin), vmax), set())
+                sub = seats.filter(pl.col("spring") == s)
+                rem = sub.filter(pl.col("cds").is_in(sorted(cset)))["total"].sum()
+                tot = sub["total"].sum()
+                remote_census.append(
+                    [int(s), _r(rem), _r(rem / tot, 4) if tot else None]
+                )
+
+    # Persistence over three NON-overlapping windows (overlapping windows share
+    # sample): +1 = significant net importer in all three, -1 = exporter in all
+    # three. Restricted to districts whose margin stays within the map's
+    # reliability gate (±15pp, mirroring site MOE_GATE) in every window —
+    # without the gate, tiny rural districts (a handful of resident children,
+    # schools serving a far wider area) dominate the importer list with
+    # +500%-style rates the survey cannot support. Shipped per district so the
+    # balance table can surface them.
+    persist_map: dict[str, int] = {}
+    n_persist_base = 0
+    if latest_v is not None:
+        vints3 = [latest_v - 10, latest_v - 5, latest_v]
+        p3 = (
+            live_dist.filter(pl.col("vintage").is_in(vints3))
+            .with_columns((pl.col("res_moe") / pl.col("res_pub")).alias("moe"))
+            .with_columns(
+                pl.when(pl.col("net_rate") > pl.col("moe"))
+                .then(1)
+                .when(pl.col("net_rate") < -pl.col("moe"))
+                .then(-1)
+                .otherwise(0)
+                .alias("sig"),
+                (pl.col("moe") <= 0.15).alias("reliable"),
+            )
+            .group_by("geoid")
+            .agg(
+                pl.len().alias("nv"),
+                pl.col("sig").min().alias("smin"),
+                pl.col("sig").max().alias("smax"),
+                pl.col("reliable").min().alias("rel"),
+            )
+            .filter((pl.col("nv") == len(vints3)) & pl.col("rel"))
+        )
+        n_persist_base = p3.height
+        for g, _nv, smin, smax, _rel in p3.iter_rows():
+            if smin == 1:
+                persist_map[g] = 1
+            elif smax == -1:
+                persist_map[g] = -1
+
     cut_map = dict(cuts.select("geoid", "cut").iter_rows())
     # Pseudo grade-range areas are folded into their parent district's node in
     # the flow model — no index row of their own (their polygons already carry
@@ -454,6 +499,7 @@ def export_enrollment() -> None:
                     std,
                     None,
                     None,
+                    persist_map.get(gid),
                 ]
             )
     # county rows: geoid = 2-digit CDE county code; centroid = mean of members'.
@@ -500,15 +546,24 @@ def export_enrollment() -> None:
                 _r(last["net_misalign"] / last["res_pub"], 4)
                 if last and last["res_pub"] and last.get("net_misalign") is not None
                 else None,
+                None,
             ]
         )
     index_payload = {
         "cols": ["geoid", "cds", "name", "dtype", "county", "ll", "net_rate",
                  "net_moe", "res", "seats", "virt_share", "perf", "spark",
-                 "res_chg", "seats_chg", "std", "flow_rate", "mis_rate"],
+                 "res_chg", "seats_chg", "std", "flow_rate", "mis_rate", "persist"],
         "vintages": vintages,
         "rows": index_rows,
-        "findings": _findings_block(flows, calib, latest_v, names, nonlocal_map),
+        "findings": _findings_block(
+            flows, calib, latest_v, names, nonlocal_map,
+            persistence={
+                "n": n_persist_base,
+                "importers": sum(1 for v in persist_map.values() if v == 1),
+                "exporters": sum(1 for v in persist_map.values() if v == -1),
+            },
+            remote_current=remote_census[-1] if remote_census else None,
+        ),
     }
     (ENROLL_DIR / "index.json").write_text(json.dumps(index_payload))
     print(f"  enrollment/index.json: {len(index_rows):,} rows")
@@ -812,6 +867,9 @@ def export_enrollment() -> None:
                     )
                 },
                 "xfrac": xf_out,
+                # Annual observed remote census (spring, seats, share of state)
+                # for the year-by-year chart; classification per covering window.
+                "census": remote_census,
                 "programs": prog_rows,
                 "nonlocal": {
                     "window": [latest_v - 4, latest_v] if latest_v else None,

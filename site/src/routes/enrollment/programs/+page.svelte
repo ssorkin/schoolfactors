@@ -47,6 +47,39 @@
     return fr.map(([dst, f]) => [data.county_names[dst] ?? dst, Math.round(r.seats * f), f]);
   }
 
+  // Year-by-year remote census chart (observed census-day seats at classified
+  // programs). Simple inline SVG in the NetImportChart idiom.
+  const CW = 380;
+  const CH = 200;
+  const CM = { t: 16, r: 14, b: 26, l: 40 };
+  let census = $derived((data?.census ?? []).filter((r) => r[1] != null));
+  let cMax = $derived(Math.max(1, ...census.map((r) => r[1])) * 1.08);
+  let CX = $derived.by(() => {
+    const x0 = census[0]?.[0] ?? 0;
+    const x1 = census.at(-1)?.[0] ?? 1;
+    return (v) => CM.l + ((v - x0) / Math.max(1, x1 - x0)) * (CW - CM.l - CM.r);
+  });
+  let CY = $derived((v) => CM.t + (1 - v / cMax) * (CH - CM.t - CM.b));
+  let areaPath = $derived.by(() => {
+    if (census.length < 2) return null;
+    const line = census
+      .map((r, i) => `${i ? 'L' : 'M'}${CX(r[0]).toFixed(1)},${CY(r[1]).toFixed(1)}`)
+      .join('');
+    return (
+      line +
+      `L${CX(census.at(-1)[0]).toFixed(1)},${CY(0).toFixed(1)}` +
+      `L${CX(census[0][0]).toFixed(1)},${CY(0).toFixed(1)}Z`
+    );
+  });
+  let linePath = $derived.by(() =>
+    census.length < 2
+      ? null
+      : census
+          .map((r, i) => `${i ? 'L' : 'M'}${CX(r[0]).toFixed(1)},${CY(r[1]).toFixed(1)}`)
+          .join('')
+  );
+  const kFmt = (v) => `${Math.round(v / 1000)}k`;
+
   // Inline enrollment-trend sparkline over the model's windows.
   function sparkPath(series) {
     const pts = series
@@ -74,18 +107,49 @@
 </svelte:head>
 
 <h1>Remote &amp; non-classroom programs</h1>
-<p class="lede">
-  The programs whose enrollment the flow model removes from physical geography:
-  virtual charters and non-classroom-based (independent-study) programs, which
-  legally enroll students across their authorizer's county and adjacent
-  counties. Each program is classified by one of three routes, listed here from
-  strongest to weakest evidence: a <b>State Board non-classroom-based funding
-  determination</b> (an administrative funding record), the <b>CDE directory's
-  virtual flag</b> (a documented lower bound — it misses some non-classroom
-  programs), and an <b>arithmetic backstop</b> for charters whose enrollment
-  is far beyond their authorizer's resident base. Enrollment is observed
-  census-day data; only the county-of-residence split is a balanced estimate.
-</p>
+<div class="intro">
+  <p class="lede">
+    The programs whose enrollment the flow model removes from physical geography:
+    virtual charters and non-classroom-based (independent-study) programs, which
+    legally enroll students across their authorizer's county and adjacent
+    counties. Each program is classified by one of three routes, listed here from
+    strongest to weakest evidence: a <b>State Board non-classroom-based funding
+    determination</b> (an administrative funding record), the <b>CDE directory's
+    virtual flag</b> (a documented lower bound — it misses some non-classroom
+    programs), and an <b>arithmetic backstop</b> for charters whose enrollment
+    is far beyond their authorizer's resident base. Enrollment is observed
+    census-day data; only the county-of-residence split is a balanced estimate.
+  </p>
+  {#if census.length > 1}
+    <figure class="censusfig">
+      <svg viewBox="0 0 {CW} {CH}" role="img" aria-label="Remote-program census-day enrollment by year">
+        {#each [0.25, 0.5, 0.75, 1] as t}
+          <line x1={CM.l} x2={CW - CM.r} y1={CY(cMax * t)} y2={CY(cMax * t)} class="grid" />
+          <text x={CM.l - 5} y={CY(cMax * t) + 3.5} text-anchor="end" class="tick">{kFmt(cMax * t)}</text>
+        {/each}
+        <line x1={CM.l} x2={CW - CM.r} y1={CY(0)} y2={CY(0)} class="axis" />
+        <path d={areaPath} class="area" />
+        <path d={linePath} class="line" />
+        {#each census as r}
+          {#if r[0] % 5 === 0}
+            <text x={CX(r[0])} y={CH - 8} text-anchor="middle" class="tick">{r[0]}</text>
+          {/if}
+          <circle cx={CX(r[0])} cy={CY(r[1])} r="2.4" class="dot">
+            <title>{r[0] - 1}–{String(r[0]).slice(2)}: {r[1].toLocaleString()} students{r[2] != null ? ` (${(r[2] * 100).toFixed(1)}% of state)` : ''}</title>
+          </circle>
+        {/each}
+      </svg>
+      <figcaption>
+        Census-day enrollment at classified remote programs.
+        {census.at(-1)[0] - 1}–{String(census.at(-1)[0]).slice(2)}:
+        <b>{census.at(-1)[1].toLocaleString()}</b> students
+        ({(census.at(-1)[2] * 100).toFixed(1)}% of statewide enrollment).
+        Recent years are a mild lower bound — newly remote programs may not yet
+        be classified.
+      </figcaption>
+    </figure>
+  {/if}
+</div>
 
 {#if data}
   <div class="filters">
@@ -218,6 +282,60 @@
   .lede {
     max-width: 62rem;
     color: #52514e;
+  }
+  .intro {
+    display: grid;
+    grid-template-columns: minmax(320px, 7fr) minmax(300px, 4fr);
+    gap: 1.4rem;
+    align-items: start;
+    max-width: 74rem;
+  }
+  .intro .lede {
+    margin-top: 0;
+  }
+  .censusfig {
+    margin: 0;
+  }
+  .censusfig svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .censusfig .grid {
+    stroke: #eee8db;
+    stroke-width: 1;
+  }
+  .censusfig .axis {
+    stroke: #b5aea1;
+    stroke-width: 1;
+  }
+  .censusfig .tick {
+    font-size: 10px;
+    fill: #898781;
+  }
+  .censusfig .area {
+    fill: #4a3aa7;
+    fill-opacity: 0.14;
+  }
+  .censusfig .line {
+    fill: none;
+    stroke: #4a3aa7;
+    stroke-width: 2;
+  }
+  .censusfig .dot {
+    fill: #4a3aa7;
+    stroke: #fff;
+    stroke-width: 0.8;
+  }
+  .censusfig figcaption {
+    font-size: 0.78rem;
+    color: #898781;
+    margin-top: 0.3rem;
+  }
+  @media (max-width: 900px) {
+    .intro {
+      grid-template-columns: 1fr;
+    }
   }
   .filters {
     display: flex;
