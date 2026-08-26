@@ -229,6 +229,70 @@
     </tbody>
   </table>
 
+  {#if data.who}
+    {@const W = data.who}
+    {@const pc = (v) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`)}
+    <section class="who">
+      <h2>Who attends</h2>
+      <p class="lede">
+        The sector's students are not one population — its two poles each have
+        a coherent demographic center of gravity. <b>Virtual charters</b>
+        ({W.totals.virtual.toLocaleString()} students in {W.year}) skew
+        elementary-age ({pc(W.grades[0][2])} in TK–5), White
+        ({pc(W.cats[0][2])} vs {pc(W.cats[0][1])} statewide), English-only,
+        and less low-income than the state — the profile of structured home
+        study. <b>Independent-study programs</b> (the SBE non-classroom
+        determinations, {W.totals.ncb.toLocaleString()} students) are the
+        opposite pole: {pc(W.grades[2][3])} are in grades 9–12, their income
+        mix is near the state's ({pc(W.cats[6][3])} vs {pc(W.cats[6][1])}
+        socioeconomically disadvantaged), and their disability and
+        foster-youth shares run above it — the profile of credit recovery and
+        re-enrollment. Both poles enroll
+        far fewer English learners than the state, and both report nonbinary
+        students at two to four times the statewide rate. These are
+        compositions of who is enrolled — the data cannot say why.
+      </p>
+      <div class="whowrap">
+        <table class="whotbl">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Statewide</th>
+              <th><span class="sw swv"></span>Virtual charters</th>
+              <th><span class="sw swn"></span>Independent study</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each [...W.cats, ...W.grades] as row (row[0])}
+              {@const max = Math.max(row[1] ?? 0, row[2] ?? 0, row[3] ?? 0, 0.001)}
+              <tr>
+                <td class="lbl">{row[0]}</td>
+                {#each [1, 2, 3] as i}
+                  <td>
+                    <div class="cell">
+                      <div
+                        class="bar b{i}"
+                        style="width: {((row[i] ?? 0) / max) * 100}%"
+                      ></div>
+                      <span class="val">{pc(row[i])}</span>
+                    </div>
+                  </td>
+                {/each}
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+      <p class="mapnote">
+        Census-day enrollment {W.year}, school-level reporting categories;
+        groups are compared within their own category family and never summed.
+        Small cells (n&lt;11) are suppressed in the source, so rare-group
+        shares — nonbinary especially — are lower bounds. The small arithmetic
+        backstop pool (~12k students) is omitted from the columns.
+      </p>
+    </section>
+  {/if}
+
   <section class="nl">
     <h2>How nonlocal can a district's enrollment get?</h2>
     <p class="lede">
@@ -442,6 +506,80 @@
     fill: none;
     stroke: #4a3aa7;
     stroke-width: 1.5;
+  }
+  .who {
+    margin-top: 2rem;
+    max-width: 62rem;
+  }
+  .who h2 {
+    font-size: 1.05rem;
+    margin: 0 0 0.3rem;
+  }
+  .whowrap {
+    overflow-x: auto;
+  }
+  .whotbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+    margin-top: 0.5rem;
+  }
+  .whotbl th {
+    text-align: left;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #898781;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #e8e1d5;
+    white-space: nowrap;
+  }
+  .whotbl td {
+    padding: 0.22rem 0.5rem;
+    border-bottom: 1px solid #f1ece1;
+  }
+  .whotbl .lbl {
+    white-space: nowrap;
+    color: #2b2722;
+  }
+  .cell {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 7.5rem;
+  }
+  .bar {
+    height: 9px;
+    border-radius: 2px;
+    min-width: 1px;
+  }
+  .bar.b1 {
+    background: #b5aea1;
+  }
+  .bar.b2 {
+    background: #4a3aa7;
+  }
+  .bar.b3 {
+    background: #8f7fd0;
+  }
+  .val {
+    font-variant-numeric: tabular-nums;
+    color: #52514e;
+    white-space: nowrap;
+  }
+  .sw {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 0.3rem;
+    vertical-align: -1px;
+  }
+  .swv {
+    background: #4a3aa7;
+  }
+  .swn {
+    background: #8f7fd0;
   }
   .nl {
     margin-top: 2rem;

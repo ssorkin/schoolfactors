@@ -100,6 +100,88 @@ def _perf_history() -> dict[str, list[list]]:
     return out
 
 
+# "Who attends" comparison groups: curated, compared only within their own
+# category family (race, ELAS, SG, gender) — never summed across families
+# (student groups overlap).
+_WHO_GROUPS = [
+    ("RE_W", "White"),
+    ("RE_H", "Hispanic / Latino"),
+    ("RE_A", "Asian"),
+    ("RE_B", "Black / African American"),
+    ("ELAS_EL", "English learner"),
+    ("ELAS_RFEP", "Former English learner (reclassified)"),
+    ("SG_SD", "Socioeconomically disadvantaged"),
+    ("SG_DS", "Students with disabilities"),
+    ("SG_HM", "Homeless"),
+    ("SG_FS", "Foster youth"),
+    ("GN_X", "Nonbinary-reported"),
+]
+
+
+def _who_attends(con: duckdb.DuckDBPyConnection, tables: set[str]) -> dict | None:
+    """Demographic composition of the remote sector's two poles vs the state,
+    from the latest census-day enrollment files (school-level reporting
+    categories). Shares are within-pole compositions — who is enrolled, never
+    why. Small-cell suppression (n<11) makes rare-group shares lower bounds."""
+    if "enrollment_raw" not in tables or not ef.REMOTE_PROGRAMS_PARQUET.exists():
+        return None
+    rp = pl.read_parquet(ef.REMOTE_PROGRAMS_PARQUET)
+    if not rp.height:
+        return None
+    rv = int(rp["vintage"].max())
+    kind_of = dict(rp.filter(pl.col("vintage") == rv).select("cds", "kind").iter_rows())
+    ay = con.execute("SELECT max(academicyear) FROM enrollment_raw").fetchone()[0]
+    if ay is None:
+        return None
+    cats = {c for c, _l in _WHO_GROUPS} | {"TA"}
+    agg: dict[str, dict[str, float]] = {}
+    for cds_, cat, n in con.execute(
+        "SELECT cds, reportingcategory, sum(TRY_CAST(total_enr AS DOUBLE)) "
+        "FROM enrollment_raw WHERE academicyear = ? AND aggregatelevel = 'S' "
+        f"AND reportingcategory IN ({','.join('?' * len(cats))}) GROUP BY 1, 2",
+        [ay, *sorted(cats)],
+    ).fetchall():
+        if n is None:
+            continue
+        for pole in ("state", kind_of.get(cds_)):
+            if pole:
+                d = agg.setdefault(pole, {})
+                d[cat] = d.get(cat, 0) + n
+    # Grade bands from the total rows (TK-5 / 6-8 / 9-12).
+    g_cols = ["gr_tk", "gr_kn"] + [f"gr_{i:02d}" for i in range(1, 13)]
+    bands: dict[str, list[float]] = {}
+    for row in con.execute(
+        f"SELECT cds, {', '.join(f'sum(TRY_CAST({c} AS DOUBLE))' for c in g_cols)} "
+        "FROM enrollment_raw WHERE academicyear = ? AND aggregatelevel = 'S' "
+        "AND reportingcategory = 'TA' GROUP BY 1",
+        [ay],
+    ).fetchall():
+        for pole in ("state", kind_of.get(row[0])):
+            if pole:
+                b = bands.setdefault(pole, [0.0, 0.0, 0.0])
+                vals = [v or 0 for v in row[1:]]
+                b[0] += sum(vals[0:7])  # TK-5
+                b[1] += sum(vals[7:10])  # 6-8
+                b[2] += sum(vals[10:14])  # 9-12
+    poles = ["state", "virtual", "ncb"]
+    if any(p not in agg or not agg[p].get("TA") for p in poles):
+        return None
+
+    def shares(key: str) -> list[float | None]:
+        return [_r(agg[p].get(key, 0) / agg[p]["TA"], 4) for p in poles]
+
+    return {
+        "year": ay,
+        "poles": poles,
+        "totals": {p: _r(agg[p]["TA"]) for p in poles},
+        "cats": [[label, *shares(key)] for key, label in _WHO_GROUPS],
+        "grades": [
+            [label, *[_r(bands[p][i] / sum(bands[p]), 4) for p in poles]]
+            for i, label in enumerate(["TK–5", "6–8", "9–12"])
+        ],
+    }
+
+
 def _findings_block(
     flows: pl.DataFrame,
     calib: pl.DataFrame,
@@ -261,6 +343,7 @@ def export_enrollment() -> None:
             ).fetchall():
                 if nm and not school_names.get(cds_):
                     school_names[cds_] = nm
+        who_block = _who_attends(con, tables)
     finally:
         con.close()
 
@@ -873,6 +956,7 @@ def export_enrollment() -> None:
                 # program count) for the year-by-year chart; classification per
                 # covering window.
                 "census": remote_census,
+                "who": who_block,
                 "programs": prog_rows,
                 "nonlocal": {
                     "window": [latest_v - 4, latest_v] if latest_v else None,
