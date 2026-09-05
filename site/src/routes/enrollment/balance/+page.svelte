@@ -12,16 +12,35 @@
   let q = $state('');
   let restored = false;
 
-  onMount(async () => {
-    const h = new URLSearchParams(location.hash.slice(1));
+  // Runs on mount AND on hashchange: hash-only URL changes (pasted links,
+  // back/forward) don't remount the page, so absent params reset to defaults.
+  // Reads the event's newURL when given — the router can rewrite location
+  // before hashchange dispatches, but the event keeps the incoming value.
+  function restoreHash(ev) {
+    const hash = ev?.newURL ? new URL(ev.newURL).hash : location.hash;
+    const h = new URLSearchParams(hash.slice(1));
     const f = h.get('f');
-    if (['imp', 'exp', 'balanced', 'persist', 'persist-imp', 'persist-exp'].includes(f)) filter = f;
-    if (h.get('c')) county = h.get('c');
-    if (h.get('k') === 'counties') kind = 'counties';
+    filter = ['imp', 'exp', 'balanced', 'persist', 'persist-imp', 'persist-exp'].includes(f)
+      ? f
+      : 'all';
+    county = h.get('c') || 'all';
+    kind = h.get('k') === 'counties' ? 'counties' : 'districts';
     restored = true;
+  }
+
+  $effect(() => {
+    window.addEventListener('hashchange', restoreHash);
+    return () => window.removeEventListener('hashchange', restoreHash);
+  });
+
+  onMount(async () => {
+    restoreHash();
     index = await getIndex();
   });
 
+  // `lastWritten` keeps a spurious re-run (the router touches the page store
+  // on popstate) from "correcting" a freshly pasted hash back to stale state.
+  let lastWritten = null;
   $effect(() => {
     if (!restored) return;
     const h = new URLSearchParams();
@@ -29,6 +48,8 @@
     if (county !== 'all') h.set('c', county);
     if (kind !== 'districts') h.set('k', kind);
     const s = h.toString();
+    if (s === lastWritten) return;
+    lastWritten = s;
     const target = location.pathname + location.search + (s ? '#' + s : '');
     if (target !== location.pathname + location.search + location.hash) {
       replaceState(target, {});

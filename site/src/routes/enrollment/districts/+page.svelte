@@ -18,12 +18,26 @@
   // mount, kept current afterwards; the guard keeps the first effect run from
   // clobbering an incoming URL. Pre-restructure /enrollment links with district
   // params redirect here with the hash intact.
-  onMount(async () => {
-    const h = new URLSearchParams(location.hash.slice(1));
-    if (h.get('m') && FLOW_METRICS[h.get('m')]) metric = h.get('m');
-    if (['k8', 'hs'].includes(h.get('b'))) band = h.get('b');
-    if (h.get('y') != null && h.get('y') !== '') yearIdx = +h.get('y');
+  // Runs on mount AND on hashchange: hash-only URL changes (pasted links,
+  // back/forward) don't remount the page, so absent params reset to defaults.
+  // Reads the event's newURL when given — the router can rewrite location
+  // before hashchange dispatches, but the event keeps the incoming value.
+  function restoreHash(ev) {
+    const hash = ev?.newURL ? new URL(ev.newURL).hash : location.hash;
+    const h = new URLSearchParams(hash.slice(1));
+    metric = h.get('m') && FLOW_METRICS[h.get('m')] ? h.get('m') : 'net_import';
+    band = ['k8', 'hs'].includes(h.get('b')) ? h.get('b') : 'k8';
+    yearIdx = h.get('y') != null && h.get('y') !== '' ? +h.get('y') : -1;
     restored = true;
+  }
+
+  $effect(() => {
+    window.addEventListener('hashchange', restoreHash);
+    return () => window.removeEventListener('hashchange', restoreHash);
+  });
+
+  onMount(async () => {
+    restoreHash();
     const index = await getIndex();
     enrollDistricts = new Set(
       index.rows
@@ -35,6 +49,9 @@
     );
   });
 
+  // `lastWritten` keeps a spurious re-run (the router touches the page store
+  // on popstate) from "correcting" a freshly pasted hash back to stale state.
+  let lastWritten = null;
   $effect(() => {
     if (!restored) return;
     const h = new URLSearchParams();
@@ -42,6 +59,8 @@
     if (band !== 'k8') h.set('b', band);
     if (yearIdx >= 0) h.set('y', String(yearIdx));
     const s = h.toString();
+    if (s === lastWritten) return;
+    lastWritten = s;
     // Only touch the URL when it actually changes: an unconditional
     // replaceState here fires during hydration, before the router is ready,
     // and aborts hydration (orphaning this page's DOM on later navigations).

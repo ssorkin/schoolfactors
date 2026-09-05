@@ -52,35 +52,54 @@
   let restored = $state(false);
   let initFacets = null;
 
-  function restoreHash() {
-    const p = new URLSearchParams(window.location.hash.slice(1));
+  // Restores view state from the fragment. Runs on mount AND on hashchange:
+  // editing the hash of an open tab (pasting a shared URL, back/forward) is a
+  // same-document navigation — no remount — so every param must reset to its
+  // default when absent, never keep the previous view's value. Reads the hash
+  // from the event when given: the router can rewrite location before the
+  // hashchange event dispatches, but event.newURL keeps the incoming value.
+  function restoreHash(ev) {
+    const hash = ev?.newURL ? new URL(ev.newURL).hash : window.location.hash;
+    const p = new URLSearchParams(hash.slice(1));
     query = p.get('q') ?? '';
     const k = p.get('k');
-    if (['school', 'district', 'county'].includes(k)) kindFilter = k;
+    kindFilter = ['school', 'district', 'county'].includes(k) ? k : 'all';
     const lv = p.get('lv');
-    if (['elementary', 'middle', 'high', 'k-12'].includes(lv)) levelFilter = lv;
+    levelFilter = ['elementary', 'middle', 'high', 'k-12'].includes(lv) ? lv : 'all';
     includeInactive = p.get('i') === '1';
     const s = p.get('s');
     if (s && SORT_KEYS.has(s)) {
       sortKey = s;
       sortDir = p.get('d') === '-1' ? -1 : 1;
+    } else {
+      sortKey = 'name';
+      sortDir = 1;
     }
+    for (const t of Object.keys(typeSel)) typeSel[t] = true;
     for (const t of (p.get('t') ?? '').split('.')) {
       if (t in typeSel) typeSel[t] = false;
     }
-    const f = p.get('f');
-    if (f) {
-      initFacets = {};
-      for (const part of f.split(',')) {
-        const m = part.match(/^(\w+):(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
-        if (m) initFacets[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
-      }
+    initFacets = {};
+    for (const part of (p.get('f') ?? '').split(',')) {
+      const m = part.match(/^(\w+):(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
+      if (m) initFacets[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
     }
     colorByPct = p.get('c') === '1';
     if (p.get('v') === 'map') openMap();
+    else view = 'table';
+    if (items) {
+      resetFacets();
+      applyInitFacets();
+    }
     restored = true;
   }
 
+  // Writes state back to the fragment. `lastWritten` makes this effect only
+  // act when its own serialization changed: it re-fires on router activity
+  // (popstate sets the page store), and without the guard such a run would
+  // "correct" a freshly pasted hash back to stale state before restoreHash
+  // ever saw it.
+  let lastWritten = null;
   $effect(() => {
     if (!browser || !restored) return;
     const p = new URLSearchParams();
@@ -106,10 +125,20 @@
     }
     if (narrowed.length) p.set('f', narrowed.join(','));
     const h = p.toString();
+    if (h === lastWritten) return;
+    lastWritten = h;
     const target = window.location.pathname + window.location.search + (h ? '#' + h : '');
     if (target !== window.location.pathname + window.location.search + window.location.hash) {
       replaceState(target, {});
     }
+  });
+
+  // Hash-only URL changes (pasting a shared link into an open tab, back/
+  // forward) don't remount the page, so re-restore on every hashchange.
+  // replaceState never fires hashchange, so our own writes don't loop.
+  $effect(() => {
+    window.addEventListener('hashchange', restoreHash);
+    return () => window.removeEventListener('hashchange', restoreHash);
   });
 
   let loadError = $state(false);
@@ -321,22 +350,24 @@
   function resetFacets() {
     for (const f of FACETS) fsel[f.key] = [...(bounds[f.key] ?? [0, 1])];
   }
+  // Ranges restored from a shared URL are applied once, clamped to the real
+  // data bounds, after the dataset arrives.
+  function applyInitFacets() {
+    if (!initFacets) return;
+    for (const f of FACETS) {
+      const r = initFacets[f.key];
+      const b = bounds[f.key];
+      if (!r || !b) continue;
+      const lo = Math.min(Math.max(r[0], b[0]), b[1]);
+      const hi = Math.max(Math.min(r[1], b[1]), lo);
+      fsel[f.key] = [lo, hi];
+    }
+    initFacets = null;
+  }
   $effect(() => {
     bounds; // re-run when kind (or data) changes
     resetFacets();
-    // Ranges restored from a shared URL are applied once, clamped to the real
-    // data bounds, after the dataset arrives.
-    if (items && initFacets) {
-      for (const f of FACETS) {
-        const r = initFacets[f.key];
-        const b = bounds[f.key];
-        if (!r || !b) continue;
-        const lo = Math.min(Math.max(r[0], b[0]), b[1]);
-        const hi = Math.max(Math.min(r[1], b[1]), lo);
-        fsel[f.key] = [lo, hi];
-      }
-      initFacets = null;
-    }
+    if (items) applyInitFacets();
   });
 
   const esc = (s) =>

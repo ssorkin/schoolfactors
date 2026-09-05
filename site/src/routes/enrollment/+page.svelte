@@ -18,15 +18,30 @@
   // on mount, kept current afterwards. Links minted before the county-centric
   // landing carry district-map params (a band, or a district-only metric) —
   // those views now live at /enrollment/districts, hash intact.
-  onMount(async () => {
-    const h = new URLSearchParams(location.hash.slice(1));
+  // Runs on mount AND on hashchange: hash-only URL changes (pasted links,
+  // back/forward) don't remount the page, so absent params reset to defaults.
+  // Reads the event's newURL when given — the router can rewrite location
+  // before hashchange dispatches, but the event keeps the incoming value.
+  function restoreHash(ev) {
+    const hash = ev?.newURL ? new URL(ev.newURL).hash : location.hash;
+    const h = new URLSearchParams(hash.slice(1));
     if (h.get('b') || ['seats_chg', 'perf'].includes(h.get('m'))) {
-      goto(`/enrollment/districts${location.hash}`, { replaceState: true });
+      goto(`/enrollment/districts${hash}`, { replaceState: true });
       return;
     }
-    if (h.get('m') && COUNTY_METRICS[h.get('m')]) metric = h.get('m');
-    if (h.get('y') != null && h.get('y') !== '') yearIdx = +h.get('y');
+    metric = h.get('m') && COUNTY_METRICS[h.get('m')] ? h.get('m') : 'net_import';
+    yearIdx = h.get('y') != null && h.get('y') !== '' ? +h.get('y') : -1;
     restored = true;
+  }
+
+  $effect(() => {
+    window.addEventListener('hashchange', restoreHash);
+    return () => window.removeEventListener('hashchange', restoreHash);
+  });
+
+  onMount(async () => {
+    restoreHash();
+    if (!restored) return; // redirected to /enrollment/districts
     const index = await getIndex();
     enrollDistricts = new Set(
       index.rows
@@ -38,12 +53,17 @@
     );
   });
 
+  // `lastWritten` keeps a spurious re-run (the router touches the page store
+  // on popstate) from "correcting" a freshly pasted hash back to stale state.
+  let lastWritten = null;
   $effect(() => {
     if (!restored) return;
     const h = new URLSearchParams();
     if (metric !== 'net_import') h.set('m', metric);
     if (yearIdx >= 0) h.set('y', String(yearIdx));
     const s = h.toString();
+    if (s === lastWritten) return;
+    lastWritten = s;
     // Only touch the URL when it actually changes: an unconditional
     // replaceState here fires during hydration, before the router is ready,
     // and aborts hydration (orphaning this page's DOM on later navigations).
