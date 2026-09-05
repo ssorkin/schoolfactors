@@ -1,0 +1,28 @@
+id: caaspp-charter-lea-district-name
+dataset: caaspp
+years: [2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025]
+kind: definition-note
+title: Direct-funded charters carry their own name in District Name, not the CDS-prefix district
+description: >
+  CAASPP entity files treat direct-funded charter schools as their own LEA, so
+  their school rows carry the charter's name in the District Name column
+  ("KIPP Promesa Prep", not "Los Angeles Unified") even though the CDS district
+  segment identifies the authorizing district (e.g. 19-64733 = Los Angeles
+  Unified, which prefixes ~220 direct-funded charters per year). A smaller set
+  of charters listed under an authorizer's CDS prefix shows the same pattern
+  (e.g. Long Valley Charter under Ravendale-Termo Elementary), and SBE-authorized
+  charters have their own "SBE - ..." pseudo-district rows.
+evidence: >
+  DuckDB check on caaspp_entities: 1,008 type-9 and 457 type-7 school rows have a
+  District Name that differs from the district-office row (school code 0000000)
+  at their CDS prefix; 219 of the type-9 rows sit under 19-64733 in 2024 alone.
+  Surfaced on the site as the district: facet search silently excluding every
+  direct-funded charter (a "district:los angeles unified" query missed all
+  LAUSD-authorized independent charters).
+handling: >
+  The site export (analysis/export.py, _names) replaces a school row's district
+  name with the district-office row's name at its CDS prefix, matching how every
+  rollup on the site folds charters into their CDS-prefix district; rows whose
+  prefix district never appears in CAASPP keep the LEA name. Analyses reading
+  caaspp_entities directly must not treat District Name as the CDS-prefix
+  district's name.

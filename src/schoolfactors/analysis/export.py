@@ -45,15 +45,31 @@ EFFECT_COLS = [
 
 
 def _names() -> pl.DataFrame:
-    """Latest known name per entity (falling back through years for closed schools)."""
+    """Latest known name per entity (falling back through years for closed schools).
+
+    CAASPP files list direct-funded charters as their own LEA, so their school
+    rows carry the charter's name in district_name ("KIPP Promesa Prep", not
+    "Los Angeles Unified"). Every rollup on the site folds charters into their
+    CDS-prefix district, so school rows take that district's name here too —
+    otherwise district: facet searches silently exclude ~1,000 direct-funded
+    charters (known_issues/caaspp-charter-lea-district-name.yaml). Schools
+    whose prefix district never appears in CAASPP keep the LEA name.
+    """
     con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     df = con.execute("""
-        SELECT cds, school_name, district_name, county_name, type_id
-        FROM (
-            SELECT cds, school_name, district_name, county_name, type_id,
-                   row_number() OVER (PARTITION BY cds ORDER BY test_year DESC) AS rn
-            FROM caaspp_entities
-        ) WHERE rn = 1
+        WITH latest AS (
+            SELECT cds, school_name, district_name, county_name, type_id
+            FROM (
+                SELECT cds, school_name, district_name, county_name, type_id,
+                       row_number() OVER (PARTITION BY cds ORDER BY test_year DESC) AS rn
+                FROM caaspp_entities
+            ) WHERE rn = 1
+        )
+        SELECT e.cds, e.school_name,
+               coalesce(d.district_name, e.district_name) AS district_name,
+               e.county_name, e.type_id
+        FROM latest e
+        LEFT JOIN latest d ON d.cds = substr(e.cds, 1, 7) || '0000000'
     """).pl()
     con.close()
     return df
