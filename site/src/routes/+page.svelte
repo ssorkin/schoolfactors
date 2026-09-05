@@ -100,6 +100,8 @@
   // "correct" a freshly pasted hash back to stale state before restoreHash
   // ever saw it.
   let lastWritten = null;
+  let urlTimer;
+  $effect(() => () => clearTimeout(urlTimer)); // cancel a pending write on destroy
   $effect(() => {
     if (!browser || !restored) return;
     const p = new URLSearchParams();
@@ -127,10 +129,21 @@
     const h = p.toString();
     if (h === lastWritten) return;
     lastWritten = h;
-    const target = window.location.pathname + window.location.search + (h ? '#' + h : '');
-    if (target !== window.location.pathname + window.location.search + window.location.hash) {
-      replaceState(target, {});
-    }
+    // Debounced, and never allowed to throw: the filter box writes on every
+    // keystroke and the map sliders on every drag step, and Safari throws
+    // SecurityError past 100 history writes per 30s — an exception here would
+    // kill the whole reactive graph (frozen page until reload). The trailing
+    // write carries the final state, so dropping intermediates loses nothing.
+    clearTimeout(urlTimer);
+    urlTimer = setTimeout(() => {
+      const target = window.location.pathname + window.location.search + (h ? '#' + h : '');
+      if (target === window.location.pathname + window.location.search + window.location.hash) return;
+      try {
+        replaceState(target, {});
+      } catch {
+        lastWritten = null; // let a later state change retry
+      }
+    }, 250);
   });
 
   // Hash-only URL changes (pasting a shared link into an open tab, back/

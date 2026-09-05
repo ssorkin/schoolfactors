@@ -76,7 +76,13 @@
     if (!browser || !rows) return;
     const target = window.location.pathname + `?g=${group}`;
     if (target !== window.location.pathname + window.location.search) {
-      replaceState(target, {});
+      // Never throw here: Safari rate-limits history writes, and an exception
+      // in an effect freezes the page's reactivity until reload.
+      try {
+        replaceState(target, {});
+      } catch {
+        /* dropped write; the next state change retries */
+      }
     }
   });
 

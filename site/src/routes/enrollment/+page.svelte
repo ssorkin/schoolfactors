@@ -69,7 +69,13 @@
     // and aborts hydration (orphaning this page's DOM on later navigations).
     const target = location.pathname + location.search + (s ? '#' + s : '');
     if (target !== location.pathname + location.search + location.hash) {
-      replaceState(target, {});
+      // Never throw here: Safari rate-limits history writes, and an exception
+      // in an effect freezes the page's reactivity until reload.
+      try {
+        replaceState(target, {});
+      } catch {
+        /* dropped write; the next state change retries */
+      }
     }
   });
 
