@@ -28,5 +28,9 @@ handling: >
   spending history shown on entity pages is CDE's published figures after the
   documented normalizations, and the site copy notes that year-to-year level
   shifts can reflect filing conventions rather than actual spending changes.
-  Candidate improvement: flag LEA-years whose median central-to-school-site
-  ratio departs by more than ~3x from that LEA's own cross-year median.
+  Since then, ppe-lea-disagrees-with-current-expense adds a district-level
+  cross-check against CDE's Current Expense per ADA that catches the cases
+  large enough to move the district total: Sacramento City and Riverside
+  Unified's 2.8-4.2x years and Berkeley Unified's 2018-19 through 2021-22
+  filings are dropped. Inflation confined to a school too small to move its
+  district's rollup outside the 1.5x band still passes.

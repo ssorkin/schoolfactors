@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import bisect
 import json
+from collections.abc import Callable
 
 import duckdb
 import polars as pl
@@ -170,6 +171,95 @@ def _round_row(d: dict) -> dict:
 def _rows(part: dict, cds: str) -> list[dict]:
     df = part.get((cds,))
     return df.to_dicts() if df is not None else []
+
+
+# ESSA per-pupil expenditure normalization (known_issues/ppe-*.yaml).
+PPE_TOTALS_MEDIAN = 100_000  # LEA median above this: filed total dollars, not per-pupil
+PPE_BROKEN_MEDIAN = 5_000  # LEA median below this: broken filing, drop the LEA
+PPE_MIN, PPE_MAX = 5_000, 500_000  # usable per-pupil range after normalization
+# Cross-check against CDE's Current Expense of Education per ADA (known issue
+# ppe-lea-disagrees-with-current-expense): a district LEA whose
+# membership-weighted ESSA total differs from its own per-ADA figure by more
+# than this factor either way filed inconsistently, and none of its rows are
+# trusted for that year.
+PPE_CE_FACTOR = 1.5
+
+
+def normalize_ppe_year(
+    rows_y: list[tuple],
+    year: int,
+    enr_lookup: Callable[[str, int], float | None],
+    ce_per_ada: dict[tuple[int, str], float],  # (spring year, 5-digit district code)
+) -> tuple[dict[str, tuple[float, float | None]], dict[str, float]]:
+    """Normalize one ESSA PPE file year into usable per-school values.
+
+    ``rows_y`` holds (file, school cds, lea cds, per-pupil total, membership)
+    tuples. Returns ``({school cds: (per-pupil, weight)}, {district lea cds:
+    ratio})``; the second dict names district LEAs dropped by the
+    current-expense cross-check, with the ratio that tripped it. Weight is
+    student membership, or census enrollment for the same school-year when
+    membership wasn't published (only recent files carry it).
+
+    Named transforms, each documented in known_issues/:
+    - ppe-totals-reporting: an LEA whose median reported value exceeds
+      $100k/pupil filed total dollars; its rows are divided by weight.
+    - ppe-implausibly-low-filings: an LEA whose median is under $5k/pupil
+      (below the LCFF base grant alone) filed broken data; every row is
+      dropped, including any that individually pass the floor.
+    - values outside [$5k, $500k] after normalization are unusable. Tiny
+      SpEd/court/community-day programs legitimately run $150k-$400k per
+      pupil, so the ceiling only cuts the physically absurd.
+    - ppe-lea-disagrees-with-current-expense: a district LEA whose own-school
+      rollup (dollars / students, never averaged ratios) is outside a factor
+      of PPE_CE_FACTOR of CDE's Current Expense per ADA for the same year
+      filed inconsistently (e.g. Burbank Unified 2024-25 allocated $387/pupil
+      of central costs where CDE's district figure implies ~$8k); all of its
+      rows are dropped. Charter LEAs have no current-expense figure and are
+      not checked.
+    """
+    by_lea: dict[str, list[float]] = {}
+    for _, _, lea, pp, _ in rows_y:
+        if pp > 0:
+            by_lea.setdefault(lea or "", []).append(pp)
+    totals_leas = {
+        lea for lea, v in by_lea.items() if sorted(v)[len(v) // 2] > PPE_TOTALS_MEDIAN
+    }
+    broken_leas = {
+        lea for lea, v in by_lea.items() if sorted(v)[len(v) // 2] < PPE_BROKEN_MEDIAN
+    }
+    values: dict[str, tuple[float, float | None]] = {}
+    lea_of: dict[str, str] = {}
+    for _, scds, lea, pp, mem in rows_y:
+        lea = lea or ""
+        if pp <= 0 or lea in broken_leas:
+            continue
+        weight = mem or enr_lookup(scds, year)
+        if lea in totals_leas:
+            if not weight:
+                continue
+            pp = pp / weight
+        if not PPE_MIN <= pp <= PPE_MAX:
+            continue
+        values[scds] = (pp, weight)
+        lea_of[scds] = lea
+    lea_pool: dict[str, list[float]] = {}
+    for scds, (pp, weight) in values.items():
+        lea = lea_of[scds]
+        if weight and len(lea) == 14 and lea.endswith("0000000"):
+            agg = lea_pool.setdefault(lea, [0.0, 0.0])
+            agg[0] += pp * weight
+            agg[1] += weight
+    inconsistent: dict[str, float] = {}
+    for lea, (dollars, students) in lea_pool.items():
+        ce = ce_per_ada.get((year, lea[2:7]))  # keyed by 5-digit district code
+        if not ce or students <= 0:
+            continue
+        ratio = dollars / students / ce
+        if not 1 / PPE_CE_FACTOR <= ratio <= PPE_CE_FACTOR:
+            inconsistent[lea] = round(ratio, 2)
+    if inconsistent:
+        values = {s: v for s, v in values.items() if lea_of[s] not in inconsistent}
+    return values, inconsistent
 
 
 SPARK_YEARS = [2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
@@ -629,6 +719,18 @@ def run_export() -> None:
         WHERE TRY_CAST(school_expenditures_state_local AS DOUBLE) IS NOT NULL
           AND length(cds) = 14
     """).fetchall()
+    # CDE Current Expense of Education per ADA by district and spring year
+    # (currentexpense2425 → 2025), the district-level cross-check for the
+    # ESSA filings. The ingest didn't recognize these sheets' header row, so
+    # the columns are positional: unnamed_1 is the 5-digit district code
+    # (unique statewide), unnamed_5 the per-ADA figure.
+    ce_per_ada: dict[tuple[int, str], float] = {}
+    for file_, dist, per_ada in con_dir.execute("""
+        SELECT file, unnamed_1, TRY_CAST(unnamed_5 AS DOUBLE)
+        FROM currentexpense_raw
+        WHERE length(unnamed_1) = 5 AND TRY_CAST(unnamed_5 AS DOUBLE) > 0
+    """).fetchall():
+        ce_per_ada[(2000 + int(file_[-2:]), dist)] = per_ada
     # Coordinates for the map view. CDE directory lat/long, bounded to
     # California so placeholder zeros/typos don't land points in the Gulf of
     # Guinea; entities sharing a cds across files get the average.
@@ -708,50 +810,28 @@ def run_export() -> None:
         if key not in latlon_map and n:
             latlon_map[key] = (round(la / n, 5), round(lo / n, 5))
 
-    # Normalize PPE totals-reporters (known issue ppe-totals-reporting): ~5% of
-    # LEAs filed total dollars in the per-pupil columns. The convention is
-    # consistent within an LEA (per year), so an LEA whose median reported value
-    # exceeds $100k/pupil is treated as a totals-reporter and its rows are
-    # divided by membership. Symmetrically (known issue
-    # ppe-implausibly-low-filings), an LEA whose median is under $5k/pupil —
-    # below the LCFF base grant alone — filed broken data (e.g. Mt. Diablo
-    # Unified 2024-25 omitted state/local dollars entirely) and every one of its
-    # rows is unusable, including any that individually pass the floor.
-    # Post-normalization values outside [$5k, $500k] are dropped as unusable:
-    # below the LCFF base grant is impossible, but tiny SpEd/court/community-day
-    # programs legitimately run $150k-$400k per pupil, so the ceiling only cuts
-    # the physically absurd. Each published year is normalized independently
-    # (a filing convention can change between years), producing a per-entity
-    # spending history plus the latest-year value used in the table.
+    # Normalize each published ESSA year independently (a filing convention
+    # can change between years) — see normalize_ppe_year for the named
+    # transforms — producing a per-entity spending history plus the
+    # latest-year value used in the table.
     ppe_hist: dict[str, dict[int, int]] = {}
+    ppe_inconsistent: dict[int, dict[str, float]] = {}
+
+    def _enr_lookup(scds: str, year: int) -> float | None:
+        # The student_membership column only exists in recent ESSA files
+        # (2023-24+); census enrollment for the same school-year stands in
+        # for it elsewhere — without this, district/county rollups silently
+        # started in 2024 despite per-pupil figures existing back to 2019.
+        return enr_hist.get(scds, {}).get(year)
+
     for file_ in sorted({r[0] for r in ppe_rows_all}):
         year = 2000 + int(file_[9:11])  # essappe1819data → spring 2019
         rows_y = [r for r in ppe_rows_all if r[0] == file_]
-        ppe_by_lea: dict[str, list[float]] = {}
-        for _, _, lea, pp, _ in rows_y:
-            if pp > 0:
-                ppe_by_lea.setdefault(lea, []).append(pp)
-        ppe_totals_leas = {
-            lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] > 100_000
-        }
-        ppe_broken_leas = {
-            lea for lea, v in ppe_by_lea.items() if sorted(v)[len(v) // 2] < 5_000
-        }
+        values, ppe_inconsistent[year] = normalize_ppe_year(
+            rows_y, year, _enr_lookup, ce_per_ada
+        )
         ppe_pool: dict[str, list] = {}
-        for _, scds, lea, pp, mem in rows_y:
-            if pp <= 0 or lea in ppe_broken_leas:
-                continue
-            # The student_membership column only exists in recent ESSA files
-            # (2023-24+); census enrollment for the same school-year stands in
-            # for it elsewhere — without this, district/county rollups silently
-            # started in 2024 despite per-pupil figures existing back to 2019.
-            weight = mem or enr_hist.get(scds, {}).get(year)
-            if lea in ppe_totals_leas:
-                if not weight:
-                    continue
-                pp = pp / weight
-            if not 5_000 <= pp <= 500_000:
-                continue
+        for scds, (pp, weight) in values.items():
             ppe_hist.setdefault(scds, {})[year] = round(pp)
             # District/county figures: reconstruct dollars (pp × membership,
             # or census enrollment when membership wasn't published), sum,
@@ -773,6 +853,11 @@ def run_export() -> None:
                 ppe_hist.setdefault(key, {})[year] = round(dollars / students)
     PPE_YEARS = sorted({y for d in ppe_hist.values() for y in d})
     latest_ppe_year = max(PPE_YEARS) if PPE_YEARS else None
+    for year, flagged in sorted(ppe_inconsistent.items()):
+        print(
+            f"  ppe {year}: {len(flagged)} district LEAs dropped — ESSA rollup vs "
+            f"current expense per ADA outside 1/{PPE_CE_FACTOR}..{PPE_CE_FACTOR}"
+        )
     ppe_map: dict[str, int] = {
         k: d[latest_ppe_year] for k, d in ppe_hist.items() if latest_ppe_year in d
     }

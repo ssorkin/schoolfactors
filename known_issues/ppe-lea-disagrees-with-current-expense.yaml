@@ -1,0 +1,58 @@
+id: ppe-lea-disagrees-with-current-expense
+dataset: ppe
+years: [2019, 2020, 2021, 2022, 2023, 2024, 2025]
+kind: reporting-inconsistency
+title: Some district LEAs' ESSA per-pupil filings contradict CDE's own district spending figure
+description: >
+  CDE publishes two spending series that should broadly agree: the school-level
+  ESSA per-pupil expenditure file (school-site plus allocated central costs,
+  per student membership) and the district-level Current Expense of Education
+  per ADA (Form CEA / EDP 365). Rolling each district's own ESSA school rows
+  up (dollars = per-pupil x membership, summed, re-divided) and dividing by its
+  current expense per ADA gives a ratio with median 0.92-1.01 and an
+  interquartile range of roughly 0.88-1.06 in every year 2018-19 through
+  2024-25 — the two agree for most districts. A tail of 60-77 district LEAs per
+  year (roughly 5-11% of students) falls outside a factor of 1.5 either way, and
+  inspection shows filing errors rather than real spending differences.
+  Burbank Unified is the motivating case: its 2024-25 filing reports $387/pupil
+  of allocated central costs at every school (central federal $0), so every
+  school and the district roll up to $8-9k/pupil, while CDE's current expense
+  file puts the district at $16,445 per ADA ($220M over 13,386 ADA). The same
+  district's 2019-20 filing carried central costs that were not per-pupil
+  (district rollup $74k/pupil vs $11.6k per ADA), 2020-21 double-counted
+  ($21.7k vs $11.6k), and 2022-23 and 2023-24 charged each school the entire
+  district central budget divided by that school's own enrollment (central
+  state/local x membership is ~$65M and ~$96M at every regular school), which
+  the totals-reporter screen then mangled. Only 2018-19 and 2021-22 agree with
+  the district figure. Other large LEAs in the tail include West Contra Costa
+  Unified (ratio 0.34-0.60 every year), San Francisco Unified (0.44-0.57),
+  Sweetwater Union High (0.50 in 2023-24), Stockton Unified (0.59-0.66 in the
+  last two years), and the central-allocation inflations already noted in
+  ppe-central-allocation-conventions (Sacramento City Unified 2.8-4.2x,
+  Riverside Unified 2.9-3.8x).
+evidence: >
+  data/raw/ppe/essappe2425data.xlsx rows for lea_cds_code 19643370000000
+  (central_expenditures_state_local = 387 on every row) against
+  data/raw/currentexpense/currentexpense2425.xlsx row 19/64337 (EDP 365
+  220,141,026.90; ADA 13,386.19; per ADA 16,445.38). Per-year ratio
+  distributions and the flagged list are printed by `sf export`
+  ("ppe YYYY: N district LEAs dropped"). Note that current expense per ADA
+  runs slightly above a per-membership figure (ADA is ~93-95% of enrollment)
+  and excludes food services and facilities, so a ratio a little under 1 is
+  expected, not a discrepancy.
+handling: >
+  Named transform in analysis/export.py (normalize_ppe_year): after the
+  totals-reporter and broken-LEA normalizations, each district LEA's own
+  school rows are rolled up by membership and compared with that district's
+  current expense per ADA for the same year; an LEA outside [1/1.5, 1.5] is
+  treated as an inconsistent filing and ALL of its rows for that year are
+  dropped (its individually plausible school-site figures are not trusted
+  either, since the missing or inflated component is the central allocation
+  that every school shares). Affected schools and districts show no per-pupil
+  spending for that year rather than a wrong number; no substitution from the
+  current-expense series or from other years is attempted, because the site
+  metric is the ESSA total per membership and the two series differ in scope.
+  Charter LEAs have no current-expense figure and are not checked. The
+  district/county rollups remain subject to the 70%-of-enrollment coverage
+  gate, so a district whose own schools are dropped does not get a rollup
+  built from co-located charters alone.
