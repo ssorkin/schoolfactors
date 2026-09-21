@@ -9,6 +9,7 @@
   import SpendChart from '$lib/SpendChart.svelte';
   import CsvButton from '$lib/CsvButton.svelte';
   import PeerHistogram from '$lib/PeerHistogram.svelte';
+  import AdjustmentWalkthrough from '$lib/AdjustmentWalkthrough.svelte';
   import PeerScatter from '$lib/PeerScatter.svelte';
   import { pctColor } from '$lib/maptypes.js';
 
@@ -939,6 +940,15 @@
       <div class="label">trend per year — are successive cohorts scoring higher?</div>
     </div>
   </section>
+  {#if entity.adj_calc}
+    <AdjustmentWalkthrough
+      calc={entity.adj_calc}
+      pool={entity.adj_pool}
+      pct={entity.adj_pct}
+      kind={entity.kind}
+      lastYear={e.last_year}
+    />
+  {/if}
 {/if}
 
 <h2 id="cohorts">Cohorts</h2>

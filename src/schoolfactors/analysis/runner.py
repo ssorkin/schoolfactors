@@ -16,7 +16,13 @@ from schoolfactors.paths import PARQUET_DIR
 
 
 def run_analysis() -> None:
-    from schoolfactors.analysis.model import ADJUST_COVARIATES, adjust, eb_shrink, fit_school_models
+    from schoolfactors.analysis.model import (
+        ADJUST_COVARIATES,
+        COUNTY_COVARIATES,
+        adjust,
+        eb_shrink,
+        fit_school_models,
+    )
     from schoolfactors.analysis.panel import build_covariates, build_panel
 
     print("building panel …")
@@ -202,8 +208,11 @@ def run_analysis() -> None:
     for param in ("level", "growth", "trend", "move"):
         deffects, _, _ = eb_shrink(deffects, param)
     deffects = deffects.join(build_covariates(DISTRICT_TYPES), on="cds", how="left")
+    dcoefs = []
     for param in ("level", "growth"):
-        deffects, _, _ = adjust(deffects, param)
+        deffects, coef, _ = adjust(deffects, param)
+        dcoefs.append(coef)
+    dcoef_table = dcoefs[0].join(dcoefs[1], on="term", how="full", coalesce=True)
     dhist = level_history(dpanel, lambda y: build_covariates(DISTRICT_TYPES, max_year=y))
     print(f"  history: {len(dhist):,} district×cutoff rows")
 
@@ -218,9 +227,12 @@ def run_analysis() -> None:
     for param in ("level", "growth", "trend", "move"):
         ceffects, _, _ = eb_shrink(ceffects, param)
     ceffects = ceffects.join(build_covariates(COUNTY_TYPES), on="cds", how="left")
-    county_covs = ["share_econ_dis", "share_el", "share_swd", "share_hispanic", "share_white"]
+    county_covs = COUNTY_COVARIATES
+    ccoefs = []
     for param in ("level", "growth"):
-        ceffects, _, _ = adjust(ceffects, param, county_covs)
+        ceffects, coef, _ = adjust(ceffects, param, county_covs)
+        ccoefs.append(coef)
+    ccoef_table = ccoefs[0].join(ccoefs[1], on="term", how="full", coalesce=True)
     chist = level_history(
         cpanel, lambda y: build_covariates(COUNTY_TYPES, max_year=y), county_covs
     )
@@ -235,6 +247,10 @@ def run_analysis() -> None:
     ceffects.write_parquet(out / "county_effects.parquet")
     chist.write_parquet(out / "county_effects_history.parquet")
     coef_table.write_parquet(out / "adjustment_coefficients.parquet")
+    # Districts and counties are adjusted by their own cross-sectional fits;
+    # the entity pages show each fit's coefficients term by term.
+    dcoef_table.write_parquet(out / "adjustment_coefficients_district.parquet")
+    ccoef_table.write_parquet(out / "adjustment_coefficients_county.parquet")
 
     import json
 

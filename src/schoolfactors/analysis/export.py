@@ -79,6 +79,90 @@ def _effect_payload(row: dict) -> dict:
     return {k: row.get(k) for k in EFFECT_COLS if row.get(k) is not None}
 
 
+def _gamma_table(path, effects: pl.DataFrame, covariates: list[str]) -> dict[str, float]:
+    """Level-adjustment coefficients for one entity kind, keyed by term.
+
+    Falls back to refitting when the analysis predates the saved table: the fit
+    is deterministic on the saved inputs, so it reproduces the saved residuals.
+    """
+    from schoolfactors.analysis.model import adjust
+
+    if path.exists():
+        t = pl.read_parquet(path)
+        return {
+            k: g
+            for k, g in zip(t["term"].to_list(), t["gamma_level"].to_list())
+            if g is not None
+        }
+    print(f"  {path.name} not found; refitting level adjustment for its coefficients")
+    _, coef, _ = adjust(
+        effects.drop([c for c in effects.columns if c.endswith("_adj") or "_adj_" in c]),
+        "level",
+        covariates,
+    )
+    return dict(zip(coef["term"].to_list(), coef["gamma_level"].to_list()))
+
+
+def _adj_calc(row: dict, gam: dict[str, float], xbar: dict[str, float]) -> dict | None:
+    """Term-by-term demographic adjustment of the raw level, for the entity page's
+    "show the calculation" panel.
+
+    Starts from the unshrunken OLS level (the adjustment regresses that, not the
+    shrunken display value). level - intercept - sum(share x coefficient) is the
+    residual; the residual is shrunk by reliability, and the lower bound of the
+    95% band around the shrunken residual is what the percentile ranks.
+
+    Each term is also expressed relative to the mean covariate value of the
+    entities in the fit (xbar): baseline = intercept + sum(coef x mean) is the
+    expected level of an entity with the average mix, and each contribution
+    coef x (x - mean) says how this entity's mix moves it from there. The two
+    forms are the same equation; the centered one reads without a bare
+    intercept.
+    """
+    lvl = row.get("level")
+    resid = row.get("level_adj")
+    if lvl is None or resid is None or not gam or "intercept" not in gam:
+        return None
+    terms = []
+    expected = gam["intercept"]
+    baseline = gam["intercept"]
+    for k, g in gam.items():
+        if k == "intercept":
+            continue
+        x = row.get(k)
+        if x is None:
+            return None
+        expected += x * g
+        baseline += xbar[k] * g
+        terms.append(
+            {
+                "k": k,
+                "x": round(x, 4),
+                "m": round(xbar[k], 4),
+                "g": round(g, 4),
+                "c": round(x * g, 4),
+                "d": round((x - xbar[k]) * g, 4),
+            }
+        )
+    if abs(lvl - expected - resid) > 1e-6:
+        raise ValueError(f"adjustment does not reproduce residual for {row.get('cds')}")
+    out = {
+        "level": round(lvl, 4),
+        "level_se": round(row["level_var"] ** 0.5, 4),
+        "intercept": round(gam["intercept"], 4),
+        "baseline": round(baseline, 4),
+        "terms": terms,
+        "expected": round(expected, 4),
+        "resid": round(resid, 4),
+        "lambda": round(row["level_adj_reliability"], 4),
+        "resid_eb": round(row["level_adj_eb"], 4),
+        "lcb": round(row["level_adj_lcb"], 4),
+    }
+    if row.get("tested_total") is not None:
+        out["tested"] = int(row["tested_total"])
+    return out
+
+
 def _round_row(d: dict) -> dict:
     return {k: (round(v, 3) if isinstance(v, float) else v) for k, v in d.items()}
 
@@ -219,6 +303,36 @@ def run_export() -> None:
         t: g
         for t, g in zip(coefs["term"].to_list(), coefs["gamma_level"].to_list())
         if g is not None
+    }
+    from schoolfactors.analysis.model import ADJUST_COVARIATES, COUNTY_COVARIATES
+
+    # Mean covariate values over the adjustment sample, per kind: the reference
+    # mix the entity page's calculation panel centers its contributions on.
+    def _xbar(effects: pl.DataFrame, covariates: list[str]) -> dict[str, float]:
+        est = effects.filter(
+            pl.col("level").is_not_null()
+            & pl.col("level_adj").is_not_null()
+            & pl.all_horizontal([pl.col(c).is_not_null() for c in covariates])
+        )
+        return {c: float(est[c].mean()) for c in covariates}
+
+    xbar_by_kind = {
+        "school": _xbar(schools, ADJUST_COVARIATES),
+        "district": _xbar(districts, ADJUST_COVARIATES),
+        "county": _xbar(counties, COUNTY_COVARIATES),
+    }
+    gammas_by_kind = {
+        "school": gammas,
+        "district": _gamma_table(
+            PARQUET_DIR / "analysis" / "adjustment_coefficients_district.parquet",
+            districts,
+            ADJUST_COVARIATES,
+        ),
+        "county": _gamma_table(
+            PARQUET_DIR / "analysis" / "adjustment_coefficients_county.parquet",
+            counties,
+            COUNTY_COVARIATES,
+        ),
     }
     names = _names()
 
@@ -872,6 +986,13 @@ def run_export() -> None:
             else:
                 payload["district_has_page"] = payload["district_cds"] in district_pages
                 payload["county_has_page"] = payload["county_cds"] in county_pages
+            calc = _adj_calc(
+                eff_by_cds.get(cds, {}),
+                gammas_by_kind[payload["kind"]],
+                xbar_by_kind[payload["kind"]],
+            )
+            if calc is not None:
+                payload["adj_calc"] = calc
             (SITE_DATA / kind / f"{cds}.json").write_text(json.dumps(payload))
             written[kind] += 1
             eff = payload["effects"]
@@ -1093,6 +1214,13 @@ def run_export() -> None:
         t = school_type_map.get(e["cds"], "standard")
         return "alternative" if t == "alternative" else "general"
 
+    HIST_LO, HIST_W, HIST_N = -1.6, 0.1, 32
+    POOL_LABEL = {
+        ("school", "general"): "schools (general programs)",
+        ("school", "alternative"): "alternative schools",
+        ("district", ""): "districts",
+        ("county", ""): "counties",
+    }
     latest_by_kind: dict[str, int | None] = {}
     for kind_ in ("school", "district", "county"):
         latest = max(
@@ -1126,6 +1254,21 @@ def run_export() -> None:
                 pool = sorted(e[src] for e in index if eligible(e))
                 if len(pool) < 20:
                     continue
+                # The Similar Schools pool itself (histogram of ranked lower
+                # bounds) travels with each member, so its page can show
+                # where the entity's value sits among the values it was
+                # ranked against.
+                if src == "adj_lcb":
+                    bins = [0] * HIST_N
+                    for v in pool:
+                        bins[min(HIST_N - 1, max(0, int((v - HIST_LO) / HIST_W)))] += 1
+                    pool_hist = {
+                        "lo": HIST_LO,
+                        "w": HIST_W,
+                        "bins": bins,
+                        "n": len(pool),
+                        "label": POOL_LABEL[(kind_, cls)],
+                    }
                 for e in index:
                     if eligible(e):
                         lo = bisect.bisect_left(pool, e[src])
@@ -1133,6 +1276,8 @@ def run_export() -> None:
                         e[out] = min(
                             99, max(1, round(100 * (lo + hi) / 2 / len(pool)))
                         )
+                        if src == "adj_lcb":
+                            e["_pool"] = {**pool_hist, "below": lo, "tied": hi - lo}
 
     # Cohort trajectory verdict — the display form of growth. A percentile of
     # growth amplifies near-zero differences (tau is only 0.066 SD/grade) into
@@ -1220,7 +1365,6 @@ def run_export() -> None:
     # (selective/magnet/charter/alternative/standard, mirroring the map legend
     # in site maptypes.js) — in student SDs. Fixed common bins keep every
     # histogram comparable; outliers clamp into the end bins.
-    HIST_LO, HIST_W, HIST_N = -1.6, 0.1, 32
     EIL_WORD = {"ELEM": "elementary", "INTMIDJR": "middle", "HS": "high",
                 "ELEMHIGH": "K-12"}
 
@@ -1409,6 +1553,8 @@ def run_export() -> None:
                 updates["growth_abs"] = round(e["growth_eb"] + state_cohort_slope, 4)
         if e["cds"] in vs_by_cds:
             updates["vs_similar"] = vs_by_cds[e["cds"]]
+        if e.get("_pool") is not None:
+            updates["adj_pool"] = e["_pool"]
         if not updates:
             continue
         path = SITE_DATA / kind_dir[e["kind"]] / f"{e['cds']}.json"
@@ -1425,6 +1571,7 @@ def run_export() -> None:
         e.pop("_ly", None)
         e.pop("_ssl", None)
         e.pop("_simstu", None)
+        e.pop("_pool", None)
 
     (SITE_DATA / "index.json").write_text(json.dumps(index))
     print(f"  wrote {written['schools']:,} school pages, {written['districts']:,} district pages")

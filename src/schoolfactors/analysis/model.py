@@ -174,6 +174,8 @@ ADJUST_COVARIATES = [
     "share_parent_gradschool",
     "log_tested",
 ]
+# Only 58 counties: a reduced set avoids overfitting the cross-section.
+COUNTY_COVARIATES = ["share_econ_dis", "share_el", "share_swd", "share_hispanic", "share_white"]
 
 
 def adjust(df: pl.DataFrame, param: str, covariates: list[str] | None = None) -> pl.DataFrame:
